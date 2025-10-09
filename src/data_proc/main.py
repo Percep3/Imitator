@@ -9,10 +9,10 @@ from keypoints import KeypointProcessing
 main_directory = "/mnt/data"
 
 PROCESS = {
-    "keypoints": False,
-    "labels": False,
+    "keypoints": True,
+    "labels": True,
     "embeddings": True,
-    "ids": False,
+    "ids": True,
 }
 
 def save_keypoints(hdf5Group, videoFolderPath):
@@ -32,7 +32,7 @@ def save_keypoints(hdf5Group, videoFolderPath):
         if not metaDF.loc[metaDF["id"]==name].shape[0] == 1:
             continue
         
-        keypoint = keypoint_tool.process_keypoints_path(videoPath)
+        keypoint = keypoint_tool.process_keypoints(videoPath)
 
         print(keypoint.shape)
         group.create_dataset(str(video_idx), data=keypoint, compression="gzip", compression_opts=4)
@@ -121,9 +121,9 @@ if __name__ == "__main__":
     dataPath = os.path.join(main_directory)#, "data")
     keypoint_tool = KeypointProcessing()
     llm = LLM(main_directory)
-    f = h5py.File(os.path.join(dataPath, "processed_oldver", args.dataset_filename), 'r+')
+    f = h5py.File(os.path.join(dataPath, "videos_val", args.dataset_filename), 'w')
 
-    videosPath = os.path.join(main_directory, "videos")#, "data", "raw")
+    videosPath = os.path.join(main_directory, "videos_val")#, "data", "raw")
 
     print(dataPath)
     print(videosPath)

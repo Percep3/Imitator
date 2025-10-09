@@ -73,6 +73,9 @@ class KeypointDataset(Dataset):
         labels_set = set()
         with h5py.File(self.h5Path, 'r') as f:
             for (dataset, clip) in self.valid_index:
+                if dataset not in ["dataset1", "dataset3", "dataset5", "dataset7"]:
+                    continue
+
                 s = f[dataset]["labels"][clip][:][0].decode()
                 labels_set.add(s)
 
