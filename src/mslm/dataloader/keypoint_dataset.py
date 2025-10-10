@@ -105,6 +105,11 @@ class KeypointDataset(Dataset):
                     try:
                         shape = f[dataset]["keypoints"][clip].shape[0]
             
+                        label_str = f[dataset]["labels"][clip][:][0].decode()
+
+                        if "-() " in label_str:
+                            continue
+
                         if shape < self.max_length:
                             self.valid_index.append((dataset, clip))
                             self.video_lengths.append(shape)
