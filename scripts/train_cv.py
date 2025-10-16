@@ -13,7 +13,7 @@ def run(
     checkpoint_interval: int,
     log_interval: int,
     train_ratio: float = 0.8,
-    key_points: int = 111,
+    key_points: int = 89,
     batch_sampling: bool = True,
     n_folds=5
     ):
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training.")
     parser.add_argument("--batch_sample", type=int, default=8, help="Batch size for training.")
     parser.add_argument("--log_interval", type=int, default=2, help="Interval for logging training progress.")
-    parser.add_argument("--num_keypoints", type=int, default=111, help="Number of keypoints to use in the model.")
+    parser.add_argument("--num_keypoints", type=int, default=89, help="Number of keypoints to use in the model.")
     parser.add_argument("--batch_sampling", type=bool, default=False, help="Enables batch sampling for training.")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
     args = parser.parse_args()

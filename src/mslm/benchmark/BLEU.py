@@ -13,6 +13,7 @@ from ..utils.config_loader import cfg
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import sacrebleu
 from pprint import pprint
+from collections import defaultdict
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -377,8 +378,8 @@ HYPS = [
 ]
 
 def bleu_collate_fn(batch):
-    keypoints, mask_data, _, mask_embds, labels = collate_fn(batch)
-    return keypoints, mask_data, mask_embds, labels
+    keypoints, mask_data, _, mask_embds, labels, dataset_tags = collate_fn(batch)
+    return keypoints, mask_data, mask_embds, labels, dataset_tags
 
 def exec_bleu(true:list[list], pred:list[str]):
     """Compute the BLEU score for the given true and predicted sentences.
@@ -402,7 +403,14 @@ def load_config():
     return h5_file, training_cfg, model_cfg
 
 def load_dataset(h5_file, key_points:int):
-    keypoint_reader = KeypointDataset(h5Path=h5_file, return_label=True, n_keypoints=key_points, data_augmentation=False, max_length=4000)
+    keypoint_reader = KeypointDataset(
+        h5Path=h5_file,
+        return_label=True,
+        return_dataset=True,
+        n_keypoints=key_points,
+        data_augmentation=False,
+        max_length=4000,
+    )
     train_dataset, _, _, _ = keypoint_reader.split_dataset(1)
     train_sampler = BatchSampler(train_dataset, 1)
 
@@ -414,7 +422,12 @@ def load_dataset(h5_file, key_points:int):
         collate_fn=bleu_collate_fn,
         batch_sampler=train_sampler
     )
-    return train_dataloader, keypoint_reader.id_to_label, keypoint_reader.label_to_id
+    return (
+        train_dataloader,
+        keypoint_reader.id_to_label,
+        keypoint_reader.label_to_id,
+        keypoint_reader.id_to_dataset,
+    )
 
 def load_model(model_parameters:dict, version:str, checkpoint:str, epoch:int):
     model_parameters.pop("device", None)  # remove device from model parameters
@@ -583,7 +596,11 @@ def main(version:str, checkpoint:str, epoch:int):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     h5_file, training_cfg, model_cfg = load_config()
-    dataset, id_to_label, label_to_id = load_dataset(h5_file, model_cfg.get("n_keypoints", 89))
+    dataset, id_to_label, label_to_id, id_to_dataset = load_dataset(
+        h5_file, model_cfg.get("n_keypoints", 89)
+    )
+    if id_to_dataset:
+        print(f"Datasets disponibles: {', '.join(id_to_dataset)}")
      
     model = load_model(model_cfg, version, checkpoint, epoch)
     model = model.to(device)
@@ -611,11 +628,16 @@ def main(version:str, checkpoint:str, epoch:int):
                     label_value = sample_group.attrs.get("label", "")
                     if isinstance(label_value, bytes):
                         label_value = label_value.decode("utf-8")
+                    dataset_value = sample_group.attrs.get("dataset", "")
+                    if isinstance(dataset_value, bytes):
+                        dataset_value = dataset_value.decode("utf-8")
+                    dataset_value = dataset_value or None
                     hyps_data = sample_group["hyps"][()]
                     hyps_list = hyps_data.tolist() if isinstance(hyps_data, np.ndarray) else list(hyps_data)
                     hyps_list = [item.decode("utf-8") if isinstance(item, bytes) else item for item in hyps_list]
                     results.append({
                         "label": label_value,
+                        "dataset": dataset_value,
                         "embed_pred": sample_group["embed_pred"][()],
                         "hyps": hyps_list
                     })
@@ -628,8 +650,9 @@ def main(version:str, checkpoint:str, epoch:int):
             h5f.attrs["dataset_size"] = dataset_size
             samples_group = h5f.create_group("samples")
 
-            for sample_idx, (keypoints, mask_data, mask_embds, label_id) in enumerate(tqdm(dataset, desc="Processing samples")):
+            for sample_idx, (keypoints, mask_data, mask_embds, label_id, dataset_tag) in enumerate(tqdm(dataset, desc="Processing samples")):
                 label_text = id_to_label[label_id[0]]
+                dataset_name = dataset_tag[0] if dataset_tag and len(dataset_tag) > 0 else None
                 idx = get_idx_hyps(label_text)
                 if idx == -1:
                     print("no hay mapeado}", label_text)
@@ -651,6 +674,7 @@ def main(version:str, checkpoint:str, epoch:int):
                     
                     res = {
                         "label": label_text,
+                        "dataset": dataset_name,
                         "embed_pred": embed_array,
                         "hyps": HYPS[idx]
                     }
@@ -658,6 +682,7 @@ def main(version:str, checkpoint:str, epoch:int):
                     
                     sample_group = samples_group.create_group(f"{sample_idx:06d}")
                     sample_group.attrs["label"] = label_text
+                    sample_group.attrs["dataset"] = dataset_name or ""
                     sample_group.create_dataset("embed_pred", data=embed_array, compression="gzip")
 
                     hyps_array = np.array(res["hyps"], dtype=object)
@@ -670,22 +695,37 @@ def main(version:str, checkpoint:str, epoch:int):
             h5f.attrs["processed_samples"] = len(samples_group)
     
     tokenizer, all_embeddings = load_llm()
-    hyps_list_bench = []
-    pred_list_bench = []
+    dataset_refs = defaultdict(list)
+    dataset_preds = defaultdict(list)
+
     for res in results:
         embed_pred = torch.from_numpy(res["embed_pred"])
         embed_pred = embed_pred.to(device=all_embeddings.device, dtype=all_embeddings.dtype)
 
         pred_text = embeddings_to_text_viterbi(embed_pred, all_embeddings, tokenizer)
-        
-        pred_list_bench.append(pred_text)
-        hyps_list_bench.append(res["hyps"])
+        res["pred_text"] = pred_text
 
-    # pprint(pred_list_bench)
+        dataset_name = res.get("dataset") or "unknown"
+        dataset_refs[dataset_name].append(res["hyps"])
+        dataset_preds[dataset_name].append(pred_text)
+
+    hyps_list_bench = [res["hyps"] for res in results]
+    pred_list_bench = [res["pred_text"] for res in results]
+
     score_bleu = exec_bleu(hyps_list_bench, pred_list_bench)
-    print(f"BLEU score: {score_bleu:.2f}")
+    print(f"BLEU score (global): {score_bleu:.2f}")
+
+    for dataset_name in sorted(dataset_preds.keys()):
+        score = exec_bleu(dataset_refs[dataset_name], dataset_preds[dataset_name])
+        print(f"BLEU score ({dataset_name}): {score:.2f} [{len(dataset_preds[dataset_name])} samples]")
     
-    with open(f"results.txt", "w") as f:
-        for hyps, pred in zip(hyps_list_bench, pred_list_bench):
-            f.write(f"HYPS: {hyps}\tPRED: {pred}\tCLEAN PRED: {pred.split('<pad>')[0].strip()}\n")
+    with open("results.txt", "w") as f:
+        for res in results:
+            dataset_name = res.get("dataset") or "unknown"
+            pred = res["pred_text"]
+            hyps = res["hyps"]
+            clean_pred = pred.split("<pad>")[0].strip()
+            f.write(
+                f"DATASET: {dataset_name}\tHYPS: {hyps}\tPRED: {pred}\tCLEAN PRED: {clean_pred}\n"
+            )
     return score_bleu

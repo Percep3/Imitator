@@ -183,7 +183,7 @@ class Trainer:
         total_loss = 0
         mse_loss = 0
         cossim_loss = 0
-        for keypoint, frames_padding_mask, embedding, mask_embedding, _ in self.train_loader:
+        for keypoint, frames_padding_mask, embedding, mask_embedding, _, _ in self.train_loader:
             if self.save_tb_model and epoch == 1 and not getattr(self, "graph_added", False):
                 print("Saving graph")
                 self.writer.add_graph(self.model, (keypoint, frames_padding_mask))
@@ -331,7 +331,7 @@ class Trainer:
         val_loss=0
         mse_loss = 0
         cossim_loss = 0
-        for keypoint, frames_padding_mask, embedding, mask_embedding, _ in self.val_loader:        
+        for keypoint, frames_padding_mask, embedding, mask_embedding, _, _ in self.val_loader:        
             loss, mse, cossim = self._val_batch(epoch, keypoint, frames_padding_mask, embedding, mask_embedding)
             if self.distributed is not None:
                 loss_tensor = loss.to(self.device)
@@ -348,8 +348,6 @@ class Trainer:
         final_mse_loss = mse_loss.item() / len(self.val_loader)
         final_cossim_loss = cossim_loss.item() / len(self.val_loader)
         self.writer.add_scalar("Loss/val", final_val_loss, epoch)
-        self.writer.add_scalar("Loss/val_mse", final_mse_loss, epoch)
-        self.writer.add_scalar("Loss/val_cossim", final_cossim_loss, epoch)
         self.writer.add_scalar("Loss/val_mse", final_mse_loss, epoch)
         self.writer.add_scalar("Loss/val_cossim", final_cossim_loss, epoch)
 

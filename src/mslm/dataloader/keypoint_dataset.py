@@ -3,20 +3,29 @@ import h5py
 import numpy as np
 import torch
 import os
-from typing import Optional, List, Tuple
+from typing import Optional, List, Dict
 from torch.utils.data import random_split, Dataset, Subset, ConcatDataset
 from .data_augmentation import normalize_augment_data, remove_keypoints
 from collections import defaultdict
 import random
 
 class TransformedSubset(Dataset):
-    def __init__(self, subset: Subset, transform_fn: str, return_label=False, video_lengths=[], n_keypoints=133):
-        self.subset    = subset
+    def __init__(
+        self,
+        subset: Subset,
+        transform_fn: str,
+        return_label: bool = False,
+        return_dataset: bool = False,
+        video_lengths: Optional[List[int]] = None,
+        n_keypoints: int = 133,
+    ) -> None:
+        self.subset = subset
         self.transform = transform_fn
         self.return_label = return_label
-        self.video_lengths = video_lengths
+        self.return_dataset = return_dataset
+        self.video_lengths = list(video_lengths) if video_lengths is not None else []
         self.n_keypoints = n_keypoints
-        
+
         if self.transform == "Length_variance":
             self.video_lengths = [int(round(0.8 * video)) for video in self.video_lengths]
 
@@ -25,27 +34,45 @@ class TransformedSubset(Dataset):
 
     def __getitem__(self, idx):
         item = self.subset[idx]
-        
-        if isinstance(item, tuple) and len(item) == 3:
-            keypoint, embedding, label = item
-        else:
-            # If item is not unpacked correctly, handle the case
-            keypoint = item
-            embedding = None
-            label = None
+
+        keypoint = item
+        embedding = None
+        label = None
+        dataset_tag = None
+
+        if isinstance(item, tuple):
+            if len(item) >= 4:
+                keypoint, embedding, label, dataset_tag = item[0], item[1], item[2], item[3]
+            elif len(item) == 3:
+                keypoint, embedding, label = item
+            elif len(item) == 2:
+                keypoint, embedding = item
 
         keypoint = normalize_augment_data(keypoint, self.transform, self.n_keypoints)
 
         if not isinstance(embedding, torch.Tensor):
             embedding = torch.as_tensor(embedding)
 
-        if self.return_label:
-            return keypoint, embedding, label
+        label_value = label if self.return_label else None
 
-        return keypoint, embedding, None
+        if self.return_dataset:
+            return keypoint, embedding, label_value, dataset_tag
+
+        return keypoint, embedding, label_value
 
 class KeypointDataset(Dataset):
-    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, labels_vocab_path=None):
+    def __init__(
+        self,
+        h5Path,
+        n_keypoints: int = 111,
+        transform=None,
+        return_label: bool = False,
+        max_length: int = 4000,
+        data_augmentation: bool = True,
+        labels_vocab_path: Optional[str] = None,
+        allowed_datasets: Optional[List[str]] = None,
+        return_dataset: bool = False,
+    ):
         self.h5Path = h5Path
         self.n_keypoints = n_keypoints
         self.transform = transform
@@ -53,6 +80,10 @@ class KeypointDataset(Dataset):
         self.max_length = max_length
         self.video_lengths = []
         self.data_augmentation = data_augmentation
+        self.allowed_datasets = set(allowed_datasets) if allowed_datasets is not None else None
+        self.return_dataset = return_dataset
+        self.dataset_to_id: Dict[str, int] = {}
+        self.id_to_dataset: List[str] = []
     
         self.data_augmentation_dict = {
             0: "Length_variance",
@@ -97,17 +128,24 @@ class KeypointDataset(Dataset):
             
     def processData(self):
         with h5py.File(self.h5Path, 'r') as f:
-            datasets  = list(f.keys())
-            datasets = sorted(datasets)
-        
+            datasets = sorted(list(f.keys()))
+
             self.valid_index = []
             self.original_videos = []
+            observed_datasets = set()
+            allowed = self.allowed_datasets
 
             for dataset in datasets:
-                if dataset not in ["dataset1", "dataset3", "dataset5", "dataset9"]:
+                if allowed is not None and dataset not in allowed:
                     continue
 
-                clip_ids  = list(f[dataset]["embeddings"].keys())
+                observed_datasets.add(dataset)
+
+                if dataset not in self.dataset_to_id:
+                    self.dataset_to_id[dataset] = len(self.id_to_dataset)
+                    self.id_to_dataset.append(dataset)
+
+                clip_ids = list(f[dataset]["embeddings"].keys())
 
                 max_len = 0
                 for clip in clip_ids:
@@ -117,11 +155,10 @@ class KeypointDataset(Dataset):
                         label_str = f[dataset]["labels"][clip][:][0].decode()
                         if "-() " in label_str:
                             continue
-                        
-                        # print(f[dataset]["embeddings"][clip].shape)
+
                         if shape > max_len:
                             max_len = shape
-                            
+
                         if shape < self.max_length:
                             self.valid_index.append((dataset, clip))
                             self.video_lengths.append(shape)
@@ -129,6 +166,12 @@ class KeypointDataset(Dataset):
                         print(f"KeyError for {dataset}/{clip}, skipping...")
                         continue
                 print(f"Dataset: {dataset}, max video length: {max_len}")
+
+            if allowed is not None:
+                missing = sorted(list(allowed - observed_datasets))
+                if missing:
+                    print(f"Warning: requested datasets not found in file: {', '.join(missing)}")
+
             self.dataset_length = len(self.valid_index)
 
     def split_dataset(self, train_ratio):
@@ -143,6 +186,7 @@ class KeypointDataset(Dataset):
                 TransformedSubset(train_subset, 
                                   transform_fn=tf,
                                   return_label=self.return_label,
+                                  return_dataset=self.return_dataset,
                                   video_lengths=train_length,
                                   n_keypoints=self.n_keypoints
                                   )
@@ -170,7 +214,7 @@ class KeypointDataset(Dataset):
     def __len__(self):
         return len(self.valid_index)
 
-    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor, Optional[List[str]]]:
+    def __getitem__(self, idx):
         """
         Recupera una muestra individual del conjunto de datos.
         Este método recupera los puntos clave, la matriz de adyacencia, los embeddings y opcionalmente las etiquetas
@@ -186,11 +230,12 @@ class KeypointDataset(Dataset):
         """
         
         mapped_idx = self.valid_index[idx]
+        dataset_name = mapped_idx[0]
 
         label_id = None
         with h5py.File(self.h5Path, 'r') as f:
-            keypoint = f[mapped_idx[0]]["keypoints"][mapped_idx[1]][:] #type: ignore
-            embedding = f[mapped_idx[0]]["embeddings"][mapped_idx[1]][:] #type: ignore
+            keypoint = f[mapped_idx[0]]["keypoints"][mapped_idx[1]][:]
+            embedding = f[mapped_idx[0]]["embeddings"][mapped_idx[1]][:]
     
             if self.return_label:
                 label_str = f[mapped_idx[0]]["labels"][mapped_idx[1]][:][0].decode()
@@ -205,10 +250,12 @@ class KeypointDataset(Dataset):
         if not isinstance(embedding, torch.Tensor):
             embedding = torch.as_tensor(embedding)
 
-        if self.return_label:
-            return keypoint, embedding, label_id
+        label_value = label_id if self.return_label else None
 
-        return keypoint, embedding, None
+        if self.return_dataset:
+            return keypoint, embedding, label_value, dataset_name
+
+        return keypoint, embedding, label_value
     
 
 class ContrastiveDataset(Dataset):
@@ -257,7 +304,16 @@ class ContrastiveDataset(Dataset):
         """
         # KeypointDataset ya aplica:
         #   keypoint = remove_keypoints(...) y normalize_augment_data(..., "Original", ...)
-        keypoint, embedding, label = self.base[idx]
+        item = self.base[idx]
+
+        if isinstance(item, tuple):
+            if len(item) >= 3:
+                keypoint, embedding, label = item[0], item[1], item[2]
+            else:
+                raise ValueError("Unexpected item structure in base dataset.")
+        else:
+            raise TypeError("Base dataset item must be a tuple.")
+
         return keypoint, embedding, label
 
     def _random_aug(self, keypoint):

@@ -16,6 +16,11 @@ def collate_fn(batch):
     embeddings_list = [item[1] for item in batch]
     labels = [item[2] for item in batch]
 
+    has_dataset_tags = any(isinstance(item, tuple) and len(item) > 3 for item in batch)
+    dataset_tags = None
+    if has_dataset_tags:
+        dataset_tags = [item[3] if isinstance(item, tuple) and len(item) > 3 else None for item in batch]
+
     keypoints_device   = keypoints_list[0].device
     embeddings_device  = embeddings_list[0].device
 
@@ -46,6 +51,7 @@ def collate_fn(batch):
         keypoints_padded.to(torch.float32),
         frames_mask.to(torch.bool),
         embeddings_padded.to(torch.float32),
-        embeddings_mask.to(torch.bool),
-        labels
+    embeddings_mask.to(torch.bool),
+    labels,
+    dataset_tags,
     )
