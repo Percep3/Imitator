@@ -1,12 +1,13 @@
 import torch
 import torch.nn.functional as F
+import typing as t
 
-def imitator_loss(pred_embs: torch.Tensor, target_embs: torch.Tensor, embedding_mask: torch.Tensor = None) -> torch.Tensor:
+def imitator_loss(pred_embs: torch.Tensor, target_embs: torch.Tensor, embedding_mask: torch.Tensor) -> t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Args:
         pred_embs: Tensor of shape (batch_size, seq_len, emb_dim)
         target_embs: Tensor of shape (batch_size, seq_len, emb_dim)
-        embedding_mask: Tensor of shape (batch_size, seq_len) indicating valid positions (True for valid, False for invalid).
+        embedding_mask: Tensor of shape (batch_size, seq_len) indicating valid positions (True for padding, False for valid).
                         If None, all positions are considered valid.
     Returns:
         Scalar loss

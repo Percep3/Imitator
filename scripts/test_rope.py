@@ -1,3 +1,5 @@
+import torch, torch.nn.functional as F
+from torch import nn, Tensor
 import torch
 import math
 from torch import Tensor
@@ -355,3 +357,43 @@ def multi_head_attention_with_rope_forward(
         if not is_batched:
             attn_output = attn_output.squeeze(1)
         return attn_output, None
+    
+class IdentityRoPE(nn.Module):
+    def forward(self, x: Tensor, *, input_pos=None) -> Tensor:
+        return x
+
+def run_no_rope(query, key, value, mha_kwargs):
+    return F.multi_head_attention_forward(
+        query, key, value, **mha_kwargs
+    )
+
+def run_with_identity_rope(query, key, value, mha_kwargs):
+    return multi_head_attention_with_rope_forward(
+        query, key, value, rotary_pos_emb=IdentityRoPE(), **mha_kwargs
+    )
+
+# setup sintético
+torch.manual_seed(0)
+L=S=7; N=3; H=4; D=8; E=H*D
+q = torch.randn(L,N,E)
+k = torch.randn(S,N,E)
+v = torch.randn(S,N,E)
+
+mha_kwargs = dict(
+    embed_dim_to_check=E, num_heads=H,
+    in_proj_weight = torch.cat([torch.eye(E), torch.eye(E), torch.eye(E)], dim=0),
+    in_proj_bias = torch.zeros(3*E),
+    bias_k=None, bias_v=None, add_zero_attn=False, dropout_p=0.0,
+    out_proj_weight=torch.eye(E), out_proj_bias=torch.zeros(E),
+    training=False, key_padding_mask=None, need_weights=True,
+    attn_mask=None, use_separate_proj_weight=False,
+    q_proj_weight=None, k_proj_weight=None, v_proj_weight=None,
+    static_k=None, static_v=None, average_attn_weights=True,
+    is_causal=False
+)
+
+y0, w0 = run_no_rope(q,k,v, mha_kwargs)
+y1, w1 = run_with_identity_rope(q,k,v, mha_kwargs)
+
+assert torch.equal(y0, y1) and torch.equal(w0, w1), "RoPE identidad cambió la salida (no debe)."
+print("Test passed: RoPE identidad no cambia la salida.")

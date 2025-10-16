@@ -61,3 +61,11 @@ env = { PYTHONPATH = "." }
 [tool.poe.tasks.worker]
 cmd = "python scripts/node_worker.py"
 env = { PYTHONPATH = "." }
+
+[tool.poe.tasks.testRope]
+cmd = "python scripts/test_rope.py"
+env = { PYTHONPATH = "." }
+
+[tool.poe.tasks.bench]
+cmd = "python scripts/bench.py"
+env = { PYTHONPATH = "." }
