@@ -14,6 +14,10 @@ def collate_fn(batch):
     """
     keypoints_list  = [item[0] for item in batch]
     embeddings_list = [item[1] for item in batch]
+    labels = [item[2] for item in batch]
+
+    keypoints_device   = keypoints_list[0].device
+    embeddings_device  = embeddings_list[0].device
 
     # Normaliza embeddings a [N, E]
     for i in range(len(embeddings_list)):
@@ -23,8 +27,8 @@ def collate_fn(batch):
         elif emb.dim() != 2:
             raise ValueError(f"Embedding at index {i} has invalid shape {emb.shape}. Expected [N, E] or [1, N, E].")
 
-    frame_lengths = torch.tensor([kp.size(0) for kp in keypoints_list],  dtype=torch.long)
-    token_lengths = torch.tensor([emb.size(0) for emb in embeddings_list], dtype=torch.long)
+    frame_lengths = torch.tensor([kp.size(0) for kp in keypoints_list],  dtype=torch.long, device=keypoints_device)
+    token_lengths = torch.tensor([emb.size(0) for emb in embeddings_list], dtype=torch.long, device=embeddings_device)
 
     keypoints_padded  = pad_sequence(keypoints_list,  batch_first=True, padding_value=0.0)  # [B, T_max, K, D]
     embeddings_padded = pad_sequence(embeddings_list, batch_first=True, padding_value=0.0)  # [B, N_max, E]
@@ -32,8 +36,8 @@ def collate_fn(batch):
     B, T_max, K, D = keypoints_padded.shape
     _, N_max, E    = embeddings_padded.shape
 
-    arange_frames = torch.arange(T_max).unsqueeze(0).expand(B, -1)  # [B, T_max]
-    arange_tokens = torch.arange(N_max).unsqueeze(0).expand(B, -1)  # [B, N_max]
+    arange_frames = torch.arange(T_max, device=keypoints_padded.device).unsqueeze(0).expand(B, -1)  # [B, T_max]
+    arange_tokens = torch.arange(N_max, device=embeddings_padded.device).unsqueeze(0).expand(B, -1)  # [B, N_max]
 
     frames_mask     = arange_frames >= frame_lengths.unsqueeze(1)  # True = padding
     embeddings_mask = arange_tokens >= token_lengths.unsqueeze(1)
@@ -42,5 +46,6 @@ def collate_fn(batch):
         keypoints_padded.to(torch.float32),
         frames_mask.to(torch.bool),
         embeddings_padded.to(torch.float32),
-        embeddings_mask.to(torch.bool)
+        embeddings_mask.to(torch.bool),
+        labels
     )

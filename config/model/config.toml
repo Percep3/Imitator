@@ -1,10 +1,10 @@
 [model]
-input_size = 111
+input_size = 178
 output_size= 3072
-hidden_size= 1024
+hidden_size= 512
 nhead= 16
 ff_dim= 2816
 n_layers= 6
-encoder_dropout = 0.45
-cross_attention_dropout = 0.4
-pool_dim = 256
+encoder_dropout = 0.2
+cross_attention_dropout = 0.2
+conv_channels = 256
