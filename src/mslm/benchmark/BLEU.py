@@ -1,19 +1,19 @@
 import os
-import sacrebleu
 import torch
 import gc
 from tqdm import tqdm
 import torch.nn.functional as F
 import h5py
 import numpy as np
+from typing import Optional, List
 from ..dataloader import KeypointDataset, collate_fn
 from torch.utils.data import DataLoader
 from ..utils.setup_train import  build_model, setup_paths, BatchSampler
 from ..utils.config_loader import cfg
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-import sacrebleu
-from pprint import pprint
+from typing import cast
 from collections import defaultdict
+from ..inference.predictor import MultimodalSignLM
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -377,22 +377,80 @@ HYPS = [
   ["yogur", "yogur"],
 ]
 
+BLEU_CORRECTOR_PROMPT = (
+    "Recibes la transcripción aproximada, ruidosa y con posibles errores ortográficos,"
+    " de un modelo que alinea embeddings de señas en español.\n"
+    "Debes devolver únicamente la palabra o frase más probable en español neutro,"
+    " sin explicaciones adicionales, sin comillas y en minúsculas.\n"
+    "Transcripción aproximada: {noisy_text}\n"
+    "Los tokens ruidosos del modelo aparecerán a continuación; úsalos solo como pista.\n"
+    "Corrección:"
+)
+
+BLEU_SYSTEM_PROMPT = (
+    "Eres un corrector ortográfico para modelos de señas."
+    " Responde solo con la palabra o frase más probable en español neutro," 
+    " sin signos adicionales ni explicaciones."
+    " Si no entiendes la transcripción, responde con la transcripción tal cual. ejemplo:\n"
+    " Transcripción aproximada: spag<pad<thi\n"
+    " Corrección: spaghetti\n"
+    " Transcripción aproximada: gomaĠdeĠmascar\n"
+    " Corrección: goma de mascar\n"
+    "Transcripción aproximada: aĠtierra\n"
+    "Corrección: a tierra\n"
+)
+
+DEFAULT_BENCHMARK_DATASETS: Optional[List[str]] = ["dataset1", "dataset2", "dataset3", "dataset5"]
+
+
+def build_corrector_prompt(noisy_text: str) -> str:
+    cleaned = (noisy_text or "<pad>").strip()
+    return BLEU_CORRECTOR_PROMPT.format(
+        noisy_text=cleaned
+    )
+
 def bleu_collate_fn(batch):
     keypoints, mask_data, _, mask_embds, labels, dataset_tags = collate_fn(batch)
     return keypoints, mask_data, mask_embds, labels, dataset_tags
 
-def exec_bleu(true:list[list], pred:list[str]):
-    """Compute the BLEU score for the given true and predicted sentences.
+# --- NLTK BLEU (1/2/4) con smoothing, formato corpus_bleu ---
+from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
 
-    Args:
-        true (list[list]): lista de listas de oraciones verdaderas, cada lista contienen varias variantes de la misma oración.
-        pred (list[str]): lista de oraciones generadas por el modelo.
+def _tok(s: str) -> list[str]:
+    # tokenización mínima y robusta para BLEU a nivel palabra
+    return (s or "").strip().lower().split()
 
-    Returns:
-        float: el puntaje BLEU calculado.
+def _prepare_nltk_refs(refs: list[list[str]]) -> list[list[list[str]]]:
     """
-    bleu = sacrebleu.corpus_bleu(pred, true, smooth_method="exp")
-    return bleu.score
+    Convierte tu lista de variantes por muestra (List[str]) al formato NLTK:
+    List[ sample -> List[reference -> List[tokens]] ]
+    """
+    return [[_tok(r) for r in ref_list] for ref_list in refs]
+
+def _prepare_nltk_hyps(hyps: list[str]) -> list[list[str]]:
+    """
+    Convierte tus hipótesis a formato NLTK:
+    List[ sample -> List[tokens] ]
+    """
+    return [_tok(h) for h in hyps]
+
+def exec_nltk_bleu_all(
+    refs_per_item: list[list[str]],
+    hyps_per_item: list[str],
+) -> dict[str, float|list[int]]:
+    """
+    Calcula BLEU-1, BLEU-2 y BLEU-4 (corpus-level) con smoothing (method1).
+    refs_per_item: p.ej. [["a tierra","a tierra"], ["abecedario","abecedario.mp4"], ...]
+    hyps_per_item: p.ej. ["a tierra", "abecedario", ...]
+    """
+    refs_nltk = _prepare_nltk_refs(refs_per_item)
+    hyps_nltk = _prepare_nltk_hyps(hyps_per_item)
+
+    smooth = SmoothingFunction().method1
+    B1 = corpus_bleu(refs_nltk, hyps_nltk, weights=(1.0, 0, 0, 0), smoothing_function=smooth)
+    B2 = corpus_bleu(refs_nltk, hyps_nltk, weights=(0.5, 0.5, 0, 0), smoothing_function=smooth)
+    B4 = corpus_bleu(refs_nltk, hyps_nltk, weights=(0.25, 0.25, 0.25, 0.25), smoothing_function=smooth)
+    return {"BLEU-1": B1, "BLEU-2": B2, "BLEU-4": B4}
 
 def load_config():
     _,_, h5_file = setup_paths()
@@ -402,13 +460,16 @@ def load_config():
     model_cfg["device"] = "cuda"
     return h5_file, training_cfg, model_cfg
 
-def load_dataset(h5_file, key_points:int):
+def load_dataset(h5_file, key_points:int, allowed_datasets: Optional[list[str]] = None):
+    allowed = allowed_datasets or DEFAULT_BENCHMARK_DATASETS
     keypoint_reader = KeypointDataset(
         h5Path=h5_file,
         return_label=True,
         return_dataset=True,
         n_keypoints=key_points,
         data_augmentation=False,
+        allowed_datasets=allowed,
+        labels_vocab_path= "../vocab_1235.json",
         max_length=4000,
     )
     train_dataset, _, _, _ = keypoint_reader.split_dataset(1)
@@ -447,7 +508,7 @@ def load_model(model_parameters:dict, version:str, checkpoint:str, epoch:int):
 
     return model
 
-def load_llm(model_id="unsloth/Llama-3.2-3B"):
+def load_llm(model_id="unsloth/Llama-3.2-3B-Instruct", return_model: bool = False):
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
@@ -455,37 +516,25 @@ def load_llm(model_id="unsloth/Llama-3.2-3B"):
         bnb_4bit_compute_dtype=torch.bfloat16,  # o torch.float16 si no tienes soporte bf16
     )
 
-    llama_model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config)
+    device_map = "auto" if torch.cuda.is_available() else None
+    llama_model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        quantization_config=bnb_config,
+        device_map=device_map,
+    )
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    embeddings = llama_model.get_input_embeddings().weight.data
-    del llama_model
-    return tokenizer, embeddings
+    embedding_weight = cast(torch.Tensor, llama_model.get_input_embeddings().weight)
+    embeddings = embedding_weight.detach().clone()
+    returned_model = llama_model if return_model else None
+    if not return_model:
+        del llama_model
+    return tokenizer, embeddings, returned_model
 
 def get_idx_hyps(word):
     for i, cluster in enumerate(HYPS):
         if word in cluster:
             return i
     return -1
-
-def embeddings_to_text(embeddings: torch.Tensor, all_embeddings: torch.Tensor, tokenizer) -> str:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    embedding_matrix = all_embeddings.to(device)  # [V, D]
-
-    target_dtype = embedding_matrix.dtype
-    embeddings = embeddings.to(device=device, dtype=target_dtype)
-    #print("Embeddings device:", embeddings.device, "| Matrix device:", embedding_matrix.device)
-
-    embedding_matrix_norm = F.normalize(embedding_matrix, p=2, dim=1)  # [V, D]
-    embeddings_norm = F.normalize(embeddings, p=2, dim=1)  # [T, D]
-    similarities = torch.matmul(embeddings_norm, embedding_matrix_norm.T)  # [T, V]
-    token_ids = torch.argmax(similarities, dim=1).tolist()
-    #print(f"Token IDs: {token_ids}")
-    return tokenizer.decode(token_ids, skip_special_tokens=True)
-
-
-def _is_space_token(tok: str) -> bool:
-    # En tokenizers tipo SentencePiece, '▁' marca inicio de palabra
-    return tok.startswith("▁") or tok.startswith("<bos>")
 
 @torch.no_grad()
 def embeddings_to_text_viterbi(
@@ -592,7 +641,7 @@ def embeddings_to_text_viterbi(
     text = ''.join(p.replace('▁', ' ') for p in pieces).strip()
     return text
 
-def main(version:str, checkpoint:str, epoch:int):
+def main(version:str, checkpoint:str, epoch:int, use_cached_results: bool = False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     h5_file, training_cfg, model_cfg = load_config()
@@ -609,8 +658,7 @@ def main(version:str, checkpoint:str, epoch:int):
     cache_path = "bleu_imitator_embeds.h5"
     dataset_size = len(dataset)
     results = []
-    use_cached_results = False
-
+    
     if use_cached_results and os.path.exists(cache_path):
         print("Found cached BLEU embeddings, loading...")
         with h5py.File(cache_path, "r") as h5f:
@@ -618,13 +666,15 @@ def main(version:str, checkpoint:str, epoch:int):
             stored_size = h5f.attrs.get("dataset_size")
             processed_size = h5f.attrs.get("processed_samples")
             if (
-                samples_group is not None
+                isinstance(samples_group, h5py.Group)
                 and len(samples_group) == dataset_size
                 and stored_size == dataset_size
                 and processed_size == dataset_size
             ):
                 for key in sorted(samples_group.keys()):
                     sample_group = samples_group[key]
+                    if not isinstance(sample_group, h5py.Group):
+                        continue
                     label_value = sample_group.attrs.get("label", "")
                     if isinstance(label_value, bytes):
                         label_value = label_value.decode("utf-8")
@@ -632,13 +682,17 @@ def main(version:str, checkpoint:str, epoch:int):
                     if isinstance(dataset_value, bytes):
                         dataset_value = dataset_value.decode("utf-8")
                     dataset_value = dataset_value or None
-                    hyps_data = sample_group["hyps"][()]
+                    hyps_ds = sample_group.get("hyps")
+                    embed_ds = sample_group.get("embed_pred")
+                    if not isinstance(hyps_ds, h5py.Dataset) or not isinstance(embed_ds, h5py.Dataset):
+                        continue
+                    hyps_data = hyps_ds[()]
                     hyps_list = hyps_data.tolist() if isinstance(hyps_data, np.ndarray) else list(hyps_data)
                     hyps_list = [item.decode("utf-8") if isinstance(item, bytes) else item for item in hyps_list]
                     results.append({
                         "label": label_value,
                         "dataset": dataset_value,
-                        "embed_pred": sample_group["embed_pred"][()],
+                        "embed_pred": embed_ds[()],
                         "hyps": hyps_list
                     })
                 use_cached_results = True
@@ -655,8 +709,10 @@ def main(version:str, checkpoint:str, epoch:int):
                 dataset_name = dataset_tag[0] if dataset_tag and len(dataset_tag) > 0 else None
                 idx = get_idx_hyps(label_text)
                 if idx == -1:
-                    print("no hay mapeado}", label_text)
-                    continue
+                    # print("no hay mapeado", label_text)
+                    # añadir si no existe
+                    HYPS.append([label_text])
+                    idx = len(HYPS) - 1
                 
                 with torch.inference_mode():
                     data = keypoints.to(device=device, dtype=torch.float32, non_blocking=True)
@@ -694,30 +750,60 @@ def main(version:str, checkpoint:str, epoch:int):
 
             h5f.attrs["processed_samples"] = len(samples_group)
     
-    tokenizer, all_embeddings = load_llm()
+    # Liberar memoria de Imitator antes de cargar el LLM corrector
+    del model
+    torch.cuda.empty_cache()
+
+    tokenizer_llm, all_embeddings, llama_model = load_llm(return_model=True)
+    if llama_model is None:
+        raise RuntimeError("LLM model not returned; ensure return_model=True in load_llm call")
+    if tokenizer_llm.pad_token is None:
+        tokenizer_llm.pad_token = tokenizer_llm.eos_token
+    llm_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    corrector = MultimodalSignLM(llama_model, tokenizer_llm, llm_device)
+
     dataset_refs = defaultdict(list)
     dataset_preds = defaultdict(list)
 
     for res in results:
-        embed_pred = torch.from_numpy(res["embed_pred"])
-        embed_pred = embed_pred.to(device=all_embeddings.device, dtype=all_embeddings.dtype)
+        embed_pred = torch.from_numpy(res["embed_pred"]).to(
+            device=all_embeddings.device,
+            dtype=all_embeddings.dtype,
+        )
 
-        pred_text = embeddings_to_text_viterbi(embed_pred, all_embeddings, tokenizer)
-        res["pred_text"] = pred_text
+        noisy_text = embeddings_to_text_viterbi(embed_pred, all_embeddings, tokenizer_llm)
+        res["noisy_text"] = noisy_text
+
+        prompt = build_corrector_prompt(noisy_text)
+        corrected_text = corrector.generate_corrected_text(
+            None,
+            prompt,
+            max_new_tokens=130,
+            fallback_text=noisy_text,
+            system_prompt=BLEU_SYSTEM_PROMPT,
+        )
+        corrected_text = corrected_text.replace("\n", " ").strip()
+        corrected_text = corrected_text.split("<pad>")[0].strip()
+        corrected_text = corrected_text.lower()
+        res["pred_text"] = corrected_text
 
         dataset_name = res.get("dataset") or "unknown"
         dataset_refs[dataset_name].append(res["hyps"])
-        dataset_preds[dataset_name].append(pred_text)
+        dataset_preds[dataset_name].append(corrected_text)
 
     hyps_list_bench = [res["hyps"] for res in results]
     pred_list_bench = [res["pred_text"] for res in results]
 
-    score_bleu = exec_bleu(hyps_list_bench, pred_list_bench)
-    print(f"BLEU score (global): {score_bleu:.2f}")
+    print(hyps_list_bench[:5], pred_list_bench[:5])
+    score_bleu = exec_nltk_bleu_all(hyps_list_bench, pred_list_bench)
+    print(f"BLEU score (global): {score_bleu}")
 
     for dataset_name in sorted(dataset_preds.keys()):
-        score = exec_bleu(dataset_refs[dataset_name], dataset_preds[dataset_name])
-        print(f"BLEU score ({dataset_name}): {score:.2f} [{len(dataset_preds[dataset_name])} samples]")
+        nltk_ds = exec_nltk_bleu_all(dataset_refs[dataset_name], dataset_preds[dataset_name])
+        print(f"NLTK BLEU {dataset_name} [{len(dataset_preds[dataset_name])}]: "
+            f"B1={nltk_ds['BLEU-1']:.4f}  "
+            f"B2={nltk_ds['BLEU-2']:.4f}  "
+            f"B4={nltk_ds['BLEU-4']:.4f}")
     
     with open("results.txt", "w") as f:
         for res in results:
@@ -725,7 +811,10 @@ def main(version:str, checkpoint:str, epoch:int):
             pred = res["pred_text"]
             hyps = res["hyps"]
             clean_pred = pred.split("<pad>")[0].strip()
+            noisy_text = res.get("noisy_text", "")
             f.write(
-                f"DATASET: {dataset_name}\tHYPS: {hyps}\tPRED: {pred}\tCLEAN PRED: {clean_pred}\n"
+                f"DATASET: {dataset_name}\tHYPS: {hyps}\tNOISY: {noisy_text}\tPRED: {pred}\tCLEAN PRED: {clean_pred}\n"
             )
+    del llama_model
+    torch.cuda.empty_cache()
     return score_bleu

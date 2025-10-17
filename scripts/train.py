@@ -53,7 +53,7 @@ def run(
 
     print(f"Batch size: {batch_size}, batch sample: {batch_sample}")
     print(f"using dataset {h5_file}")
-    tr_ds, val_ds, _, _ = prepare_datasets(h5_file, train_ratio, key_points)
+    tr_ds, val_ds, _, _ = prepare_datasets(h5_file, train_ratio, key_points, allowed_datasets=["dataset1", "dataset2", "dataset3", "dataset5"])
     tr_dl, val_dl = create_dataloaders(tr_ds, val_ds, batch_size, num_workers=10)
 
     model = build_model(**model_cfg)

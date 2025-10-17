@@ -1,5 +1,35 @@
 import torch
 import torch.nn.functional as F
+from typing import Optional, List, Dict
+from transformers import LogitsProcessor
+
+printed = False
+
+class BanEOTFirstStep(LogitsProcessor):
+    def __init__(self, eot_id: int):
+        self.eot_id = eot_id
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+        # Si estamos generando el primer token nuevo, prohíbe EOT
+        step = input_ids.shape[1]  # longitud actual
+        if step == input_ids.shape[1]:  # (HF ya está en paso nuevo)
+            scores[:, self.eot_id] = -float("inf")
+        return scores
+
+def _utf_fix(s: str) -> str:
+    # 2) Limpieza rápida de mojibake y ruido
+    try:
+        import ftfy
+        s = ftfy.fix_text(s)
+    except Exception:
+        try:
+            s = s.encode("latin1").decode("utf-8")
+        except Exception:
+            pass
+    s = s.replace("<pad>", " ").strip().lower()
+    import unicodedata, re
+    s = unicodedata.normalize("NFC", s)
+    s = re.sub(r"\s+", " ", s)
+    return s
 
 class MultimodalSignLM:
     def __init__(self, base_model, tokenizer, device):
@@ -14,6 +44,10 @@ class MultimodalSignLM:
         self.model = base_model
         self.tokenizer = tokenizer
         self.device = device
+
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
         # Get the embeddings of all tokens in the vocabulary
         self.all_embeddings = base_model.get_input_embeddings().weight.data.to(self.device)
@@ -37,7 +71,7 @@ class MultimodalSignLM:
         
         return inputs
     
-    def generate(self, keypoints_embeddings, text_input:str):
+    def generate(self, keypoints_embeddings, text_input: str, max_new_tokens: int = 64):
         self.model.eval()
 
         chat_format = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 07 Apr 2025\n\n<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n"
@@ -49,11 +83,69 @@ class MultimodalSignLM:
             output = self.model.generate(
                 input_ids=inputs['input_ids'],
                 attention_mask=inputs['attention_mask'],
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                eos_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.eos_token_id,
             )
 
         # Decode the output
         decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=False)
         return decoded_output
+
+    def _extract_assistant_response(self, generated_text: str) -> str:
+        """Extrae la respuesta del asistente del formato de chat de Llama."""
+        marker = "<|start_header_id|>assistant<|end_header_id|>"
+        if marker in generated_text:
+            generated_text = generated_text.split(marker, 1)[-1]
+        if "<|eot_id|>" in generated_text:
+            generated_text = generated_text.split("<|eot_id|>", 1)[0]
+        return generated_text.strip()
+
+    def generate_corrected_text(
+        self,
+        keypoints_embeddings: Optional[torch.Tensor],
+        prompt: str,
+        max_new_tokens: int = 64,
+        fallback_text: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+    ) -> str:
+        """Genera una corrección textual empleando el LLM en formato chat."""
+        _ = keypoints_embeddings  # se conserva la firma para compatibilidad
+        messages: List[Dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        input_ids = self.tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True,
+        ).to(self.device)
+        attention_mask = torch.ones_like(input_ids)
+
+        with torch.no_grad():
+            output = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                eos_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
+            )
+
+        raw_output = self.tokenizer.decode(output[0], skip_special_tokens=False)
+        
+        global printed
+        if not printed:
+            print(f"Raw output: {raw_output} END RAW")
+            printed = True
+        
+        response = self._extract_assistant_response(raw_output)
+        response = response.strip()
+        if not response and fallback_text is not None:
+            return fallback_text
+        return response
     
     def _find_closest_token(self, embedding, all_embeddings):
         embedding = embedding.to(self.device)

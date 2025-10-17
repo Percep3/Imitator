@@ -105,6 +105,7 @@ class KeypointDataset(Dataset):
     def _build_or_load_label_vocab(self):
         # Si ya existe, cargar
         if os.path.exists(self.labels_vocab_path):
+            print("cargando vocabulario de etiquetas desde disco...")
             with open(self.labels_vocab_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             self.id_to_label = data["id_to_label"]
