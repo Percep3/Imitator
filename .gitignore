@@ -29,3 +29,6 @@ pip-packages
 
 #Compiler Dependencies
 **/deps
+
+*.png
+*.txt
