@@ -8,8 +8,10 @@ class EarlyStopping:
         self.verbose = verbose
         self.stop = False
         self.treshold = threshold
+        self.improved = False
 
     def __call__(self, val_loss):
+        self.improved = False
         if np.isnan(val_loss):
             if self.verbose: print("Giorgio desgraciado *Christian desgraciado \nIgnorando epoch")
             return
@@ -17,6 +19,7 @@ class EarlyStopping:
         if val_loss < self.best_loss - self.treshold:
             self.best_loss = val_loss
             self.patience = self._patience
+            self.improved = True
         else:
             self.patience -= 1
         

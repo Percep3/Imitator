@@ -14,7 +14,7 @@ class Imitator(nn.Module):
         nhead: int = 8,
         ff_dim: int = 1024,
         n_layers: int = 2,
-        max_seq_length: int = 15,
+        max_seq_length: int = 200,
         encoder_dropout: float = 0.4,
         cross_attention_dropout: float = 0.4,
         pool_dim: int = 256,

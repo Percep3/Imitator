@@ -1,3 +1,4 @@
+import math
 from tqdm import tqdm
 import typing as t
 
@@ -51,15 +52,12 @@ class Trainer:
         """
         Entrenador Imitator con pérdidas: CLIP + TokenSoftAlign + PadAware.
         """
-        from accelerate import Accelerator
-        from accelerate.utils import TorchDynamoPlugin
-        import torch
 
         # -----------------------------
         # Configuración básica
         # -----------------------------
         dynamo_plugin = TorchDynamoPlugin(
-            backend="inductor",
+            backend="inductor", # type: ignore
             mode="default",
             dynamic=True
         )
@@ -77,22 +75,20 @@ class Trainer:
         version = kwargs.get("model_version", 1)
         checkpoint = kwargs.get("checkpoint", 1)
 
-        from torch.utils.tensorboard import SummaryWriter
-        from datetime import datetime
         self.writer = SummaryWriter(
             f"../outputs/reports/{version}/{checkpoint}/{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}"
         )
         self.graph_added = False
 
-        from src.mslm.checkpoint.manager import CheckpointManager
         self.ckpt_mgr = CheckpointManager(
             kwargs.get("model_dir", "../outputs/checkpoints"),
             version,
             checkpoint,
         )
 
-        from src.mslm.utils.early_stopping import EarlyStopping
-        self.early_stopping = EarlyStopping(patience=100)
+        self.early_stopping = EarlyStopping(patience=7, threshold=0.02)
+        self.best_val_loss = float("inf")
+        self.best_epoch = -1
 
         self.model = model
         self.load_previous_model = kwargs.get("load_previous_model", False)
@@ -104,7 +100,7 @@ class Trainer:
         self.tau_tok = tau_tok
 
         # CLIP global
-        self.criterion = ClipContrastiveLoss()
+        self.criterion: ClipContrastiveLoss = ClipContrastiveLoss()
 
         # Token-level alignment
         self.tok_loss = TokenSoftAlignLoss(tau=self.tau_tok)
@@ -125,10 +121,6 @@ class Trainer:
             self.tok_loss = torch.compile(self.tok_loss, backend="inductor", dynamic=True)
             self._pad_aux = torch.compile(self._pad_aux, backend="inductor", dynamic=True)
 
-        # -----------------------------
-        # Optimizador y scheduler (se crean en prepare_trainer)
-        # -----------------------------
-        self.optimizer = None
         self.scheduler = None
 
         # batch splitting
@@ -141,8 +133,8 @@ class Trainer:
         self.prof = False
 
         # Rango de ramp-up para λ_tok y λ_pad (en pasos, no épocas)
-        self.lambda_tok_ramp = (0.3, 0.6)   # fracción de total_steps
-        self.lambda_pad_ramp = (0.6, 0.85)  # fracción de total_steps
+        self.lambda_tok_ramp = (0.00, 0.12)   # fracción de total_steps
+        self.lambda_pad_ramp = (0.05, 0.25)  # fracción de total_steps
 
     @staticmethod
     def _ramp(frac_start, frac_end, frac_now):
@@ -172,7 +164,7 @@ class Trainer:
             val_loss: float, loss de validación
         """
         print("LR:", self.learning_rate)
-        self.optimizer = AdamW(
+        self.optimizer: AdamW = AdamW(
             [
                 {"params": self.model.parameters(), "weight_decay": self.weight_decay},
                 {"params": [self.criterion.logit_scale], "weight_decay": 0.0,},
@@ -188,7 +180,8 @@ class Trainer:
                 torch.tensor((current_step - warmup_steps) / (total_steps - warmup_steps) * 3.1415926535))
             ).item()
 
-        warmup_steps = 2 * len(self.train_loader)  # p.ej. 10 epochs de warm-up
+        warmup_epochs = 4
+        warmup_steps = warmup_epochs * len(self.train_loader)
         total_steps = self.epochs * len(self.train_loader)
         
         self.total_steps  = total_steps
@@ -208,17 +201,21 @@ class Trainer:
         for epoch in tqdm(range(self.epochs), desc="Entrenando", colour="green"):
             train_loss = self._train_epoch(epoch)
             val_loss = self._val(epoch)
+
+            if self.early_stopping.improved:
+                self.best_val_loss = val_loss
+                self.best_epoch = epoch
+                self.ckpt_mgr.save_best_checkpoint(self.model, epoch, self.optimizer, self.scheduler, self.ema)
             
             if epoch == 1:
-                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler)
+                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler, self.ema)
             elif epoch == self.epochs - 1:
-                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler)
+                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler, self.ema)
             elif (epoch % self.checkpoint_interval == 0 and epoch != 0) :
-                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler)
-            elif self.early_stopping.stop:
-                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler)
+                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler, self.ema)
 
             if self.early_stopping.stop:
+                self.accelerator.print(f"Early stopping at epoch {epoch}. Best epoch: {self.best_epoch} with val_loss {self.best_val_loss:.4f}")
                 break
 
         return train_loss, val_loss
@@ -236,6 +233,9 @@ class Trainer:
         for keypoint, frames_padding_mask, embedding, mask_embedding, label in self.train_loader:
             # DEBUG
             if DEBUG and epoch == 0:
+                uids = torch.as_tensor(label, device='cpu')
+                dup = (uids.view(-1,1) == uids.view(1,-1)).sum(0) - 1
+                print(f"[DEBUG] batch unique IDs dup count: min={dup.min().item()} mean={dup.float().mean().item():.2f} max={dup.max().item()}")
                 with torch.no_grad():
                     mv = (~mask_embedding.bool()).sum(dim=1)  # #tokens válidos por muestra
                     tqdm.write(f"[DEBUG] valid_tokens_text: min={mv.min().item()}, mean={mv.float().mean().item():.2f}")
@@ -246,7 +246,6 @@ class Trainer:
                 self.graph_added = True           
             
             with self.accelerator.accumulate(self.model):
-                # self.optimizer.zero_grad(set_to_none=True)
                 train_loss, metrics = self._train_batch(keypoint, frames_padding_mask, embedding, mask_embedding, label)
 
                 if DEBUG and not hasattr(self, "_lrchk"):
@@ -393,6 +392,12 @@ class Trainer:
 
         self.accelerator.clip_grad_norm_(self.model.parameters(), max_norm=self.grad_clip)
         self.optimizer.step()
+        with torch.no_grad():
+            # temp in [0.08, 0.20]  ->  logit_scale in [log(1/0.20), log(1/0.08)]
+            lo = math.log(1.0/0.20)
+            hi = math.log(1.0/0.08)
+            self.criterion.logit_scale.data.clamp_(min=lo, max=hi)
+            
         self.ema.update_parameters(self.model)
 
         if self.scheduler is not None:
@@ -450,6 +455,7 @@ class Trainer:
     
     @nvtx.annotate("Val: Validate Batch", color="green")
     def _val_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding, labels):
+        model_for_eval = self.ema.module if hasattr(self, "ema") else self.model
         embs_v, embs_t = [], []
         batch_size = keypoint.size(0)
         n_sub_batch = (batch_size + self.sub_batch - 1) // self.sub_batch if self.batch_sampling else 1
@@ -466,7 +472,7 @@ class Trainer:
                 if ((~pad_frames).sum(dim=1) == 0).any():
                     idx = ((~pad_frames).sum(dim=1) == 0).nonzero(as_tuple=True)[0]
                     pad_frames[idx, 0] = False
-                _, v = self.model(keypoint[s:e], pad_frames)
+                _, v = model_for_eval(keypoint[s:e], pad_frames)
 
                 pad_text = mask_embedding[s:e].clone()
                 if ((~pad_text).sum(dim=1) == 0).any():

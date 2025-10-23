@@ -257,11 +257,11 @@ def multi_head_attention_with_rope_forward(
         # print("q shape:", q.shape)
         # print("k shape:", k.shape)
 
-        q = q.reshape(tgt_len, bsz, num_heads, head_dim)
-        k = k.reshape(src_len, bsz, num_heads, head_dim)
+        q = q.contiguous().view(bsz, num_heads, tgt_len, head_dim)
+        k = k.contiguous().view(bsz, num_heads, src_len, head_dim)
 
-        q = q.permute(1, 0, 2, 3)
-        k = k.permute(1, 0, 2, 3)
+        q = q.transpose(1, 2).contiguous()  # [B, T, H, D]
+        k = k.transpose(1, 2).contiguous()  # [B, S, H, D]
 
         if not q.is_contiguous():
             q = q.contiguous()
@@ -271,8 +271,11 @@ def multi_head_attention_with_rope_forward(
         k = rotary_pos_emb(k)
 
         # rever permutate and restore shape to 3D [tgt_len, bsz*num_heads, head_dim]
-        q = q.permute(1, 0, 2, 3).reshape(tgt_len, bsz * num_heads, head_dim)
-        k = k.permute(1, 0, 2, 3).reshape(src_len, bsz * num_heads, head_dim)
+        q = q.transpose(1, 2).contiguous()
+        k = k.transpose(1, 2).contiguous()
+        
+        q = q.view(bsz * num_heads, tgt_len, head_dim)
+        k = k.view(bsz * num_heads, src_len, head_dim)
         
         # print("despeus q shape:", q.shape)
         # print("despues k shape:", k.shape)

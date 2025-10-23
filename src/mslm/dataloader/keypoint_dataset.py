@@ -1,6 +1,7 @@
 import h5py
 import json
 import os
+from sklearn.base import defaultdict
 import torch
 from typing import Optional, List, Tuple
 from torch.utils.data import random_split, Dataset, Subset, ConcatDataset
@@ -53,7 +54,7 @@ class KeypointDataset(Dataset):
         self.dataset_length = 0
         self.processData()
 
-        self.labels_vocab_path = labels_vocab_path or (os.path.splitext(h5Path)[0] + "_labels_vocab.json")
+        self.labels_vocab_path = labels_vocab_path or (os.path.splitext(h5Path)[0] + "_labels_vocab_wa.json")
         self.label_to_id = {}
         self.id_to_label = []
 
@@ -92,6 +93,8 @@ class KeypointDataset(Dataset):
             self.valid_index = []
             self.original_videos = []
 
+            max_tokens_dataset = defaultdict(int)
+            
             for dataset in datasets:
                 if dataset not in ["dataset1", "dataset3", "dataset5", "dataset7"]:
                     continue
@@ -109,10 +112,14 @@ class KeypointDataset(Dataset):
                         if shape < self.max_length:
                             self.valid_index.append((dataset, clip))
                             self.video_lengths.append(shape)
+                        
+                        num_tokens = f[dataset]["embeddings"][clip].shape[0]
+                        if num_tokens > max_tokens_dataset[dataset]:
+                            max_tokens_dataset[dataset] = num_tokens
                     except KeyError:
                         print(f"KeyError for {dataset}/{clip}, skipping...")
                         continue
-                
+                print(f"Processed dataset: {dataset} \tmax tokens {max_tokens_dataset[dataset]}")
             self.dataset_length = len(self.valid_index)
 
     def split_dataset(self, train_ratio):
