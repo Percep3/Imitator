@@ -96,7 +96,7 @@ class KeypointDataset(Dataset):
             max_tokens_dataset = defaultdict(int)
             
             for dataset in datasets:
-                if dataset not in ["dataset1", "dataset3", "dataset5", "dataset7"]:
+                if dataset not in ["dataset1"]:
                     continue
 
                 clip_ids  = list(f[dataset]["embeddings"].keys())
@@ -188,7 +188,7 @@ class KeypointDataset(Dataset):
                 label_str = f[mapped_idx[0]]["labels"][mapped_idx[1]][:][0].decode()
                 label_id = self.label_to_id[label_str]
 
-        #keypoint = remove_keypoints(keypoint)
+        keypoint = remove_keypoints(keypoint)
         keypoint = normalize_augment_data(keypoint, "Original", self.n_keypoints)
 
         if not isinstance(embedding, torch.Tensor):

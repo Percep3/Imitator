@@ -49,7 +49,7 @@ def run(
 
     training_cfg["batch_sampling"] = batch_sampling
     training_cfg["batch_sample"] = batch_sample
-    training_cfg["compile"] = True
+    training_cfg["compile"] = False
 
     print(f"Batch size: {batch_size}, batch sample: {batch_sample}")
     print(f"using dataset {h5_file}")

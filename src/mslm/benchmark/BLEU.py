@@ -12,6 +12,7 @@ from ..utils.setup_train import prepare_datasets, build_model, setup_paths, Batc
 from ..utils.config_loader import cfg
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import sacrebleu
+from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -417,6 +418,20 @@ def load_dataset(h5_file, key_points:int):
     )
     return train_dataloader, keypoint_reader.id_to_label, keypoint_reader.label_to_id
 
+def _clean_state_dict_keys(raw_state):
+    cleaned = {}
+    for k, v in raw_state.items():
+        if k == "n_averaged":
+            continue
+        if k.startswith("module._orig_mod."):
+            k = k[len("module._orig_mod."):]
+        elif k.startswith("_orig_mod."):
+            k = k[len("_orig_mod."):]
+        elif k.startswith("module."):
+            k = k[len("module."):]
+        cleaned[k] = v
+    return cleaned
+
 def load_model(model_parameters:dict, version:str, checkpoint:str, epoch:int):
     model_parameters.pop("device", None)  # remove device from model parameters
     print(model_parameters)
@@ -430,10 +445,49 @@ def load_model(model_parameters:dict, version:str, checkpoint:str, epoch:int):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     state_dict = torch.load(model_location, map_location=device)
 
-    model.load_state_dict(state_dict["model_state"])
+    cleaned_ema_state = _clean_state_dict_keys(state_dict["ema_state"])
+    model.load_state_dict(cleaned_ema_state)
+    #model.load_state_dict(state_dict["model_state"])
     model.to(device)
 
     return model
+
+def _tok(s: str) -> list[str]:
+    # tokenización mínima y robusta para BLEU a nivel palabra
+    return (s or "").strip().lower().split()
+
+def _prepare_nltk_refs(refs: list[list[str]]) -> list[list[list[str]]]:
+    """
+    Convierte tu lista de variantes por muestra (List[str]) al formato NLTK:
+    List[ sample -> List[reference -> List[tokens]] ]
+    """
+    return [[_tok(r) for r in ref_list] for ref_list in refs]
+
+def _prepare_nltk_hyps(hyps: list[str]) -> list[list[str]]:
+    """
+    Convierte tus hipótesis a formato NLTK:
+    List[ sample -> List[tokens] ]
+    """
+    return [_tok(h) for h in hyps]
+
+def exec_nltk_bleu_all(
+    refs_per_item: list[list[str]],
+    hyps_per_item: list[str],
+) -> dict[str, float|list[int]]:
+    """
+    Calcula BLEU-1, BLEU-2 y BLEU-4 (corpus-level) con smoothing (method1).
+    refs_per_item: p.ej. [["a tierra","a tierra"], ["abecedario","abecedario.mp4"], ...]
+    hyps_per_item: p.ej. ["a tierra", "abecedario", ...]
+    """
+    refs_nltk = _prepare_nltk_refs(refs_per_item)
+    hyps_nltk = _prepare_nltk_hyps(hyps_per_item)
+
+    smooth = SmoothingFunction().method1
+    B1 = corpus_bleu(refs_nltk, hyps_nltk, weights=(1.0, 0, 0, 0), smoothing_function=smooth)
+    B2 = corpus_bleu(refs_nltk, hyps_nltk, weights=(0.5, 0.5, 0, 0), smoothing_function=smooth)
+    B4 = corpus_bleu(refs_nltk, hyps_nltk, weights=(0.25, 0.25, 0.25, 0.25), smoothing_function=smooth)
+    return {"BLEU-1": B1, "BLEU-2": B2, "BLEU-4": B4}
+
 
 def load_llm(model_id="unsloth/Llama-3.2-3B"):
     bnb_config = BitsAndBytesConfig(
@@ -498,6 +552,9 @@ def embeddings_to_text_viterbi(
     topv, topi = torch.topk(S, k=min(topk, S.size(1)), dim=1)
 
     special = set(tokenizer.all_special_ids)
+    bos_id = getattr(tokenizer, "bos_token_id", None)
+    if bos_id is not None:
+        special.discard(bos_id)
     tok_str = tokenizer.convert_ids_to_tokens(torch.arange(E.size(0), device=device).tolist())
 
     # DP/Viterbi (igual que te pasé antes) ...
@@ -567,7 +624,7 @@ def embeddings_to_text_viterbi(
     # limpieza
     ids2 = []
     for vid in ids:
-        if vid in special:
+        if vid in special or vid == bos_id:
             continue
         if not ids2 or ids2[-1] != vid:
             ids2.append(vid)
@@ -580,7 +637,7 @@ def main(version:str, checkpoint:str, epoch:int):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     h5_file, training_cfg, model_cfg = load_config()
-    dataset, id_to_label, label_to_id = load_dataset(h5_file, model_cfg.get("n_keypoints", 111))
+    dataset, id_to_label, label_to_id = load_dataset(h5_file, model_cfg.get("n_keypoints", 89))
      
     model = load_model(model_cfg, version, checkpoint, epoch)
     model = model.to(device)

@@ -17,6 +17,27 @@
                 "PATH": "/home/giorgio6846/miniconda3/envs/SignAI/bin:${env:PATH}"
             }
         },
+{
+    "name": "Debug Poe Bleu (Conda)",
+    "type": "debugpy",
+    "request": "launch",
+    "program": "/home/giorgio6846/miniconda3/envs/SignAI/bin/poe",
+    "args": [
+        "bench",
+        "--version",
+        "304",
+        "--checkpoint",
+        "1",
+        "--epoch",
+        "60"
+    ],
+    "console": "integratedTerminal",
+    "cwd": "${workspaceFolder}",
+    "env": {
+        "CONDA_DEFAULT_ENV": "SignAI",
+        "PATH": "/home/giorgio6846/miniconda3/envs/SignAI/bin:${env:PATH}"
+    }
+},
         {
             "name": "Debug Worker Rank0 (Conda)",
             "type": "debugpy",

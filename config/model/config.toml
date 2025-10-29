@@ -1,5 +1,5 @@
 [model]
-input_size = 222
+input_size = 178
 output_size= 3072
 hidden_size= 512
 nhead= 4
