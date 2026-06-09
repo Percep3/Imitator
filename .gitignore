@@ -1,14 +1,35 @@
-#Python cache
-__pycache__
+# Python cache and tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-#Unsloth data
+# Virtual environments and local environment variables
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Unsloth data
 **/unsloth_compiled_cache/
 
-#Dataset and model data
+# Dataset and model data
 data/
 outputs/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
 
-#Model profiling and debugging
+# Model profiling and debugging
 *.qdstrn
 *.nsys-rep
 *.db
@@ -18,13 +39,16 @@ dt*
 nk_*
 *.pickle
 **/test_code*
-dt*
 
 # macOS system files
 *.DS_Store
+._*
 
-#PIP Packages
-pip-packages
+# Generated EDA probe cache
+artifacts/data_eda/video_metadata.csv
 
-#Compiler Dependencies
-**/deps
+# PIP packages
+pip-packages/
+
+# Compiler dependencies
+**/deps/

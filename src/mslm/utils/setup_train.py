@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 #Imported Classes
-from src.mslm.models import Imitator
+from src.mslm.models import Imitator, SignAlignGCN_KeypointsOnly, AlignmentDecoder, KeypointEncoder
 from src.mslm.training import Trainer
 from src.mslm.dataloader import KeypointDataset, collate_fn, GRPCDataset, BatchSampler
 from src.mslm.utils.paths import path_vars
@@ -77,8 +77,9 @@ def create_dataloaders(train_dataset, validation_dataset, batch_size, num_worker
 def build_model(input_size, output_size, **kwargs):
     """Construye, compila y retorna el modelo Imitator."""
     adjacency_matrix = np.load("/home/giorgio6846/Code/Sign-AI/data/processed/adjacency_matrix.npy", allow_pickle=True)
-
-    model = Imitator(A=adjacency_matrix, input_size=input_size, output_size=output_size, **kwargs)
+    keypoint_encoder = KeypointEncoder(num_nodes=input_size, in_coords=2, stgcn_channels=[2, 64, 64, 128, 128], lstm_hidden_dim=512)
+    alignment_decoder = AlignmentDecoder(output_size, nhead=6, num_decoder_layers=3, dim_feedforward=2048, memory_dim=512)
+    model = SignAlignGCN_KeypointsOnly(keypoint_encoder=keypoint_encoder, alignment_decoder=alignment_decoder, adjacency_matrix=adjacency_matrix, embed_dim=2048)
     print(model)
     print(f"{sum(p.numel() for p in model.parameters())/1e6:.2f} M parameters")
     return model
