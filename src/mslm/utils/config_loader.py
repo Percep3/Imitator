@@ -36,5 +36,10 @@ class ConfigLoader:
     def __getattr__(self, item):
         return getattr(self.config, item)
 
-# Instancia global
-cfg = ConfigLoader("config/model/config.toml", "config/training/train_config.toml")
+# Instancia global. El config del experimento (config/experiment/sigreg.toml) añade las
+# secciones [experiment], [data], [diagnostics], [sigreg] y [loss] si está presente.
+_paths = ["config/model/config.toml", "config/training/train_config.toml"]
+if Path("config/experiment/sigreg.toml").exists():
+    _paths.append("config/experiment/sigreg.toml")
+
+cfg = ConfigLoader(*_paths)

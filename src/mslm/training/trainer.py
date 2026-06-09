@@ -18,6 +18,7 @@ from src.mslm.utils.early_stopping import EarlyStopping
 from src.mslm.checkpoint.manager import CheckpointManager
 # from src.mslm.training import imitator_loss
 from src.mslm.training.loss_msepcossim import imitator_loss
+from src.mslm.training.collapse_metrics import compute_collapse_metrics
 import nvtx
 from datetime import datetime
 
@@ -93,6 +94,21 @@ class Trainer:
         
         self.grad_clip = kwargs.get("grad_clip", 0.1)
         self.weight_decay = kwargs.get("weight_decay", 0.05)
+
+        #Diagnóstico de colapso de embeddings (Fase 1 del experimento SIGReg).
+        diag = kwargs.get("diagnostics")
+        if diag is None:
+            try:
+                from src.mslm.utils.config_loader import cfg
+                diag = getattr(cfg, "diagnostics", {})
+            except Exception:
+                diag = {}
+        self.diagnostics_enabled = bool(diag.get("enabled", False))
+        self.diag_interval = int(diag.get("eval_interval", 1))
+        self.diag_n_batches = int(diag.get("n_eval_batches", 16))
+        self.diag_compare_target = bool(diag.get("compare_to_target", True))
+        self.diag_eps = float(diag.get("per_dim_std_eps", 0.01))
+        self.diag_alert_ratio = float(diag.get("collapse_alert_effrank_ratio", 0.0))
 
 
     def prepare_trainer(self):
@@ -329,8 +345,61 @@ class Trainer:
         if epoch % self.log_interval == 0:
             tqdm.write(f"Validation loss: {final_val_loss} MSE: {final_mse_loss} Cossim: {final_cossim_loss}")
 
+        if self.diagnostics_enabled and (epoch % self.diag_interval == 0):
+            self._run_diagnostics(epoch)
+
         self.early_stopping(final_val_loss)
         return final_val_loss
+
+    @nvtx.annotate("Diagnostics: Collapse", color="orange")
+    @torch.no_grad()
+    def _run_diagnostics(self, epoch):
+        """Calcula y registra métricas de colapso de embeddings sobre el set de validación.
+
+        Acumula los tokens válidos (no padding) de los embeddings PREDICHOS y, opcionalmente,
+        de los OBJETIVO sobre las primeras ``diag_n_batches`` batches; luego calcula el rango
+        efectivo, el coseno medio entre pares, el colapso por dimensión, etc.
+        """
+        self.model.eval()
+        pred_chunks, target_chunks = [], []
+
+        for i, (keypoint, frames_padding_mask, embedding, mask_embedding) in enumerate(self.val_loader):
+            if i >= self.diag_n_batches:
+                break
+            with self.accelerator.autocast():
+                output, _ = self.model(keypoint, frames_padding_mask)
+
+            # Alinear longitudes igual que la pérdida y quedarse con tokens válidos.
+            L = min(output.size(1), embedding.size(1))
+            valid = ~mask_embedding[:, :L]                      # (B, L) True = válido
+            pred_chunks.append(output[:, :L][valid].float().cpu())
+            if self.diag_compare_target:
+                target_chunks.append(embedding[:, :L][valid].float().cpu())
+
+        if not pred_chunks:
+            return
+
+        pred = torch.cat(pred_chunks, dim=0)                    # (M, D)
+        target = torch.cat(target_chunks, dim=0) if target_chunks else None
+
+        metrics = compute_collapse_metrics(
+            pred, target_embs=target, per_dim_std_eps=self.diag_eps
+        )
+
+        if self.accelerator.is_main_process:
+            for name, value in metrics.items():
+                self.writer.add_scalar(f"Collapse/{name}", value, epoch)
+            ratio = metrics.get("effrank_ratio_vs_target")
+            alert = ""
+            if self.diag_alert_ratio > 0 and ratio is not None and ratio < self.diag_alert_ratio:
+                alert = "  ⚠️ POSIBLE COLAPSO"
+            tqdm.write(
+                f"[Collapse] epoch {epoch}: "
+                f"effrank={metrics['effective_rank']:.1f} "
+                f"ratio={ratio if ratio is None else round(ratio, 3)} "
+                f"cos={metrics['pairwise_cosine_mean']:.3f} "
+                f"dim_collapsed={metrics['per_dim_collapsed_frac']:.2f}{alert}"
+            )
 
     @nvtx.annotate("Val: Validate Batch", color="green")
     def _val_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding) -> t.Tuple[float, float, float]:

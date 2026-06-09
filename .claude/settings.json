@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile src/mslm/training/trainer.py src/mslm/dataloader/keypoint_dataset.py src/mslm/utils/setup_train.py src/mslm/utils/config_loader.py)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -m py_compile scripts/train.py)",
+      "Bash(command -v conda mamba micromamba)",
+      "Read(//home/nakato/**)",
+      "Bash(cd /shared/Code/Sign-AI/Sign-chris *)",
+      "Read(//shared/Code/Sign-AI/**)",
+      "Bash(nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv)",
+      "Bash(curl -sI --max-time 10 https://repo.anaconda.com/miniconda/)",
+      "Bash(curl -sI --max-time 10 \"https://download.pytorch.org/whl/nightly/cu128/torch/\")",
+      "Bash(curl -s --max-time 20 \"https://download.pytorch.org/whl/nightly/cu128/torch/\")",
+      "Bash(curl -s --max-time 20 \"https://download.pytorch.org/whl/cu128/torch/\")",
+      "Bash(curl -sL -o /tmp/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh)",
+      "Bash(bash /tmp/miniconda.sh -b -p /home/nakato/miniconda3)",
+      "Bash(/home/nakato/miniconda3/bin/conda --version)",
+      "Bash(python3 -)",
+      "Bash(/home/nakato/miniconda3/bin/conda env *)",
+      "Bash(/home/nakato/miniconda3/bin/conda run *)",
+      "Bash(bash /tmp/install_signenv.sh)",
+      "Bash(echo \"INSTALL_EXIT=$?\")",
+      "Bash(tee -a /tmp/install_signenv.log)",
+      "Bash(bash /tmp/repair_signenv.sh)",
+      "Bash(echo \"REPAIR_EXIT=$?\")",
+      "Bash(tee -a /tmp/repair_signenv.log)",
+      "Read(//home/giorgio6846/Code/Sign-AI/data/processed/**)"
+    ]
+  }
+}

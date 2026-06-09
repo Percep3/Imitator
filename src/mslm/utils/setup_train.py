@@ -26,9 +26,13 @@ def setup_paths():
     h5_file = path_vars.h5_file
     return data_path, model_path, h5_file
 
-def prepare_datasets(h5File, train_ratio, n_keypoints=111):
-    """Carga el dataset base, lo envuelve y lo divide en entrenamiento y validación."""
-    keypoint_reader = KeypointDataset(h5Path=h5File, return_label=False, n_keypoints=n_keypoints, data_augmentation=False, max_length=4000)
+def prepare_datasets(h5File, train_ratio, n_keypoints=111, include_datasets=None):
+    """Carga el dataset base, lo envuelve y lo divide en entrenamiento y validación.
+
+    include_datasets: lista opcional de grupos del HDF5 a usar (p.ej. ["dataset2"] para
+    el experimento SIGReg). Si es None se usan los datasets por defecto.
+    """
+    keypoint_reader = KeypointDataset(h5Path=h5File, return_label=False, n_keypoints=n_keypoints, data_augmentation=False, max_length=4000, include_datasets=include_datasets)
     train_dataset, validation_dataset, train_length, val_length = keypoint_reader.split_dataset(train_ratio)
 
     print(f"Train size:\t{len(train_dataset)}\nValidation size:\t{len(validation_dataset)}")
@@ -74,14 +78,32 @@ def create_dataloaders(train_dataset, validation_dataset, batch_size, num_worker
         )
     return train_dataloader, val_dataloader
 
-def build_model(input_size, output_size, **kwargs):
-    """Construye, compila y retorna el modelo Imitator."""
-    adjacency_matrix = np.load("/home/giorgio6846/Code/Sign-AI/data/processed/adjacency_matrix.npy", allow_pickle=True)
-    keypoint_encoder = KeypointEncoder(num_nodes=input_size, in_coords=2, stgcn_channels=[2, 64, 64, 128, 128], lstm_hidden_dim=512)
-    alignment_decoder = AlignmentDecoder(output_size, nhead=6, num_decoder_layers=3, dim_feedforward=2048, memory_dim=512)
-    model = SignAlignGCN_KeypointsOnly(keypoint_encoder=keypoint_encoder, alignment_decoder=alignment_decoder, adjacency_matrix=adjacency_matrix, embed_dim=2048)
-    print(model)
-    print(f"{sum(p.numel() for p in model.parameters())/1e6:.2f} M parameters")
+def build_model(input_size, output_size, hidden_size=512, nhead=8, ff_dim=1024, n_layers=2,
+                encoder_dropout=0.4, multihead_dropout=0.1, pool_dim=256, max_seq_length=20,
+                **kwargs):
+    """Construye y retorna el modelo Imitator (STGCN + Transformer + cross-attn).
+
+    La matriz de adyacencia (111x111) se genera con scripts/build_adjacency.py y se carga
+    desde data/processed/ (ruta derivada de path_vars, no hardcodeada).
+    """
+    adj_path = path_vars.data_path / "processed" / "adjacency_matrix.npy"
+    A = np.load(adj_path, allow_pickle=True)
+
+    model = Imitator(
+        A=A,
+        input_size=input_size,
+        hidden_size=hidden_size,
+        output_size=output_size,
+        nhead=nhead,
+        ff_dim=ff_dim,
+        n_layers=n_layers,
+        max_seq_length=max_seq_length,
+        encoder_dropout=encoder_dropout,
+        multihead_dropout=multihead_dropout,
+        pool_dim=pool_dim,
+    )
+    print(f"Imitator: {sum(p.numel() for p in model.parameters())/1e6:.2f} M parámetros | "
+          f"adyacencia {A.shape} desde {adj_path}")
     return model
 
 def check_checkpoint(model, params):

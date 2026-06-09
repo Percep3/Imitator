@@ -51,9 +51,16 @@ def run(
     training_cfg["batch_sample"] = batch_sample
     training_cfg["compile"] = False
 
+    # --- config del experimento (opcional): datasets a incluir + diagnóstico de colapso ---
+    data_cfg = getattr(cfg, "data", None)
+    include_datasets = data_cfg.get("primary_datasets") if data_cfg else None
+    diag_cfg = getattr(cfg, "diagnostics", None)
+    if diag_cfg is not None:
+        training_cfg["diagnostics"] = dict(diag_cfg)
+
     print(f"Batch size: {batch_size}, batch sample: {batch_sample}")
-    print(f"using dataset {h5_file}")
-    tr_ds, val_ds, _, _ = prepare_datasets(h5_file, train_ratio, key_points)
+    print(f"using dataset {h5_file} | include_datasets={include_datasets}")
+    tr_ds, val_ds, _, _ = prepare_datasets(h5_file, train_ratio, key_points, include_datasets=include_datasets)
     tr_dl, val_dl = create_dataloaders(tr_ds, val_ds, batch_size, num_workers=10)
 
     model = build_model(**model_cfg)

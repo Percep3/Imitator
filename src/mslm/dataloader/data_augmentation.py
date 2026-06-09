@@ -129,10 +129,10 @@ def normalize_augment_data(keypoint, augmentation_type, n_keypoints = 133):
 def remove_keypoints(keypoint):
     pose_keep = torch.tensor([i for i in range(18) if i not in {7, 8, 9, 10, 11 ,12, 13, 14, 15, 16, 17}], dtype=torch.long)
 
-    pose    = torch.tensor(keypoint[:,pose_keep,:])
-    face    = torch.tensor(keypoint[:,28:92,:])
-    left_h  = torch.tensor(keypoint[:,93:113,:])
-    right_h = torch.tensor(keypoint[:,113:134,:])
+    pose    = torch.tensor(keypoint[:,pose_keep,:])   # 7 pose
+    face    = torch.tensor(keypoint[:,28:92,:])       # 64 cara
+    left_h  = torch.tensor(keypoint[:,93:113,:])      # 20 mano izq
+    right_h = torch.tensor(keypoint[:,113:133,:])     # 20 mano der (era 113:134=21 -> off-by-one)
 
     keypoints = torch.cat([pose, face, left_h, right_h], dim=1)
     return keypoints

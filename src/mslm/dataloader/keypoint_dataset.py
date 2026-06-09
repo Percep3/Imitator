@@ -32,7 +32,11 @@ class TransformedSubset(Dataset):
         return keypoint, embedding, None
 
 class KeypointDataset(Dataset):
-    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True):
+    # Datasets usados por defecto (signos aislados/glosas). Para el experimento SIGReg
+    # se pasa include_datasets=["dataset2"] (frases, LSA) como dataset principal.
+    DEFAULT_INCLUDE_DATASETS = ["dataset1", "dataset3", "dataset5", "dataset7"]
+
+    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None):
         self.h5Path = h5Path
         self.n_keypoints = n_keypoints
         self.transform = transform
@@ -40,6 +44,7 @@ class KeypointDataset(Dataset):
         self.max_length = max_length
         self.video_lengths = []
         self.data_augmentation = data_augmentation
+        self.include_datasets = include_datasets if include_datasets else self.DEFAULT_INCLUDE_DATASETS
     
         self.data_augmentation_dict = {
             0: "Length_variance",
@@ -60,7 +65,7 @@ class KeypointDataset(Dataset):
             self.original_videos = []
 
             for dataset in datasets:
-                if dataset not in ["dataset1", "dataset3", "dataset5", "dataset7"]:
+                if dataset not in self.include_datasets:
                     continue
 
                 clip_ids  = list(f[dataset]["embeddings"].keys())
