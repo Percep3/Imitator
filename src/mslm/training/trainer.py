@@ -18,6 +18,7 @@ from src.mslm.utils.early_stopping import EarlyStopping
 from src.mslm.checkpoint.manager import CheckpointManager
 # from src.mslm.training import imitator_loss
 from src.mslm.training.loss_msepcossim import imitator_loss
+from src.mslm.training.loss_ce_vocab import imitator_ce_loss
 from src.mslm.training.collapse_metrics import compute_collapse_metrics
 from src.mslm.training.sigreg import sigreg_loss
 import nvtx
@@ -58,15 +59,42 @@ class Trainer:
         )
 
         #Loss Function
+        # Experimento CE-vocab (v115): [loss] type = "ce_vocab" clasifica cada posición
+        # contra el vocabulario del LLM (cabeza atada a la tabla de embeddings) en vez de
+        # regresar el embedding con MSE+coseno (que colapsa a la media condicional).
+        loss_cfg = kwargs.get("loss")
+        if loss_cfg is None:
+            try:
+                from src.mslm.utils.config_loader import cfg
+                loss_cfg = dict(getattr(cfg, "loss", {}))
+            except Exception:
+                loss_cfg = {}
+        self.loss_type = loss_cfg.get("type", "mse_cossim")
+
+        self.embed_table = None
+        if self.loss_type == "ce_vocab":
+            table_path = loss_cfg["embed_table_path"]
+            self.logit_temp = float(loss_cfg.get("logit_temp", 1.0))
+            self.embed_table = torch.load(table_path, map_location="cpu").float().to(self.device)
+            self.embed_table.requires_grad_(False)
+            print(f"CE-vocab: tabla {tuple(self.embed_table.shape)} desde {table_path} | temp={self.logit_temp}")
+            base_criterion = lambda output, embedding, mask_embedding, token_ids: imitator_ce_loss(
+                output, token_ids, self.embed_table, self.logit_temp
+            )
+        else:
+            base_criterion = lambda output, embedding, mask_embedding, token_ids: imitator_loss(
+                output, embedding, mask_embedding
+            )
+
         if kwargs.get("compile", True):
             self.criterion = torch.compile(
-                imitator_loss,
+                base_criterion,
                 backend="inductor",
                 mode="default",
                 dynamic=True
-            )            
+            )
         else:
-            self.criterion = imitator_loss
+            self.criterion = base_criterion
 
         #Model
         self.model = model
@@ -256,15 +284,17 @@ class Trainer:
         cossim_loss = 0
         self._sigreg_sum = 0.0
         self._sigreg_n = 0
-        for keypoint, frames_padding_mask, embedding, mask_embedding in self.train_loader:
+        for batch in self.train_loader:
+            keypoint, frames_padding_mask, embedding, mask_embedding = batch[:4]
+            token_ids = batch[4] if len(batch) > 4 else None
             if self.save_tb_model and epoch == 1 and not getattr(self, "graph_added", False):
                 print("Saving graph")
                 self.writer.add_graph(self.model, (keypoint, frames_padding_mask))
-                self.graph_added = True           
-            
+                self.graph_added = True
+
             with self.accelerator.accumulate(self.model):
-                self.optimizer.zero_grad(set_to_none=True)        
-                train_loss, mse, cossim = self._train_batch(keypoint, frames_padding_mask, embedding, mask_embedding)
+                self.optimizer.zero_grad(set_to_none=True)
+                train_loss, mse, cossim = self._train_batch(keypoint, frames_padding_mask, embedding, mask_embedding, token_ids)
 
             if self.distributed is not None:
                 loss_tensor = loss.to(self.device)
@@ -282,8 +312,12 @@ class Trainer:
         final_train_loss_cossim = cossim_loss.item()/len(self.train_loader)
 
         self.writer.add_scalar("Loss/train", final_train_loss, epoch)
-        self.writer.add_scalar("Loss/train_mse", final_train_loss_mse, epoch)
-        self.writer.add_scalar("Loss/train_cosim", final_train_loss_cossim, epoch)
+        if self.loss_type == "ce_vocab":
+            self.writer.add_scalar("Loss/train_ce", final_train_loss_mse, epoch)
+            self.writer.add_scalar("Metrics/train_token_acc", final_train_loss_cossim, epoch)
+        else:
+            self.writer.add_scalar("Loss/train_mse", final_train_loss_mse, epoch)
+            self.writer.add_scalar("Loss/train_cosim", final_train_loss_cossim, epoch)
 
         sigreg_str = ""
         if self.sigreg_enabled and self._sigreg_n:
@@ -292,14 +326,17 @@ class Trainer:
             sigreg_str = f" SIGReg: {final_sigreg:.4f} (λ={self.sigreg_lambda})"
 
         if epoch % self.log_interval == 0:
-            tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} MSE: {final_train_loss_mse} Cossim: {final_train_loss_cossim}{sigreg_str}")
+            if self.loss_type == "ce_vocab":
+                tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} CE: {final_train_loss_mse} TokenAcc: {final_train_loss_cossim}{sigreg_str}")
+            else:
+                tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} MSE: {final_train_loss_mse} Cossim: {final_train_loss_cossim}{sigreg_str}")
 
         return total_loss
 
-    def _forward_loss(self, keypoint, frames_padding_mask, embedding, mask_embedding):
+    def _forward_loss(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None):
         with self.accelerator.autocast():
             output, _ = self.model(keypoint, frames_padding_mask)
-            loss, mse, cossim = self.criterion(output, embedding, mask_embedding)
+            loss, mse, cossim = self.criterion(output, embedding, mask_embedding, token_ids)
             if self.sigreg_enabled:
                 # SIGReg sobre TODOS los embeddings de salida (los n_tokens del Imitator son
                 # predicciones reales; no hay padding en la salida del modelo).
@@ -310,9 +347,9 @@ class Trainer:
         return loss, mse, cossim
 
     @nvtx.annotate("Train: Train Batch", color="green")
-    def _train_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding):
+    def _train_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None):
         batch_loss = 0.0
-        batch_mse, batch_cossim = 0.0, 0.0 
+        batch_mse, batch_cossim = 0.0, 0.0
 
         batch_size = keypoint.size(0)
         start = 0
@@ -327,10 +364,11 @@ class Trainer:
                         start = i * self.sub_batch
                         end = min(start + self.sub_batch, batch_size)
                         with nvtx.annotate("Forward Pass", color="blue"):
-                            loss, mse, cossim = self._forward_loss(keypoint[start:end], 
-                                                        frames_padding_mask[start:end], 
-                                                        embedding[start:end], 
-                                                        mask_embedding[start:end])
+                            loss, mse, cossim = self._forward_loss(keypoint[start:end],
+                                                        frames_padding_mask[start:end],
+                                                        embedding[start:end],
+                                                        mask_embedding[start:end],
+                                                        token_ids[start:end] if token_ids is not None else None)
                         if self.batch_sampling:
                             loss /= n_sub_batch
                             mse /= n_sub_batch
@@ -355,8 +393,10 @@ class Trainer:
         val_loss=0
         mse_loss = 0
         cossim_loss = 0
-        for keypoint, frames_padding_mask, embedding, mask_embedding in self.val_loader:        
-            loss, mse, cossim = self._val_batch(keypoint, frames_padding_mask, embedding, mask_embedding)
+        for batch in self.val_loader:
+            keypoint, frames_padding_mask, embedding, mask_embedding = batch[:4]
+            token_ids = batch[4] if len(batch) > 4 else None
+            loss, mse, cossim = self._val_batch(keypoint, frames_padding_mask, embedding, mask_embedding, token_ids)
             if self.distributed is not None:
                 loss_tensor = loss.to(self.device)
                 self.distributed.all_reduce(loss_tensor, op=self.distributed.ReduceOp.SUM)
@@ -372,13 +412,18 @@ class Trainer:
         final_mse_loss = mse_loss.item() / len(self.val_loader)
         final_cossim_loss = cossim_loss.item() / len(self.val_loader)
         self.writer.add_scalar("Loss/val", final_val_loss, epoch)
-        self.writer.add_scalar("Loss/val_mse", final_mse_loss, epoch)
-        self.writer.add_scalar("Loss/val_cossim", final_cossim_loss, epoch)
-        self.writer.add_scalar("Loss/val_mse", final_mse_loss, epoch)
-        self.writer.add_scalar("Loss/val_cossim", final_cossim_loss, epoch)
+        if self.loss_type == "ce_vocab":
+            self.writer.add_scalar("Loss/val_ce", final_mse_loss, epoch)
+            self.writer.add_scalar("Metrics/val_token_acc", final_cossim_loss, epoch)
+        else:
+            self.writer.add_scalar("Loss/val_mse", final_mse_loss, epoch)
+            self.writer.add_scalar("Loss/val_cossim", final_cossim_loss, epoch)
 
         if epoch % self.log_interval == 0:
-            tqdm.write(f"Validation loss: {final_val_loss} MSE: {final_mse_loss} Cossim: {final_cossim_loss}")
+            if self.loss_type == "ce_vocab":
+                tqdm.write(f"Validation loss: {final_val_loss} CE: {final_mse_loss} TokenAcc: {final_cossim_loss}")
+            else:
+                tqdm.write(f"Validation loss: {final_val_loss} MSE: {final_mse_loss} Cossim: {final_cossim_loss}")
 
         if self.diagnostics_enabled and (epoch % self.diag_interval == 0):
             self._run_diagnostics(epoch)
@@ -399,7 +444,8 @@ class Trainer:
         pred_chunks, target_chunks = [], []
         sb = self.sub_batch if self.batch_sampling else None
 
-        for i, (keypoint, frames_padding_mask, embedding, mask_embedding) in enumerate(self.val_loader):
+        for i, batch in enumerate(self.val_loader):
+            keypoint, frames_padding_mask, embedding, mask_embedding = batch[:4]
             if i >= self.diag_n_batches:
                 break
             B = keypoint.size(0)
@@ -444,11 +490,11 @@ class Trainer:
             )
 
     @nvtx.annotate("Val: Validate Batch", color="green")
-    def _val_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding) -> t.Tuple[float, float, float]:
+    def _val_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None) -> t.Tuple[float, float, float]:
         batch_loss = 0.0
         batch_mse = 0.0
         batch_cossim = 0.0
-        
+
         batch_size = keypoint.size(0)
         start = 0
         end = keypoint.size(0)
@@ -460,12 +506,13 @@ class Trainer:
             for i in range(n_sub_batch):
                 if self.batch_sampling:
                     start = i * self.sub_batch
-                    end = min(start + self.sub_batch, batch_size)                
+                    end = min(start + self.sub_batch, batch_size)
                 with nvtx.annotate("Forward Pass", color="blue"):
-                    loss, mse, cossim = self._forward_loss(keypoint[start:end], 
-                                                frames_padding_mask[start:end], 
-                                                embedding[start:end], 
-                                                mask_embedding[start:end])
+                    loss, mse, cossim = self._forward_loss(keypoint[start:end],
+                                                frames_padding_mask[start:end],
+                                                embedding[start:end],
+                                                mask_embedding[start:end],
+                                                token_ids[start:end] if token_ids is not None else None)
                 if self.batch_sampling:
                     loss /= n_sub_batch
                     mse /= n_sub_batch

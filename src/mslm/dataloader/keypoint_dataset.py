@@ -36,11 +36,14 @@ class KeypointDataset(Dataset):
     # se pasa include_datasets=["dataset2"] (frases, LSA) como dataset principal.
     DEFAULT_INCLUDE_DATASETS = ["dataset1", "dataset3", "dataset5", "dataset7"]
 
-    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None):
+    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None, return_token_ids=False):
         self.h5Path = h5Path
         self.n_keypoints = n_keypoints
         self.transform = transform
         self.return_label = return_label
+        # Experimento CE-vocab: devuelve los token IDs (grupo `token_ids` del HDF5,
+        # generado por scripts/add_token_ids_h5.py) en el tercer slot de la tupla.
+        self.return_token_ids = return_token_ids
         self.max_length = max_length
         self.video_lengths = []
         self.data_augmentation = data_augmentation
@@ -72,6 +75,8 @@ class KeypointDataset(Dataset):
 
                 for clip in clip_ids:
                     try:
+                        if self.return_token_ids and clip not in f[dataset]["token_ids"]:
+                            continue
                         shape = f[dataset]["keypoints"][clip].shape[0]
                         if shape < self.max_length:
                             self.valid_index.append((dataset, clip))
@@ -138,11 +143,14 @@ class KeypointDataset(Dataset):
         """
         
         mapped_idx = self.valid_index[idx]
-            
+
         with h5py.File(self.h5Path, 'r') as f:
             keypoint = f[mapped_idx[0]]["keypoints"][mapped_idx[1]][:]
             embedding = f[mapped_idx[0]]["embeddings"][mapped_idx[1]][:]
-    
+
+            if self.return_token_ids:
+                token_ids = torch.as_tensor(f[mapped_idx[0]]["token_ids"][mapped_idx[1]][:], dtype=torch.long)
+
             if self.return_label:
                 label = f[mapped_idx[0]]["labels"][mapped_idx[1]][:][0].decode()
 
@@ -151,6 +159,9 @@ class KeypointDataset(Dataset):
 
         if not isinstance(embedding, torch.Tensor):
             embedding = torch.as_tensor(embedding)
+
+        if self.return_token_ids:
+            return keypoint, embedding, token_ids
 
         if self.return_label:
             return keypoint, embedding, label

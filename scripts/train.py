@@ -60,10 +60,15 @@ def run(
     sigreg_cfg = getattr(cfg, "sigreg", None)
     if sigreg_cfg is not None:
         training_cfg["sigreg"] = dict(sigreg_cfg)
+    loss_cfg = getattr(cfg, "loss", None)
+    if loss_cfg is not None:
+        training_cfg["loss"] = dict(loss_cfg)
+    # CE-vocab (v115) necesita los token IDs en los batches.
+    return_token_ids = bool(loss_cfg) and loss_cfg.get("type") == "ce_vocab"
 
     print(f"Batch size: {batch_size}, batch sample: {batch_sample}")
-    print(f"using dataset {h5_file} | include_datasets={include_datasets}")
-    tr_ds, val_ds, _, _ = prepare_datasets(h5_file, train_ratio, key_points, include_datasets=include_datasets)
+    print(f"using dataset {h5_file} | include_datasets={include_datasets} | token_ids={return_token_ids}")
+    tr_ds, val_ds, _, _ = prepare_datasets(h5_file, train_ratio, key_points, include_datasets=include_datasets, return_token_ids=return_token_ids)
     tr_dl, val_dl = create_dataloaders(tr_ds, val_ds, batch_size, num_workers=10)
 
     model = build_model(**model_cfg)

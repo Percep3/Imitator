@@ -1,3 +1,4 @@
+import os
 import tomllib
 from pathlib import Path
 
@@ -36,10 +37,12 @@ class ConfigLoader:
     def __getattr__(self, item):
         return getattr(self.config, item)
 
-# Instancia global. El config del experimento (config/experiment/sigreg.toml) añade las
-# secciones [experiment], [data], [diagnostics], [sigreg] y [loss] si está presente.
+# Instancia global. El config del experimento añade las secciones [experiment], [data],
+# [diagnostics], [sigreg] y [loss]. En esta rama el experimento por defecto es ce_vocab
+# (v115); se puede cambiar con MSLM_EXPERIMENT_CONFIG=config/experiment/<otro>.toml.
 _paths = ["config/model/config.toml", "config/training/train_config.toml"]
-if Path("config/experiment/sigreg.toml").exists():
-    _paths.append("config/experiment/sigreg.toml")
+_experiment = os.environ.get("MSLM_EXPERIMENT_CONFIG", "config/experiment/ce_vocab.toml")
+if Path(_experiment).exists():
+    _paths.append(_experiment)
 
 cfg = ConfigLoader(*_paths)

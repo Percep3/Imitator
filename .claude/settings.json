@@ -29,7 +29,29 @@
       "Bash(tmux ls *)",
       "Bash(ps -o pid,etime,rss,cmd -p 2669278)",
       "Bash(git add *)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(tmux list-sessions *)",
+      "Bash(tmux capture-pane *)",
+      "Bash(tmux list-panes *)",
+      "Bash(ls -la /proc/1853940/fd/ 2>&1 | head -20)",
+      "Read(//proc/1853940/fd/**)",
+      "Bash(ls -la /proc/1853922/fd/1 /proc/1853922/fd/2 2>&1)",
+      "Read(//dev/pts/**)",
+      "Bash(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader)",
+      "Bash(nvidia-smi dmon *)",
+      "Bash(xargs ls -lt)",
+      "Bash(cat /proc/1853940/status | grep -E \"VmRSS|State|voluntary\" 2>&1)",
+      "Read(//proc/1853940/**)",
+      "Bash(grep -v \"nvidia\\\\|pipe\\\\|socket\\\\|anon\\\\|pts\\\\|total\\\\|\\\\.\\\\.$\\\\|\\\\. $\")",
+      "Bash(xargs -I{} readlink /proc/1853940/fd/{})",
+      "Read(//proc/1856031/fd/**)",
+      "Bash(xargs -I{} readlink /proc/1856031/fd/{})",
+      "Bash(grep -v \"nvidia\\\\|pipe\\\\|socket\\\\|anon\\\\|/dev/pts\\\\|^$\")",
+      "Bash(ls -la /shared/Code/Sign-AI/Sign-chris/../outputs/ 2>&1 || ls -la /shared/Code/Sign-AI/outputs/ 2>&1)",
+      "Read(//shared/Code/Sign-AI/outputs//**)",
+      "Bash(conda run *)",
+      "Bash(2>&1)",
+      "Bash(~/miniconda3/bin/conda run *)"
     ]
   }
 }
