@@ -57,6 +57,9 @@ def run(
     diag_cfg = getattr(cfg, "diagnostics", None)
     if diag_cfg is not None:
         training_cfg["diagnostics"] = dict(diag_cfg)
+    sigreg_cfg = getattr(cfg, "sigreg", None)
+    if sigreg_cfg is not None:
+        training_cfg["sigreg"] = dict(sigreg_cfg)
 
     print(f"Batch size: {batch_size}, batch sample: {batch_sample}")
     print(f"using dataset {h5_file} | include_datasets={include_datasets}")

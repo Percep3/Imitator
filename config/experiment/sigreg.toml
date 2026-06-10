@@ -4,7 +4,7 @@
 
 [experiment]
 name  = "sigreg_collapse_study"
-phase = "diagnose"          # diagnose | sigreg | verify
+phase = "sigreg"            # diagnose | sigreg | verify
 seed  = 23
 
 [data]
@@ -26,8 +26,8 @@ compare_to_target = true            # comparar stats pred vs target LLM
 per_dim_std_eps   = 0.01            # umbral de colapso dimensional (std por dim)
 collapse_alert_effrank_ratio = 0.25 # alerta si effrank(pred)/effrank(target) < umbral
 
-[sigreg]                            # Fase 2 — desactivado durante el diagnóstico
-enabled            = false
+[sigreg]                            # Fase 2 — anti-colapso (LeJEPA)
+enabled            = true
 lambda             = 1.0            # único hiperparámetro de compensación
 n_slices           = 1024          # direcciones de proyección aleatorias (sketching)
 resample_slices    = true          # nuevas direcciones cada paso

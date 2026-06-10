@@ -19,6 +19,7 @@ from src.mslm.checkpoint.manager import CheckpointManager
 # from src.mslm.training import imitator_loss
 from src.mslm.training.loss_msepcossim import imitator_loss
 from src.mslm.training.collapse_metrics import compute_collapse_metrics
+from src.mslm.training.sigreg import sigreg_loss
 import nvtx
 from datetime import datetime
 
@@ -109,6 +110,25 @@ class Trainer:
         self.diag_compare_target = bool(diag.get("compare_to_target", True))
         self.diag_eps = float(diag.get("per_dim_std_eps", 0.01))
         self.diag_alert_ratio = float(diag.get("collapse_alert_effrank_ratio", 0.0))
+
+        # SIGReg (Fase 2): regularizador anti-colapso hacia gaussiana isotrópica (LeJEPA).
+        sg = kwargs.get("sigreg")
+        if sg is None:
+            try:
+                from src.mslm.utils.config_loader import cfg
+                sg = getattr(cfg, "sigreg", {})
+            except Exception:
+                sg = {}
+        self.sigreg_enabled = bool(sg.get("enabled", False))
+        self.sigreg_lambda = float(sg.get("lambda", 1.0))
+        self.sigreg_kwargs = dict(
+            n_slices=int(sg.get("n_slices", 1024)),
+            n_freqs=int(sg.get("n_freqs", 17)),
+            standardize=bool(sg.get("standardize", True)),
+            resample_slices=bool(sg.get("resample_slices", True)),
+        )
+        self._sigreg_sum = 0.0
+        self._sigreg_n = 0
 
 
     def prepare_trainer(self):
@@ -234,6 +254,8 @@ class Trainer:
         total_loss = 0
         mse_loss = 0
         cossim_loss = 0
+        self._sigreg_sum = 0.0
+        self._sigreg_n = 0
         for keypoint, frames_padding_mask, embedding, mask_embedding in self.train_loader:
             if self.save_tb_model and epoch == 1 and not getattr(self, "graph_added", False):
                 print("Saving graph")
@@ -263,15 +285,28 @@ class Trainer:
         self.writer.add_scalar("Loss/train_mse", final_train_loss_mse, epoch)
         self.writer.add_scalar("Loss/train_cosim", final_train_loss_cossim, epoch)
 
+        sigreg_str = ""
+        if self.sigreg_enabled and self._sigreg_n:
+            final_sigreg = self._sigreg_sum / self._sigreg_n
+            self.writer.add_scalar("Loss/train_sigreg", final_sigreg, epoch)
+            sigreg_str = f" SIGReg: {final_sigreg:.4f} (λ={self.sigreg_lambda})"
+
         if epoch % self.log_interval == 0:
-            tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} MSE: {final_train_loss_mse} Cossim: {final_train_loss_cossim}")
+            tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} MSE: {final_train_loss_mse} Cossim: {final_train_loss_cossim}{sigreg_str}")
 
         return total_loss
 
     def _forward_loss(self, keypoint, frames_padding_mask, embedding, mask_embedding):
         with self.accelerator.autocast():
             output, _ = self.model(keypoint, frames_padding_mask)
-            loss, mse, cossim = self.criterion(output, embedding, mask_embedding)            
+            loss, mse, cossim = self.criterion(output, embedding, mask_embedding)
+            if self.sigreg_enabled:
+                # SIGReg sobre TODOS los embeddings de salida (los n_tokens del Imitator son
+                # predicciones reales; no hay padding en la salida del modelo).
+                sr = sigreg_loss(output, None, **self.sigreg_kwargs)
+                loss = loss + self.sigreg_lambda * sr
+                self._sigreg_sum += float(sr.detach())
+                self._sigreg_n += 1
         return loss, mse, cossim
 
     @nvtx.annotate("Train: Train Batch", color="green")
