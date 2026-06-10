@@ -4,8 +4,8 @@ Para cada clip seleccionado:
   - keypoints: extraídos con RTMPose (rtmlib, to_openpose -> 137 puntos), decodificando con cv2.
     Se elige el "signer" por mayor movimiento de muñecas. Formato (T, 137, 2), el que espera
     `remove_keypoints` del dataloader (reduce a 111).
-  - embeddings objetivo: embeddings de token de entrada de un LLM (Llama-3.2-1B, hidden=2048,
-    = output_size del Imitator). Sustituye a gemma-3n, que NO carga con transformers 4.51.3.
+  - embeddings objetivo: embeddings de token de entrada de gemma-3n (E2B, hidden=2048 =
+    output_size del Imitator). Requiere transformers >= 4.53 (aquí 5.x).
   - labels: la transcripción (col `label` de meta.csv).
 
 Escribe en data/processed/<out> bajo el grupo `dataset2/{keypoints,embeddings,labels}/<idx>`,
@@ -119,15 +119,28 @@ def phase_keypoints(f, clips, max_frames):
 
 
 # ----------------------------- Embeddings (LLM) -----------------------------
+def _load_lm(llm_model):
+    """Carga el LLM para extraer la tabla de embeddings de entrada.
+
+    gemma-3n es multimodal y viene pre-cuantizado 4bit (unsloth-bnb); from_pretrained lee la
+    quantization_config embebida. Se prueban varias clases auto según la arquitectura.
+    """
+    from transformers import AutoModelForCausalLM
+    try:
+        return AutoModelForCausalLM.from_pretrained(llm_model, device_map="cuda")
+    except Exception as e1:
+        print(f"[emb] AutoModelForCausalLM no aplica ({type(e1).__name__}); probando ImageTextToText")
+        from transformers import AutoModelForImageTextToText
+        return AutoModelForImageTextToText.from_pretrained(llm_model, device_map="cuda")
+
+
 def phase_embeddings(f, clips, llm_model):
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+    from transformers import AutoTokenizer
 
-    bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True,
-                             bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16)
     tok = AutoTokenizer.from_pretrained(llm_model)
-    model = AutoModelForCausalLM.from_pretrained(llm_model, quantization_config=bnb)
-    emb = model.get_input_embeddings().to("cuda")
+    model = _load_lm(llm_model)
+    emb = model.get_input_embeddings()
     dim = emb.weight.shape[1]
     print(f"[emb] {llm_model} | dim embeddings = {dim}  (output_size del Imitator debe ser {dim})")
 
@@ -142,7 +155,7 @@ def phase_embeddings(f, clips, llm_model):
         if key in g_emb:
             continue
         with torch.no_grad():
-            ids = tok(label, return_tensors="pt").input_ids.to("cuda")
+            ids = tok(label, return_tensors="pt").input_ids.to(emb.weight.device)
             vecs = emb(ids[0]).detach().cpu().float().numpy()   # (n_tokens, dim)
         g_emb.create_dataset(key, data=vecs, compression="gzip", compression_opts=4)
         done += 1
@@ -159,7 +172,7 @@ if __name__ == "__main__":
     ap.add_argument("--n", type=int, default=600, help="nº de clips del subconjunto")
     ap.add_argument("--max-frames", type=int, default=250, help="frames máx por video")
     ap.add_argument("--out", type=Path, default=Path("data/processed/dataset_v6_unsloth.hdf5"))
-    ap.add_argument("--llm-model", type=str, default="unsloth/Llama-3.2-1B-Instruct")
+    ap.add_argument("--llm-model", type=str, default="unsloth/gemma-3n-E2B-it-unsloth-bnb-4bit")
     ap.add_argument("--seed", type=int, default=23)
     ap.add_argument("--phase", choices=["all", "keypoints", "embeddings"], default="all")
     args = ap.parse_args()

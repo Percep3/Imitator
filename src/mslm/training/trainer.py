@@ -362,19 +362,26 @@ class Trainer:
         """
         self.model.eval()
         pred_chunks, target_chunks = [], []
+        sb = self.sub_batch if self.batch_sampling else None
 
         for i, (keypoint, frames_padding_mask, embedding, mask_embedding) in enumerate(self.val_loader):
             if i >= self.diag_n_batches:
                 break
-            with self.accelerator.autocast():
-                output, _ = self.model(keypoint, frames_padding_mask)
-
-            # Alinear longitudes igual que la pérdida y quedarse con tokens válidos.
-            L = min(output.size(1), embedding.size(1))
-            valid = ~mask_embedding[:, :L]                      # (B, L) True = válido
-            pred_chunks.append(output[:, :L][valid].float().cpu())
-            if self.diag_compare_target:
-                target_chunks.append(embedding[:, :L][valid].float().cpu())
+            B = keypoint.size(0)
+            step = sb or B
+            # Sub-batchear el forward (igual que el entrenamiento) para no saturar la GPU.
+            for s in range(0, B, step):
+                e = min(s + step, B)
+                with self.accelerator.autocast():
+                    output, _ = self.model(keypoint[s:e], frames_padding_mask[s:e])
+                # Alinear longitudes igual que la pérdida y quedarse con tokens válidos.
+                L = min(output.size(1), embedding.size(1))
+                valid = ~mask_embedding[s:e, :L]                # (b, L) True = válido
+                pred_chunks.append(output[:, :L][valid].float().cpu())
+                if self.diag_compare_target:
+                    target_chunks.append(embedding[s:e, :L][valid].float().cpu())
+                del output
+        torch.cuda.empty_cache()
 
         if not pred_chunks:
             return

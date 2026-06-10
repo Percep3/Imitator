@@ -25,7 +25,11 @@
       "Bash(bash /tmp/repair_signenv.sh)",
       "Bash(echo \"REPAIR_EXIT=$?\")",
       "Bash(tee -a /tmp/repair_signenv.log)",
-      "Read(//home/giorgio6846/Code/Sign-AI/data/processed/**)"
+      "Read(//home/giorgio6846/Code/Sign-AI/data/processed/**)",
+      "Bash(tmux ls *)",
+      "Bash(ps -o pid,etime,rss,cmd -p 2669278)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }
