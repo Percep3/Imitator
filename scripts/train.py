@@ -87,9 +87,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Train a model.")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs to train.")
-    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training.")
-    parser.add_argument("--batch_sample", type=int, default=8, help="Batch size for training.")
+    parser.add_argument("--epochs", type=int, default=0, help="Number of epochs to train (0 = use config TOML).")
+    parser.add_argument("--batch_size", type=int, default=0, help="Batch size (0 = use config TOML).")
+    parser.add_argument("--batch_sample", type=int, default=0, help="Sub-batch size (0 = use config TOML).")
     parser.add_argument("--checkpoint_interval", type=int, default=5, help="Interval for saving checkpoints.")
     parser.add_argument("--log_interval", type=int, default=2, help="Interval for logging training progress.")
     parser.add_argument("--num_keypoints", type=int, default=111, help="Number of keypoints to use in the model.")
