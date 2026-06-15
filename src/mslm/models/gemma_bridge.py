@@ -14,6 +14,21 @@ Forward path (ce_ar loss):
                         GemmaBridge.forward(inputs_embeds, attn_mask)
                                               |
                                   logits [B, K+L-1, vocab_size]
+
+Loading note (Gemma-3n / unsloth checkpoints):
+    Use unsloth.FastModel.from_pretrained to correctly initialize BNB 4-bit
+    quantization state.  Loading with plain AutoModelForCausalLM leaves
+    LinearFP4 layers in an uninitialized state that causes AssertionError on
+    the first forward pass.
+
+    Embedding space: GemmaScaledWordEmbedding multiplies weights by
+    sqrt(hidden_size) = 45.25 for E2B.  embed_tokens() returns scaled
+    embeddings — the prefix adapter must produce vectors in this same scale.
+
+    Gradient flow: inputs_embeds path supports autograd (grad_fn is preserved)
+    even when all LLM weights are frozen (requires_grad=False).  Gradients
+    flow back to the prefix via inputs_embeds without accumulating in LLM
+    weights.
 """
 
 import torch
@@ -21,22 +36,32 @@ import torch.nn as nn
 
 
 def _load_lm(model_id: str):
-    """Load a causal / image-text-to-text LLM by model_id.
+    """Load LLM via unsloth.FastModel for correct 4-bit quantization init.
 
-    Gemma-3n is multimodal, so AutoModelForCausalLM will fail with a
-    ValueError/OSError; we fall back to AutoModelForImageTextToText.
+    Falls back to standard HuggingFace loading if unsloth is not available.
+    Returns the model only (discards the tokenizer returned by FastModel).
     """
-    from transformers import AutoModelForCausalLM
+    try:
+        from unsloth import FastModel
+        model, _ = FastModel.from_pretrained(
+            model_id,
+            dtype=torch.bfloat16,
+            max_seq_length=512,
+            load_in_4bit=True,
+        )
+        print(f"[GemmaBridge] Cargado con unsloth.FastModel: {type(model).__name__}")
+        return model
+    except ImportError:
+        pass
+    except Exception as e_unsloth:
+        print(f"[GemmaBridge] unsloth.FastModel falló ({type(e_unsloth).__name__}): {e_unsloth}; usando HF estándar")
 
+    from transformers import AutoModelForCausalLM
     try:
         return AutoModelForCausalLM.from_pretrained(model_id, device_map="cuda")
     except Exception as e1:
-        print(
-            f"[GemmaBridge] AutoModelForCausalLM no aplica "
-            f"({type(e1).__name__}); probando ImageTextToText"
-        )
+        print(f"[GemmaBridge] AutoModelForCausalLM falló ({type(e1).__name__}); probando ImageTextToText")
         from transformers import AutoModelForImageTextToText
-
         return AutoModelForImageTextToText.from_pretrained(model_id, device_map="cuda")
 
 
