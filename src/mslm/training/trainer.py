@@ -21,6 +21,7 @@ from src.mslm.checkpoint.manager import CheckpointManager
 # from src.mslm.training import imitator_loss
 from src.mslm.training.loss_msepcossim import imitator_loss
 from src.mslm.training.loss_ce_vocab import imitator_ce_loss, ce_floor
+from src.mslm.training.loss_ce_ar import imitator_ar_loss
 from src.mslm.training.collapse_metrics import compute_collapse_metrics
 from src.mslm.training.sigreg import sigreg_loss
 import nvtx
@@ -76,6 +77,7 @@ class Trainer:
         self.embed_table = None
         self.embed_table_norm = None
         self.log_temp = None
+        self.bridge = None
         if self.loss_type == "ce_vocab":
             table_path = loss_cfg["embed_table_path"]
             self.embed_table = torch.load(table_path, map_location="cpu").float().to(self.device)
@@ -97,6 +99,32 @@ class Trainer:
             base_criterion = lambda output, embedding, mask_embedding, token_ids: imitator_ce_loss(
                 output, token_ids, self.embed_table_norm, logit_temp_arg, self.label_smoothing
             )
+        elif self.loss_type == "ce_ar":
+            llm_model = loss_cfg["llm_model"]
+            self.k_prefix = int(loss_cfg.get("k_prefix", 20))
+            # lazy import avoids circular import at module load time
+            from src.mslm.models.gemma_bridge import GemmaBridge
+            self.bridge = GemmaBridge(llm_model)
+            print(f"CE-AR v116: GemmaBridge {llm_model} | k_prefix={self.k_prefix} | hidden={self.bridge.hidden_size} vocab={self.bridge.vocab_size}")
+
+            _k = self.k_prefix
+            _bridge = self.bridge
+
+            def _ce_ar_criterion(output, embedding, mask_embedding, token_ids):
+                B, L = token_ids.shape
+                # embed target tokens for teacher-forcing input (all positions but last)
+                text_ids = token_ids[:, :-1].clone()
+                text_ids[text_ids == -100] = 0  # safe embedding lookup for padding positions
+                text_embeds = _bridge.embed_tokens(text_ids)       # [B, L-1, H]
+                inputs_embeds = torch.cat([output, text_embeds], dim=1)  # [B, K+L-1, H]
+                attn_mask = torch.ones(B, _k + L - 1, dtype=torch.long, device=output.device)
+                logits = _bridge.forward(inputs_embeds, attn_mask)       # [B, K+L-1, V]
+                prefix_mask = torch.full((B, _k), -100, dtype=torch.long, device=output.device)
+                text_labels = token_ids[:, 1:].clone()                   # [B, L-1] shifted targets
+                labels = torch.cat([prefix_mask, text_labels], dim=1)   # [B, K+L-1]
+                return imitator_ar_loss(logits, labels, _k)
+
+            base_criterion = _ce_ar_criterion
         else:
             base_criterion = lambda output, embedding, mask_embedding, token_ids: imitator_loss(
                 output, embedding, mask_embedding
@@ -353,6 +381,10 @@ class Trainer:
             if self.log_temp is not None:
                 self.writer.add_scalar("Params/log_temp", self.log_temp.item(), epoch)
                 self.writer.add_scalar("Params/temp", self.log_temp.exp().item(), epoch)
+        elif self.loss_type == "ce_ar":
+            self.writer.add_scalar("Loss/train_ce_ar", final_train_loss_mse, epoch)
+            self.writer.add_scalar("Metrics/train_token_acc", final_train_loss_cossim, epoch)
+            self.writer.add_scalar("Metrics/train_token_acc_top5", final_top5_train, epoch)
         else:
             self.writer.add_scalar("Loss/train_mse", final_train_loss_mse, epoch)
             self.writer.add_scalar("Loss/train_cosim", final_train_loss_cossim, epoch)
@@ -364,7 +396,7 @@ class Trainer:
             sigreg_str = f" SIGReg: {final_sigreg:.4f} (λ={self.sigreg_lambda})"
 
         if epoch % self.log_interval == 0:
-            if self.loss_type == "ce_vocab":
+            if self.loss_type in ("ce_vocab", "ce_ar"):
                 tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} CE: {final_train_loss_mse} TokenAcc: {final_train_loss_cossim} Top5: {final_top5_train:.4f}{sigreg_str}")
             else:
                 tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} MSE: {final_train_loss_mse} Cossim: {final_train_loss_cossim}{sigreg_str}")
@@ -479,12 +511,16 @@ class Trainer:
                 tqdm.write(f"⚠️  val_ce={final_mse_loss:.4f} < piso teórico {floor:.4f} "
                            f"(ε={self.label_smoothing}, V={self.embed_table.shape[0]}). "
                            f"Métrica CORRUPTA — no usar para selección de modelo.")
+        elif self.loss_type == "ce_ar":
+            self.writer.add_scalar("Loss/val_ce_ar", final_mse_loss, epoch)
+            self.writer.add_scalar("Metrics/val_token_acc", final_cossim_loss, epoch)
+            self.writer.add_scalar("Metrics/val_token_acc_top5", final_top5_val, epoch)
         else:
             self.writer.add_scalar("Loss/val_mse", final_mse_loss, epoch)
             self.writer.add_scalar("Loss/val_cossim", final_cossim_loss, epoch)
 
         if epoch % self.log_interval == 0:
-            if self.loss_type == "ce_vocab":
+            if self.loss_type in ("ce_vocab", "ce_ar"):
                 tqdm.write(f"Validation loss: {final_val_loss} CE: {final_mse_loss} TokenAcc: {final_cossim_loss} Top5: {final_top5_val:.4f}")
             else:
                 tqdm.write(f"Validation loss: {final_val_loss} MSE: {final_mse_loss} Cossim: {final_cossim_loss}")

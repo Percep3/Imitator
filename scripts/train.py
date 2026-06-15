@@ -63,8 +63,8 @@ def run(
     loss_cfg = getattr(cfg, "loss", None)
     if loss_cfg is not None:
         training_cfg["loss"] = dict(loss_cfg)
-    # CE-vocab (v115) necesita los token IDs en los batches.
-    return_token_ids = bool(loss_cfg) and loss_cfg.get("type") == "ce_vocab"
+    # CE-vocab (v115) y CE-AR (v116) necesitan los token IDs en los batches.
+    return_token_ids = bool(loss_cfg) and loss_cfg.get("type") in ("ce_vocab", "ce_ar")
 
     print(f"Batch size: {batch_size}, batch sample: {batch_sample}")
     print(f"using dataset {h5_file} | include_datasets={include_datasets} | token_ids={return_token_ids}")
