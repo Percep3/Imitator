@@ -36,3 +36,9 @@ batch_size              = 32
 # activations cause OOM during training. Val fix (@torch.no_grad) keeps
 # base memory at 9.32 GB, leaving 6.26 GB headroom for 1-sample activations.
 sub_batch_size          = 1
+
+[eval]
+# Greedy-decode from soft prefix + chrF every gen_interval epochs.
+gen_interval   = 5
+max_new_tokens = 50
+gen_val_batches = 4

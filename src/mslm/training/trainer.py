@@ -21,11 +21,42 @@ from src.mslm.checkpoint.manager import CheckpointManager
 # from src.mslm.training import imitator_loss
 from src.mslm.training.loss_msepcossim import imitator_loss
 from src.mslm.training.loss_ce_vocab import imitator_ce_loss, ce_floor
-from src.mslm.training.loss_ce_ar import imitator_ar_loss
+from src.mslm.training.loss_ce_ar import imitator_ar_loss, build_ar_labels as _build_ar_labels
 from src.mslm.training.collapse_metrics import compute_collapse_metrics
 from src.mslm.training.sigreg import sigreg_loss
 import nvtx
 from datetime import datetime
+
+def _char_ngrams(text: str, n: int) -> "dict":
+    from collections import Counter
+    return Counter(text[i:i + n] for i in range(len(text) - n + 1))
+
+
+def _compute_chrf(hypotheses: "list[str]", references: "list[str]") -> float:
+    """Compute corpus-level chrF score (0–100). Uses sacrebleu if available."""
+    try:
+        from sacrebleu.metrics import CHRF
+        return CHRF().corpus_score(hypotheses, [references]).score
+    except ImportError:
+        pass
+    # Fallback: character bigram F-score
+    total_p, total_r, n = 0.0, 0.0, 0
+    for hyp, ref in zip(hypotheses, references):
+        hyp_bg = _char_ngrams(hyp, 2)
+        ref_bg = _char_ngrams(ref, 2)
+        if not ref_bg:
+            continue
+        matches = sum((hyp_bg & ref_bg).values())
+        p = matches / max(sum(hyp_bg.values()), 1)
+        r = matches / max(sum(ref_bg.values()), 1)
+        total_p += p
+        total_r += r
+        n += 1
+    if n == 0:
+        return 0.0
+    p, r = total_p / n, total_r / n
+    return 100.0 * (2 * p * r) / (p + r) if (p + r) > 0 else 0.0
+
 
 class Trainer:
     def __init__(self, model, train_loader, val_loader, learning_rate, save_tb_model=True, **kwargs):
@@ -112,16 +143,22 @@ class Trainer:
 
             def _ce_ar_criterion(output, embedding, mask_embedding, token_ids):
                 B, L = token_ids.shape
-                # embed target tokens for teacher-forcing input (all positions but last)
+                # embed target tokens for teacher-forcing input (tokens 0..L-2)
                 text_ids = token_ids[:, :-1].clone()
                 text_ids[text_ids == -100] = 0  # safe embedding lookup for padding positions
-                text_embeds = _bridge.embed_tokens(text_ids)       # [B, L-1, H]
+                text_embeds = _bridge.embed_tokens(text_ids)        # [B, L-1, H]
                 inputs_embeds = torch.cat([output, text_embeds], dim=1)  # [B, K+L-1, H]
-                attn_mask = torch.ones(B, _k + L - 1, dtype=torch.long, device=output.device)
-                logits = _bridge.forward(inputs_embeds, attn_mask)       # [B, K+L-1, V]
-                prefix_mask = torch.full((B, _k), -100, dtype=torch.long, device=output.device)
-                text_labels = token_ids[:, 1:].clone()                   # [B, L-1] shifted targets
-                labels = torch.cat([prefix_mask, text_labels], dim=1)   # [B, K+L-1]
+                # Bug-3 fix: mask padding tokens so they don't attend (causal, minimal impact
+                # but cleaner). Prefix positions always attend (they are not padding).
+                text_valid = (token_ids[:, :-1] != -100).long()         # [B, L-1]
+                attn_mask = torch.cat([
+                    torch.ones(B, _k, dtype=torch.long, device=output.device),
+                    text_valid,
+                ], dim=1)                                               # [B, K+L-1]
+                logits = _bridge.forward(inputs_embeds, attn_mask)      # [B, K+L-1, V]
+                # Bug-1 fix: mask only K-1 prefix positions so that position K-1
+                # (last prefix slot) supervises token_ids[:, 0] (first text token).
+                labels = _build_ar_labels(token_ids, _k)               # [B, K+L-1]
                 return imitator_ar_loss(logits, labels, _k)
 
             base_criterion = _ce_ar_criterion
@@ -202,6 +239,18 @@ class Trainer:
         )
         self._sigreg_sum = 0.0
         self._sigreg_n = 0
+
+        # Generative evaluation (v116.0): greedy decode from soft prefix + chrF.
+        gen_cfg = kwargs.get("eval_gen")
+        if gen_cfg is None:
+            try:
+                from src.mslm.utils.config_loader import cfg
+                gen_cfg = dict(getattr(cfg, "eval", {}))
+            except Exception:
+                gen_cfg = {}
+        self.gen_interval = int(gen_cfg.get("gen_interval", 5))
+        self.gen_max_tokens = int(gen_cfg.get("max_new_tokens", 50))
+        self.gen_val_batches = int(gen_cfg.get("gen_val_batches", 4))
 
 
     def prepare_trainer(self):
@@ -532,6 +581,10 @@ class Trainer:
         if self.diagnostics_enabled and (epoch % self.diag_interval == 0):
             self._run_diagnostics(epoch)
 
+        if (self.loss_type == "ce_ar" and self.bridge is not None
+                and epoch > 0 and epoch % self.gen_interval == 0):
+            self._run_generation_eval(epoch)
+
         import gc
         gc.collect()
         torch.cuda.empty_cache()
@@ -620,6 +673,72 @@ class Trainer:
                 f"cos={metrics['pairwise_cosine_mean']:.3f} "
                 f"dim_collapsed={metrics['per_dim_collapsed_frac']:.2f}{alert}"
             )
+
+    @torch.no_grad()
+    def _run_generation_eval(self, epoch: int):
+        """Greedy-decode from soft prefix over a val subset and log chrF.
+
+        Runs every ``gen_interval`` epochs.  Prints up to 5 example pairs
+        (reference vs hypothesis) for manual inspection.
+
+        Imitator forward is sub-batched to stay within GPU memory; then all
+        prefix vectors are stacked and a single batched generate() call is made
+        so that the 50 greedy steps run in parallel across the full batch.
+        """
+        self.model.eval()
+        hyps: "list[str]" = []
+        refs: "list[str]" = []
+        examples_shown = False
+        pad_id = getattr(self.bridge.tokenizer, "pad_token_id", None) or 0
+
+        step = self.sub_batch if self.batch_sampling else None
+
+        for i, batch in enumerate(self.val_loader):
+            if i >= self.gen_val_batches:
+                break
+            keypoint = batch[0]
+            frames_padding_mask = batch[1]
+            token_ids = batch[4] if len(batch) > 4 else None
+            if token_ids is None:
+                continue
+
+            B = keypoint.size(0)
+            sub = step or B
+            prefix_chunks = []
+            for s in range(0, B, sub):
+                e = min(s + sub, B)
+                with self.accelerator.autocast():
+                    prefix_chunk, _ = self.model(keypoint[s:e], frames_padding_mask[s:e])
+                prefix_chunks.append(prefix_chunk.float())  # collect in float32
+
+            # Stack all prefixes and generate in one batched call (no sub-batch).
+            # @torch.no_grad() + no gradient storage keeps memory low enough.
+            prefix = torch.cat(prefix_chunks, dim=0)  # [B, K, H]
+            gen_ids = self.bridge.generate(prefix, max_new_tokens=self.gen_max_tokens)
+            gen_texts = self.bridge.decode(gen_ids)
+
+            ref_ids = token_ids.clone()
+            ref_ids[ref_ids == -100] = pad_id
+            ref_texts = self.bridge.decode(ref_ids)
+
+            hyps.extend(gen_texts)
+            refs.extend(ref_texts)
+
+            if not examples_shown and self.accelerator.is_main_process:
+                tqdm.write(f"\n[Gen ep{epoch}] Ejemplos generados:")
+                for j in range(min(5, len(gen_texts))):
+                    tqdm.write(f"  REF: {ref_texts[j][:120]}")
+                    tqdm.write(f"  HYP: {gen_texts[j][:120]}")
+                    tqdm.write("")
+                examples_shown = True
+
+        if not hyps:
+            return
+
+        chrf = _compute_chrf(hyps, refs)
+        if self.accelerator.is_main_process:
+            self.writer.add_scalar("Gen/val_chrf", chrf, epoch)
+            tqdm.write(f"[Gen ep{epoch}] chrF={chrf:.2f} ({len(hyps)} muestras)")
 
     @nvtx.annotate("Val: Validate Batch", color="green")
     @torch.no_grad()

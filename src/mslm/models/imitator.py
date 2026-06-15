@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from .components import TransformerEncoderLayerRoPE
 from .components.stgcn import STGCNBlock, partition_adjacency
 from torch.utils.checkpoint import checkpoint
@@ -309,6 +310,12 @@ class PrefixImitator(nn.Module):
     """Wraps Imitator + PrefixAdapter for v116 soft-prefix training.
 
     forward(keypoints, frames_padding_mask) -> prefix [B, K, hidden_size]
+
+    Scale note: GemmaScaledWordEmbedding returns token embeddings with L2 norm
+    ≈ sqrt(hidden_size) ≈ 45.25 for E2B.  The adapter output is normalized to
+    unit norm and then rescaled by the learnable ``prefix_scale`` parameter,
+    which is initialized to sqrt(hidden_size) so the prefix starts in the
+    correct embedding scale without manual tuning.
     """
     def __init__(self, imitator: Imitator, hidden_size: int | None = None):
         super().__init__()
@@ -319,10 +326,16 @@ class PrefixImitator(nn.Module):
             nn.LayerNorm(hidden_size),
             nn.Linear(hidden_size, hidden_size)
         )
+        # Bug-2 fix: initialize scale to sqrt(hidden_size) so prefix lives in
+        # the same L2-norm range as Gemma token embeddings (~45.25 for E2B).
+        self.prefix_scale = nn.Parameter(torch.tensor(float(hidden_size) ** 0.5))
 
     def forward(self, keypoints, frames_padding_mask):
         # raw_prefix: [B, K, hidden_size] from Imitator
         raw_prefix, attn_w = self.imitator(keypoints, frames_padding_mask)
-        # prefix: [B, K, hidden_size] projected into Gemma's embedding space
+        # Project into Gemma's embedding space with correct norm.
+        # F.normalize gives unit-norm vectors; prefix_scale brings them to the
+        # same magnitude as token embeddings (≈ sqrt(hidden_size), learnable).
         prefix = self.prefix_adapter(raw_prefix)
+        prefix = F.normalize(prefix, dim=-1) * self.prefix_scale
         return prefix, attn_w

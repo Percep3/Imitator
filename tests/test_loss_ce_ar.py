@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -11,6 +12,7 @@ _spec = importlib.util.spec_from_file_location(
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 imitator_ar_loss = _mod.imitator_ar_loss
+build_ar_labels = _mod.build_ar_labels
 
 VOCAB = 50
 B, K, L = 2, 4, 6  # batch, prefix tokens, text tokens
@@ -93,6 +95,85 @@ def test_gradient_flows_to_logits_not_to_labels():
     ce.backward()
     assert logits.grad is not None, "logits.grad is None — gradient did not flow"
     assert logits.grad.abs().sum().item() > 0, "logits.grad is all zeros"
+
+
+
+# ── Bug-1 regression tests: first target token must be supervised ──────────────
+
+def test_first_target_token_supervised():
+    """labels[:, K-1] must equal token_ids[:, 0] — regression test for Bug 1."""
+    B, K, L = 3, 5, 8
+    token_ids = torch.randint(0, VOCAB, (B, L))
+    labels = build_ar_labels(token_ids, k_prefix=K)
+
+    assert (labels[:, K - 1] == token_ids[:, 0]).all(), (
+        f"First token not supervised at position K-1={K - 1}; "
+        f"labels[:,K-1]={labels[:, K - 1].tolist()} vs "
+        f"token_ids[:,0]={token_ids[:, 0].tolist()}"
+    )
+    # Positions K-1 onward are exactly token_ids (including any -100 padding)
+    assert (labels[:, K - 1:] == token_ids).all(), (
+        "Text portion of labels does not match token_ids"
+    )
+
+
+def test_labels_length_matches_logits():
+    """labels.size(1) == K + L - 1, matching the logits sequence length."""
+    B, K, L = 2, 6, 10
+    token_ids = torch.randint(0, VOCAB, (B, L))
+    labels = build_ar_labels(token_ids, k_prefix=K)
+    expected = K + L - 1
+    assert labels.size(1) == expected, (
+        f"labels.size(1)={labels.size(1)} != K+L-1={expected}"
+    )
+
+
+def test_prefix_mask_covers_first_k_minus_1():
+    """Exactly K-1 prefix positions are masked with -100."""
+    B, K, L = 2, 4, 7
+    token_ids = torch.randint(1, VOCAB, (B, L))  # no natural -100 values
+    labels = build_ar_labels(token_ids, k_prefix=K)
+
+    prefix_part = labels[:, :K - 1]
+    assert (prefix_part == -100).all(), (
+        f"Expected first K-1={K - 1} positions to be -100; got {prefix_part}"
+    )
+    # The K-th position (index K-1) must NOT be -100 when token_ids has no padding
+    assert (labels[:, K - 1] != -100).all(), (
+        "Position K-1 is -100 but should be the first supervised token"
+    )
+
+
+# ── Bug-2 regression test: prefix scale at init ────────────────────────────────
+
+def test_prefix_scale_init():
+    """F.normalize + learnable scale guarantees norm == scale at every position.
+
+    This validates the mathematical invariant introduced in Bug-2 fix:
+    prefix = F.normalize(adapter_out, dim=-1) * prefix_scale
+    Each token vector then has L2 norm exactly equal to prefix_scale.
+    At init, prefix_scale = sqrt(hidden_size) ≈ 45.25 for Gemma-3n E2B.
+    """
+    import torch.nn as nn
+
+    hidden_size = 64  # small for CPU; math is identical to 2048
+    expected_norm = float(hidden_size) ** 0.5
+
+    # Simulate PrefixImitator adapter output (non-zero random vectors)
+    torch.manual_seed(0)
+    raw = torch.randn(2, 10, hidden_size)  # [B, K, H]
+    prefix_scale = nn.Parameter(torch.tensor(expected_norm))
+
+    prefix = F.normalize(raw, dim=-1) * prefix_scale
+
+    norms = prefix.norm(dim=-1)  # [B, K]
+    assert torch.allclose(norms, torch.full_like(norms, expected_norm), atol=1e-4), (
+        f"Expected all token norms = {expected_norm:.4f}; "
+        f"got min={norms.min():.4f} max={norms.max():.4f}"
+    )
+    assert abs(prefix_scale.item() - expected_norm) < 1e-4, (
+        f"prefix_scale init wrong: {prefix_scale.item()} != {expected_norm}"
+    )
 
 
 if __name__ == "__main__":

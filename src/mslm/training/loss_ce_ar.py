@@ -4,6 +4,27 @@ import torch.nn.functional as F
 IGNORE_INDEX = -100
 
 
+def build_ar_labels(token_ids: torch.Tensor, k_prefix: int) -> torch.Tensor:
+    """Build autoregressive labels for the v116 soft-prefix pipeline.
+
+    Masks the first K-1 prefix positions with IGNORE_INDEX so that the loss
+    only supervises positions K-1 onward.  Position K-1 (last prefix slot)
+    predicts token_ids[:, 0] — the first text token — which was silently
+    dropped in the original Bug-1 implementation.
+
+    Args:
+        token_ids: [B, L] — ground-truth token IDs (-100 for padding, kept as-is)
+        k_prefix:  K — number of soft-prefix tokens prepended to inputs_embeds
+
+    Returns:
+        labels: [B, K-1+L] = [B, K+L-1] — aligned with logits from Gemma forward
+    """
+    B = token_ids.size(0)
+    device = token_ids.device
+    prefix_mask = torch.full((B, k_prefix - 1), IGNORE_INDEX, dtype=torch.long, device=device)
+    return torch.cat([prefix_mask, token_ids], dim=1)
+
+
 def imitator_ar_loss(
     logits: torch.Tensor,
     labels: torch.Tensor,

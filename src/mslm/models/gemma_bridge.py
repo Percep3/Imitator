@@ -43,13 +43,13 @@ def _load_lm(model_id: str, max_seq_length: int = 128):
     CUDA memory — those are not needed for soft-prefix training.
 
     Falls back to standard HuggingFace loading if unsloth is not available.
-    Returns the model only (discards the tokenizer returned by FastModel).
+    Returns (model, tokenizer) — the tokenizer is needed for generation decoding.
     """
     import gc
 
     try:
         from unsloth import FastModel
-        full_model, _ = FastModel.from_pretrained(
+        full_model, tokenizer = FastModel.from_pretrained(
             model_id,
             dtype=torch.bfloat16,
             max_seq_length=max_seq_length,
@@ -79,21 +79,23 @@ def _load_lm(model_id: str, max_seq_length: int = 128):
             gc.collect()
             torch.cuda.empty_cache()
             print(f"[GemmaBridge] Extraído language_model de {full_model_type}: {type(text_model).__name__}")
-            return text_model
+            return text_model, tokenizer
         print(f"[GemmaBridge] Cargado con unsloth.FastModel: {full_model_type}")
-        return full_model
+        return full_model, tokenizer
     except ImportError:
         print("[GemmaBridge] unsloth no disponible; usando HF estándar (puede fallar con bnb-4bit)")
     except Exception as e_unsloth:
         print(f"[GemmaBridge] unsloth.FastModel falló ({type(e_unsloth).__name__}): {e_unsloth}; usando HF estándar")
 
-    from transformers import AutoModelForCausalLM
+    from transformers import AutoModelForCausalLM, AutoTokenizer
     try:
-        return AutoModelForCausalLM.from_pretrained(model_id, device_map="cuda")
+        model = AutoModelForCausalLM.from_pretrained(model_id, device_map="cuda")
     except Exception as e1:
         print(f"[GemmaBridge] AutoModelForCausalLM falló ({type(e1).__name__}); probando ImageTextToText")
         from transformers import AutoModelForImageTextToText
-        return AutoModelForImageTextToText.from_pretrained(model_id, device_map="cuda")
+        model = AutoModelForImageTextToText.from_pretrained(model_id, device_map="cuda")
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    return model, tokenizer
 
 
 class GemmaBridge(nn.Module):
@@ -118,8 +120,8 @@ class GemmaBridge(nn.Module):
     def __init__(self, model_id: str, device: str = "cuda"):
         super().__init__()
 
-        # Load text model only (vision/audio encoders freed inside _load_lm).
-        lm = _load_lm(model_id)
+        # Load text model and tokenizer (tokenizer needed for decode()).
+        lm, self.tokenizer = _load_lm(model_id)
         lm.requires_grad_(False)
         lm.eval()
         # Store as a non-parameter attribute so that PyTorch doesn't try to
@@ -199,5 +201,77 @@ class GemmaBridge(nn.Module):
         torch.Tensor
             Logits of shape ``[B, S, vocab_size]``.
         """
+        # Cast to the LLM weight dtype (always bf16 for quantized Gemma).
+        # PrefixImitator output can be float32 (F.normalize stays in float32
+        # during autocast), which would cause dtype mismatch in Gemma's linears.
+        target_dtype = self._embed_layer.weight.dtype
+        inputs_embeds = inputs_embeds.to(dtype=target_dtype)
         out = self._lm_forward(inputs_embeds, attention_mask)
         return out.logits
+
+    @torch.no_grad()
+    def generate(
+        self,
+        prefix: torch.Tensor,
+        max_new_tokens: int = 50,
+        attention_mask: "torch.Tensor | None" = None,
+    ) -> torch.Tensor:
+        """Greedy autoregressive decode conditioned on a soft prefix.
+
+        Parameters
+        ----------
+        prefix:
+            Float tensor of shape ``[B, K, hidden_size]`` — the soft prefix
+            produced by PrefixImitator.
+        max_new_tokens:
+            Number of tokens to generate greedily.
+        attention_mask:
+            Optional ``[B, K]`` long tensor (1 = attend, 0 = ignore).  Defaults
+            to all-ones (attend all prefix positions).
+
+        Returns
+        -------
+        torch.Tensor
+            Long tensor of shape ``[B, max_new_tokens]`` — generated token IDs.
+        """
+        B, K, _ = prefix.shape
+        device = prefix.device
+
+        if attention_mask is None:
+            attention_mask = torch.ones(B, K, dtype=torch.long, device=device)
+
+        target_dtype = self._embed_layer.weight.dtype
+        current_embeds = prefix.to(dtype=target_dtype)
+        current_mask = attention_mask
+        generated = []
+
+        for _ in range(max_new_tokens):
+            logits = self.forward(current_embeds, current_mask)  # [B, S, V]
+            next_id = logits[:, -1, :].argmax(dim=-1)           # [B]
+            generated.append(next_id)
+
+            next_embed = self.embed_tokens(next_id.unsqueeze(1)) # [B, 1, H]
+            current_embeds = torch.cat([current_embeds, next_embed], dim=1)
+            current_mask = torch.cat(
+                [current_mask, torch.ones(B, 1, dtype=torch.long, device=device)],
+                dim=1,
+            )
+
+        return torch.stack(generated, dim=1)  # [B, max_new_tokens]
+
+    def decode(self, token_ids: torch.Tensor) -> "list[str]":
+        """Decode token IDs to strings using the LLM's tokenizer.
+
+        Parameters
+        ----------
+        token_ids:
+            Long tensor of shape ``[B, L]`` or ``[L]``.
+
+        Returns
+        -------
+        list[str]
+            One decoded string per batch element.
+        """
+        if token_ids.dim() == 1:
+            token_ids = token_ids.unsqueeze(0)
+        return self.tokenizer.batch_decode(token_ids.cpu(), skip_special_tokens=True)
