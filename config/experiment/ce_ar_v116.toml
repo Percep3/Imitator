@@ -30,3 +30,9 @@ k_prefix  = 20
 model_version           = 116
 early_stopping_patience = 15
 compile                 = false
+epochs                  = 30
+batch_size              = 32
+# RTX 4060 Ti (15.58 GB): batch_sample=1 is the max before STGCN [B,1536,T,111]
+# activations cause OOM during training. Val fix (@torch.no_grad) keeps
+# base memory at 9.32 GB, leaving 6.26 GB headroom for 1-sample activations.
+sub_batch_size          = 1
