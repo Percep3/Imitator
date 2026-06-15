@@ -310,9 +310,11 @@ class PrefixImitator(nn.Module):
 
     forward(keypoints, frames_padding_mask) -> prefix [B, K, hidden_size]
     """
-    def __init__(self, imitator: Imitator, hidden_size: int = 2048):
+    def __init__(self, imitator: Imitator, hidden_size: int | None = None):
         super().__init__()
         self.imitator = imitator
+        if hidden_size is None:
+            hidden_size = imitator.proj.out_features
         self.prefix_adapter = nn.Sequential(
             nn.LayerNorm(hidden_size),
             nn.Linear(hidden_size, hidden_size)
