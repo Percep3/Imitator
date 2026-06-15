@@ -85,6 +85,8 @@ class GemmaBridge(nn.Module):
         # embed_layer.weight: [vocab_size, hidden_size]
         self.vocab_size: int = embed_layer.weight.shape[0]
         self.hidden_size: int = embed_layer.weight.shape[1]
+        # Cache the embedding layer to avoid re-fetching on every embed_tokens call.
+        self._embed_layer = embed_layer
 
     # ------------------------------------------------------------------
     # Public interface
@@ -106,9 +108,8 @@ class GemmaBridge(nn.Module):
         torch.Tensor
             Float tensor of shape ``[B, L, hidden_size]``.
         """
-        embed_layer = self.lm.get_input_embeddings()
         with torch.no_grad():
-            return embed_layer(ids)
+            return self._embed_layer(ids)
 
     def forward(
         self,
@@ -130,9 +131,8 @@ class GemmaBridge(nn.Module):
         torch.Tensor
             Logits of shape ``[B, S, vocab_size]``.
         """
-        with torch.no_grad():
-            out = self._text_model(
-                inputs_embeds=inputs_embeds,
-                attention_mask=attention_mask,
-            )
+        out = self._text_model(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+        )
         return out.logits
