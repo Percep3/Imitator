@@ -528,6 +528,10 @@ class Trainer:
         if self.diagnostics_enabled and (epoch % self.diag_interval == 0):
             self._run_diagnostics(epoch)
 
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
+
         self.early_stopping(final_val_loss, epoch=epoch)
         return final_val_loss
 
@@ -614,6 +618,7 @@ class Trainer:
             )
 
     @nvtx.annotate("Val: Validate Batch", color="green")
+    @torch.no_grad()
     def _val_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None) -> t.Tuple[float, float, float, float]:
         batch_loss = 0.0
         batch_mse = 0.0

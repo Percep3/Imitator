@@ -35,24 +35,55 @@ import torch
 import torch.nn as nn
 
 
-def _load_lm(model_id: str):
+def _load_lm(model_id: str, max_seq_length: int = 128):
     """Load LLM via unsloth.FastModel for correct 4-bit quantization init.
+
+    For multimodal models (Gemma3nForConditionalGeneration), extracts only
+    the text language_model component and frees the vision/audio encoders from
+    CUDA memory — those are not needed for soft-prefix training.
 
     Falls back to standard HuggingFace loading if unsloth is not available.
     Returns the model only (discards the tokenizer returned by FastModel).
     """
+    import gc
+
     try:
         from unsloth import FastModel
-        model, _ = FastModel.from_pretrained(
+        full_model, _ = FastModel.from_pretrained(
             model_id,
             dtype=torch.bfloat16,
-            max_seq_length=512,
+            max_seq_length=max_seq_length,
             load_in_4bit=True,
         )
-        print(f"[GemmaBridge] Cargado con unsloth.FastModel: {type(model).__name__}")
-        return model
+        # Put in pure inference mode — prevents unsloth from applying
+        # torch.compile / auto-compiling the forward, which would cache
+        # dequantized NF4 weights in CUDA and use 5-6 GB of extra VRAM.
+        try:
+            FastModel.for_inference(full_model)
+            print(f"[GemmaBridge] FastModel.for_inference() aplicado: no auto-compile")
+        except Exception as e_inf:
+            print(f"[GemmaBridge] for_inference() falló ({type(e_inf).__name__}): {e_inf}")
+        # Also disable dynamo graph capture on the model to stay in eager mode.
+        try:
+            import torch._dynamo as dynamo
+            dynamo.disable(full_model)
+        except Exception:
+            pass
+        full_model_type = type(full_model).__name__
+        # Multimodal wrapper: try to extract text-only sub-model to free
+        # vision/audio encoders from CUDA (Gemma3nForConditionalGeneration
+        # may or may not expose a language_model attribute depending on version).
+        if hasattr(full_model, "language_model"):
+            text_model = full_model.language_model
+            del full_model
+            gc.collect()
+            torch.cuda.empty_cache()
+            print(f"[GemmaBridge] Extraído language_model de {full_model_type}: {type(text_model).__name__}")
+            return text_model
+        print(f"[GemmaBridge] Cargado con unsloth.FastModel: {full_model_type}")
+        return full_model
     except ImportError:
-        pass
+        print("[GemmaBridge] unsloth no disponible; usando HF estándar (puede fallar con bnb-4bit)")
     except Exception as e_unsloth:
         print(f"[GemmaBridge] unsloth.FastModel falló ({type(e_unsloth).__name__}): {e_unsloth}; usando HF estándar")
 
@@ -87,7 +118,7 @@ class GemmaBridge(nn.Module):
     def __init__(self, model_id: str, device: str = "cuda"):
         super().__init__()
 
-        # Load and freeze.
+        # Load text model only (vision/audio encoders freed inside _load_lm).
         lm = _load_lm(model_id)
         lm.requires_grad_(False)
         lm.eval()
@@ -96,13 +127,12 @@ class GemmaBridge(nn.Module):
         # CUDA via device_map).
         self.lm = lm
 
-        # Resolve the text sub-module for forward passes.
-        # AutoModelForImageTextToText wraps a `language_model` attribute that
-        # accepts inputs_embeds without requiring pixel_values.
+        # _load_lm already extracts language_model for multimodal checkpoints,
+        # so lm is always the text-only model here.  The routing below handles
+        # the rare case where a HF fallback returns a full multimodal model.
         if hasattr(lm, "language_model"):
             self._text_model = lm.language_model
         else:
-            # Plain CausalLM — the model itself accepts inputs_embeds.
             self._text_model = lm
 
         # Expose integer attributes for downstream modules.
@@ -112,6 +142,19 @@ class GemmaBridge(nn.Module):
         self.hidden_size: int = embed_layer.weight.shape[1]
         # Cache the embedding layer to avoid re-fetching on every embed_tokens call.
         self._embed_layer = embed_layer
+
+        # Pre-build an eager (non-compiled) forward wrapper so that
+        # torch._dynamo.disable is applied once at construction time rather
+        # than on every forward call.  This prevents any surrounding
+        # torch.compile region from tracing into the Gemma model and caching
+        # large dequantized NF4 weight buffers in CUDA memory.
+        _text = self._text_model
+
+        @torch._dynamo.disable
+        def _lm_forward(inputs_embeds, attention_mask):
+            return _text(inputs_embeds=inputs_embeds, attention_mask=attention_mask)
+
+        self._lm_forward = _lm_forward
 
     # ------------------------------------------------------------------
     # Public interface
@@ -156,8 +199,5 @@ class GemmaBridge(nn.Module):
         torch.Tensor
             Logits of shape ``[B, S, vocab_size]``.
         """
-        out = self._text_model(
-            inputs_embeds=inputs_embeds,
-            attention_mask=attention_mask,
-        )
+        out = self._lm_forward(inputs_embeds, attention_mask)
         return out.logits

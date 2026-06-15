@@ -72,6 +72,12 @@ def run(
     tr_dl, val_dl = create_dataloaders(tr_ds, val_ds, batch_size, num_workers=10)
 
     model = build_model(**model_cfg)
+    # v116 ce_ar: wrap Imitator in PrefixImitator to add the LayerNorm+Linear adapter
+    # that projects from the Imitator's embedding space into Gemma's embedding space.
+    if bool(loss_cfg) and loss_cfg.get("type") == "ce_ar":
+        from src.mslm.models.imitator import PrefixImitator
+        model = PrefixImitator(model)
+        print(f"[v116] Modelo envuelto en PrefixImitator: {sum(p.numel() for p in model.parameters())/1e6:.2f} M params totales")
     load_previous = check_checkpoint(model, training_cfg)
     training_cfg["load_previous_model"] = load_previous
 
