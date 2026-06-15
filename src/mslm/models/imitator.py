@@ -303,3 +303,24 @@ class SignAlignGCN_KeypointsOnly(nn.Module):
                 decoder_input = torch.cat([decoder_input, next_embedding], dim=1)
 
             return torch.cat(output_embeddings, dim=1)
+
+
+class PrefixImitator(nn.Module):
+    """Wraps Imitator + PrefixAdapter for v116 soft-prefix training.
+
+    forward(keypoints, frames_padding_mask) -> prefix [B, K, hidden_size]
+    """
+    def __init__(self, imitator: Imitator, hidden_size: int = 2048):
+        super().__init__()
+        self.imitator = imitator
+        self.prefix_adapter = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Linear(hidden_size, hidden_size)
+        )
+
+    def forward(self, keypoints, frames_padding_mask):
+        # raw_prefix: [B, K, hidden_size] from Imitator
+        raw_prefix, attn_w = self.imitator(keypoints, frames_padding_mask)
+        # prefix: [B, K, hidden_size] projected into Gemma's embedding space
+        prefix = self.prefix_adapter(raw_prefix)
+        return prefix, attn_w
