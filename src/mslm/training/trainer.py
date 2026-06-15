@@ -5,6 +5,8 @@ import typing as t
 from accelerate import Accelerator
 from accelerate.utils import TorchDynamoPlugin
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import random
 
 torch.manual_seed(23)
@@ -18,7 +20,7 @@ from src.mslm.utils.early_stopping import EarlyStopping
 from src.mslm.checkpoint.manager import CheckpointManager
 # from src.mslm.training import imitator_loss
 from src.mslm.training.loss_msepcossim import imitator_loss
-from src.mslm.training.loss_ce_vocab import imitator_ce_loss
+from src.mslm.training.loss_ce_vocab import imitator_ce_loss, ce_floor
 from src.mslm.training.collapse_metrics import compute_collapse_metrics
 from src.mslm.training.sigreg import sigreg_loss
 import nvtx
@@ -72,14 +74,28 @@ class Trainer:
         self.loss_type = loss_cfg.get("type", "mse_cossim")
 
         self.embed_table = None
+        self.embed_table_norm = None
+        self.log_temp = None
         if self.loss_type == "ce_vocab":
             table_path = loss_cfg["embed_table_path"]
-            self.logit_temp = float(loss_cfg.get("logit_temp", 1.0))
             self.embed_table = torch.load(table_path, map_location="cpu").float().to(self.device)
             self.embed_table.requires_grad_(False)
-            print(f"CE-vocab: tabla {tuple(self.embed_table.shape)} desde {table_path} | temp={self.logit_temp}")
+            self.embed_table_norm = F.normalize(self.embed_table, dim=-1)
+            self.embed_table_norm.requires_grad_(False)
+
+            self.label_smoothing = float(loss_cfg.get("label_smoothing", 0.0))
+
+            use_learnable_temp = bool(loss_cfg.get("learnable_temp", False))
+            if use_learnable_temp:
+                init_log_temp = float(loss_cfg.get("init_log_temp", 2.659))
+                self.log_temp = nn.Parameter(torch.tensor(init_log_temp, device=self.device))
+                logit_temp_arg = self.log_temp
+            else:
+                logit_temp_arg = float(loss_cfg.get("logit_temp", 1.0))
+
+            print(f"CE-vocab: tabla {tuple(self.embed_table.shape)} desde {table_path} | learnable_temp={use_learnable_temp} label_smoothing={self.label_smoothing}")
             base_criterion = lambda output, embedding, mask_embedding, token_ids: imitator_ce_loss(
-                output, token_ids, self.embed_table, self.logit_temp
+                output, token_ids, self.embed_table_norm, logit_temp_arg, self.label_smoothing
             )
         else:
             base_criterion = lambda output, embedding, mask_embedding, token_ids: imitator_loss(
@@ -105,7 +121,8 @@ class Trainer:
         self.val_loader = self.accelerator.prepare_data_loader(val_loader)
 
         #Stopper
-        self.early_stopping = EarlyStopping(patience=100)
+        es_patience = int(kwargs.get("early_stopping_patience", 100))
+        self.early_stopping = EarlyStopping(patience=es_patience)
 
         #Optimizer
         self.optimizer = None
@@ -192,11 +209,21 @@ class Trainer:
         lr_lambda = lambda step: linear_warmup_cosine_decay(step, warmup_steps, total_steps)
         self.scheduler = LambdaLR(self.optimizer, lr_lambda=lr_lambda)
 
-        if self.load_previous_model: 
+        if self.load_previous_model:
             self.ckpt_mgr.load_checkpoint(self.model, self.optimizer, self.scheduler)
+
+        if self.loss_type == "ce_vocab" and self.log_temp is not None:
+            self.optimizer.add_param_group({
+                "params": [self.log_temp],
+                "lr": self.learning_rate,
+                "weight_decay": 0.0,
+            })
 
         self.prepare_trainer()
         self.prof = prof
+
+        if self.loss_type == "ce_vocab":
+            self._log_unigram_baseline()
 
         for epoch in tqdm(range(self.epochs), desc="Entrenando", colour="green"):
             train_loss = self._train_epoch(epoch)
@@ -210,7 +237,10 @@ class Trainer:
                 self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler)
             elif self.early_stopping.stop:
                 self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler)
-            
+
+            if self.early_stopping.improved:
+                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler, tag="best")
+
             if self.scheduler is not None:
                 self.scheduler.step()
 
@@ -282,6 +312,7 @@ class Trainer:
         total_loss = 0
         mse_loss = 0
         cossim_loss = 0
+        top5_acc = 0.0
         self._sigreg_sum = 0.0
         self._sigreg_n = 0
         for batch in self.train_loader:
@@ -294,7 +325,7 @@ class Trainer:
 
             with self.accelerator.accumulate(self.model):
                 self.optimizer.zero_grad(set_to_none=True)
-                train_loss, mse, cossim = self._train_batch(keypoint, frames_padding_mask, embedding, mask_embedding, token_ids)
+                train_loss, mse, cossim, top5 = self._train_batch(keypoint, frames_padding_mask, embedding, mask_embedding, token_ids)
 
             if self.distributed is not None:
                 loss_tensor = loss.to(self.device)
@@ -306,15 +337,22 @@ class Trainer:
                 total_loss += train_loss
                 mse_loss += mse
                 cossim_loss += cossim
-                
+                top5_acc += top5
+
         final_train_loss = total_loss.item()/len(self.train_loader)
         final_train_loss_mse = mse_loss.item()/len(self.train_loader)
         final_train_loss_cossim = cossim_loss.item()/len(self.train_loader)
+        final_top5_train = top5_acc if isinstance(top5_acc, float) else top5_acc.item()
+        final_top5_train /= len(self.train_loader)
 
         self.writer.add_scalar("Loss/train", final_train_loss, epoch)
         if self.loss_type == "ce_vocab":
             self.writer.add_scalar("Loss/train_ce", final_train_loss_mse, epoch)
             self.writer.add_scalar("Metrics/train_token_acc", final_train_loss_cossim, epoch)
+            self.writer.add_scalar("Metrics/train_token_acc_top5", final_top5_train, epoch)
+            if self.log_temp is not None:
+                self.writer.add_scalar("Params/log_temp", self.log_temp.item(), epoch)
+                self.writer.add_scalar("Params/temp", self.log_temp.exp().item(), epoch)
         else:
             self.writer.add_scalar("Loss/train_mse", final_train_loss_mse, epoch)
             self.writer.add_scalar("Loss/train_cosim", final_train_loss_cossim, epoch)
@@ -327,7 +365,7 @@ class Trainer:
 
         if epoch % self.log_interval == 0:
             if self.loss_type == "ce_vocab":
-                tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} CE: {final_train_loss_mse} TokenAcc: {final_train_loss_cossim}{sigreg_str}")
+                tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} CE: {final_train_loss_mse} TokenAcc: {final_train_loss_cossim} Top5: {final_top5_train:.4f}{sigreg_str}")
             else:
                 tqdm.write(f"\nEpoch: {epoch}.\n Train loss: {final_train_loss} MSE: {final_train_loss_mse} Cossim: {final_train_loss_cossim}{sigreg_str}")
 
@@ -336,20 +374,23 @@ class Trainer:
     def _forward_loss(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None):
         with self.accelerator.autocast():
             output, _ = self.model(keypoint, frames_padding_mask)
-            loss, mse, cossim = self.criterion(output, embedding, mask_embedding, token_ids)
+            result = self.criterion(output, embedding, mask_embedding, token_ids)
+            if len(result) == 4:
+                loss, mse, cossim, top5 = result
+            else:
+                loss, mse, cossim = result
+                top5 = torch.zeros((), device=loss.device)
             if self.sigreg_enabled:
-                # SIGReg sobre TODOS los embeddings de salida (los n_tokens del Imitator son
-                # predicciones reales; no hay padding en la salida del modelo).
                 sr = sigreg_loss(output, None, **self.sigreg_kwargs)
                 loss = loss + self.sigreg_lambda * sr
                 self._sigreg_sum += float(sr.detach())
                 self._sigreg_n += 1
-        return loss, mse, cossim
+        return loss, mse, cossim, top5
 
     @nvtx.annotate("Train: Train Batch", color="green")
     def _train_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None):
         batch_loss = 0.0
-        batch_mse, batch_cossim = 0.0, 0.0
+        batch_mse, batch_cossim, batch_top5 = 0.0, 0.0, 0.0
 
         batch_size = keypoint.size(0)
         start = 0
@@ -364,15 +405,20 @@ class Trainer:
                         start = i * self.sub_batch
                         end = min(start + self.sub_batch, batch_size)
                         with nvtx.annotate("Forward Pass", color="blue"):
-                            loss, mse, cossim = self._forward_loss(keypoint[start:end],
+                            loss, mse, cossim, top5 = self._forward_loss(keypoint[start:end],
                                                         frames_padding_mask[start:end],
                                                         embedding[start:end],
                                                         mask_embedding[start:end],
                                                         token_ids[start:end] if token_ids is not None else None)
                         if self.batch_sampling:
-                            loss /= n_sub_batch
-                            mse /= n_sub_batch
-                            cossim /= n_sub_batch
+                            # OUT-OF-PLACE a propósito: imitator_ce_loss devuelve (ce, ce.detach(), …),
+                            # así que `loss` y `mse` COMPARTEN storage. Un `/=` in-place dividía la CE
+                            # dos veces (loss y mse), dejando el backward sobre ce/n_sub_batch² →
+                            # gradiente deflactado por n_sub_batch (lr efectivo /16) y métricas corruptas.
+                            loss = loss / n_sub_batch
+                            mse = mse / n_sub_batch
+                            cossim = cossim / n_sub_batch
+                            top5 = top5 / n_sub_batch
 
                         with nvtx.annotate("Backward Pass", color="blue"):
                             torch.autograd.set_detect_anomaly(True)
@@ -380,23 +426,28 @@ class Trainer:
                         batch_loss += loss.detach()
                         batch_mse += mse.detach()
                         batch_cossim += cossim.detach()
+                        batch_top5 += top5.detach()
 
             with nvtx.annotate("Step", color="blue"):
-                self.accelerator.clip_grad_norm_(self.model.parameters(), max_norm=self.grad_clip)
+                params_to_clip = list(self.model.parameters())
+                if self.loss_type == "ce_vocab" and self.log_temp is not None:
+                    params_to_clip.append(self.log_temp)
+                self.accelerator.clip_grad_norm_(params_to_clip, max_norm=self.grad_clip)
                 self.optimizer.step()
 
-        return batch_loss, batch_mse, batch_cossim
+        return batch_loss, batch_mse, batch_cossim, batch_top5
 
     @nvtx.annotate("Validation Section", color="green")
     def _val(self, epoch):
         self.model.eval()
-        val_loss=0
+        val_loss = 0
         mse_loss = 0
         cossim_loss = 0
+        top5_acc = 0.0
         for batch in self.val_loader:
             keypoint, frames_padding_mask, embedding, mask_embedding = batch[:4]
             token_ids = batch[4] if len(batch) > 4 else None
-            loss, mse, cossim = self._val_batch(keypoint, frames_padding_mask, embedding, mask_embedding, token_ids)
+            loss, mse, cossim, top5 = self._val_batch(keypoint, frames_padding_mask, embedding, mask_embedding, token_ids)
             if self.distributed is not None:
                 loss_tensor = loss.to(self.device)
                 self.distributed.all_reduce(loss_tensor, op=self.distributed.ReduceOp.SUM)
@@ -407,29 +458,66 @@ class Trainer:
                 val_loss += loss
                 mse_loss += mse
                 cossim_loss += cossim
+                top5_acc += top5
 
         final_val_loss = val_loss.item() / len(self.val_loader)
         final_mse_loss = mse_loss.item() / len(self.val_loader)
         final_cossim_loss = cossim_loss.item() / len(self.val_loader)
+        final_top5_val = top5_acc if isinstance(top5_acc, float) else top5_acc.item()
+        final_top5_val /= len(self.val_loader)
+
         self.writer.add_scalar("Loss/val", final_val_loss, epoch)
         if self.loss_type == "ce_vocab":
             self.writer.add_scalar("Loss/val_ce", final_mse_loss, epoch)
             self.writer.add_scalar("Metrics/val_token_acc", final_cossim_loss, epoch)
+            self.writer.add_scalar("Metrics/val_token_acc_top5", final_top5_val, epoch)
+            # Guardarraíl anti-artefacto: la CE con label smoothing no puede bajar del piso
+            # ε*log(V). Una val_ce por debajo delata una métrica corrupta (cf. v115.1).
+            floor = ce_floor(self.embed_table.shape[0], self.label_smoothing)
+            self.writer.add_scalar("Loss/val_ce_floor", floor, epoch)
+            if self.label_smoothing > 0 and final_mse_loss < floor - 1e-3:
+                tqdm.write(f"⚠️  val_ce={final_mse_loss:.4f} < piso teórico {floor:.4f} "
+                           f"(ε={self.label_smoothing}, V={self.embed_table.shape[0]}). "
+                           f"Métrica CORRUPTA — no usar para selección de modelo.")
         else:
             self.writer.add_scalar("Loss/val_mse", final_mse_loss, epoch)
             self.writer.add_scalar("Loss/val_cossim", final_cossim_loss, epoch)
 
         if epoch % self.log_interval == 0:
             if self.loss_type == "ce_vocab":
-                tqdm.write(f"Validation loss: {final_val_loss} CE: {final_mse_loss} TokenAcc: {final_cossim_loss}")
+                tqdm.write(f"Validation loss: {final_val_loss} CE: {final_mse_loss} TokenAcc: {final_cossim_loss} Top5: {final_top5_val:.4f}")
             else:
                 tqdm.write(f"Validation loss: {final_val_loss} MSE: {final_mse_loss} Cossim: {final_cossim_loss}")
 
         if self.diagnostics_enabled and (epoch % self.diag_interval == 0):
             self._run_diagnostics(epoch)
 
-        self.early_stopping(final_val_loss)
+        self.early_stopping(final_val_loss, epoch=epoch)
         return final_val_loss
+
+    @torch.no_grad()
+    def _log_unigram_baseline(self):
+        V = self.embed_table.shape[0]
+        counts = torch.zeros(V, dtype=torch.long)
+        for batch in self.train_loader:
+            ids = batch[4] if len(batch) > 4 else None
+            if ids is None:
+                return
+            flat = ids.reshape(-1).cpu()
+            valid = flat[flat != -100]
+            counts += torch.bincount(valid, minlength=V)
+        total = counts.sum().item()
+        if total == 0:
+            return
+        probs = counts.float() / total
+        nz = probs[probs > 0]
+        uni_ce   = -(nz * nz.log()).sum().item()
+        uni_acc1 = probs.max().item()
+        uni_acc5 = probs.topk(5).values.sum().item()
+        self.writer.add_scalar("Baseline/unigram_ce",       uni_ce,   0)
+        self.writer.add_scalar("Baseline/unigram_acc_top1", uni_acc1, 0)
+        self.writer.add_scalar("Baseline/unigram_acc_top5", uni_acc5, 0)
+        tqdm.write(f"[Unigram baseline] CE={uni_ce:.3f} acc1={uni_acc1:.4f} acc5={uni_acc5:.4f}")
 
     @nvtx.annotate("Diagnostics: Collapse", color="orange")
     @torch.no_grad()
@@ -490,10 +578,11 @@ class Trainer:
             )
 
     @nvtx.annotate("Val: Validate Batch", color="green")
-    def _val_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None) -> t.Tuple[float, float, float]:
+    def _val_batch(self, keypoint, frames_padding_mask, embedding, mask_embedding, token_ids=None) -> t.Tuple[float, float, float, float]:
         batch_loss = 0.0
         batch_mse = 0.0
         batch_cossim = 0.0
+        batch_top5 = 0.0
 
         batch_size = keypoint.size(0)
         start = 0
@@ -508,18 +597,22 @@ class Trainer:
                     start = i * self.sub_batch
                     end = min(start + self.sub_batch, batch_size)
                 with nvtx.annotate("Forward Pass", color="blue"):
-                    loss, mse, cossim = self._forward_loss(keypoint[start:end],
+                    loss, mse, cossim, top5 = self._forward_loss(keypoint[start:end],
                                                 frames_padding_mask[start:end],
                                                 embedding[start:end],
                                                 mask_embedding[start:end],
                                                 token_ids[start:end] if token_ids is not None else None)
                 if self.batch_sampling:
-                    loss /= n_sub_batch
-                    mse /= n_sub_batch
-                    cossim /= n_sub_batch
-                        
+                    # OUT-OF-PLACE: ver nota en _train_batch. `loss` (=ce) y `mse` (=ce.detach())
+                    # comparten storage; un `/=` in-place deflactaba la CE por n_sub_batch².
+                    loss = loss / n_sub_batch
+                    mse = mse / n_sub_batch
+                    cossim = cossim / n_sub_batch
+                    top5 = top5 / n_sub_batch
+
                 batch_loss += loss.detach()
                 batch_mse += mse.detach()
                 batch_cossim += cossim.detach()
+                batch_top5 += top5.detach()
 
-        return batch_loss, batch_mse, batch_cossim
+        return batch_loss, batch_mse, batch_cossim, batch_top5

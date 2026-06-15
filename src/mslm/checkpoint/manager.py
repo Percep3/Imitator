@@ -35,8 +35,9 @@ class CheckpointManager:
             scheduler.load_state_dict(state["sched_state"])
         return model, optimizer, scheduler
 
-    def save_checkpoint(self, model, epoch, optimizer, scheduler):
-        path = self._path(str(epoch))
+    def save_checkpoint(self, model, epoch, optimizer, scheduler, tag: str | None = None):
+        subdir = tag if tag is not None else str(epoch)
+        path = self._path(subdir)
         raw = getattr(model, "module", model)
         raw = getattr(raw, "_orig_mod", raw)
         torch.save({

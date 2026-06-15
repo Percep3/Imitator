@@ -32,7 +32,11 @@ class ConfigLoader:
         return cls._instance
 
     def _merge(self, other: dict):
-        self.config.update(other)
+        for k, v in other.items():
+            if k in self.config and isinstance(self.config[k], dict) and isinstance(v, dict):
+                self.config[k].update(v)
+            else:
+                self.config[k] = v
 
     def __getattr__(self, item):
         return getattr(self.config, item)
