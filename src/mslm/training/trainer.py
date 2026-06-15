@@ -235,17 +235,21 @@ class Trainer:
         total_steps = self.epochs * len(self.train_loader)
 
         lr_lambda = lambda step: linear_warmup_cosine_decay(step, warmup_steps, total_steps)
-        self.scheduler = LambdaLR(self.optimizer, lr_lambda=lr_lambda)
 
-        if self.load_previous_model:
-            self.ckpt_mgr.load_checkpoint(self.model, self.optimizer, self.scheduler)
-
+        # log_temp must be added BEFORE LambdaLR so the scheduler sees both
+        # param groups from the start (strict=True zip in scheduler.step() fails
+        # if the number of groups grows after the scheduler is created).
         if self.loss_type == "ce_vocab" and self.log_temp is not None:
             self.optimizer.add_param_group({
                 "params": [self.log_temp],
                 "lr": self.learning_rate,
                 "weight_decay": 0.0,
             })
+
+        self.scheduler = LambdaLR(self.optimizer, lr_lambda=lr_lambda)
+
+        if self.load_previous_model:
+            self.ckpt_mgr.load_checkpoint(self.model, self.optimizer, self.scheduler)
 
         self.prepare_trainer()
         self.prof = prof
