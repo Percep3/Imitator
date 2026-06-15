@@ -138,24 +138,44 @@ def main():
     # --- Risk 1: comparar logits input_ids vs inputs_embeds ---
     print("\n--- Risk 1: comparación de logits ---")
 
-    logits_ids = _forward_with_input_ids(model, ids)
-    print(f"[ids]   logits shape = {tuple(logits_ids.shape)}")
-
     embeds = embed_layer(ids)   # (1, seq_len, hidden)
     print(f"[emb]   embeds shape = {tuple(embeds.shape)},  dtype = {embeds.dtype}")
 
-    logits_emb, submodule_used = _forward_with_inputs_embeds(model, embeds)
-    print(f"[emb]   logits shape = {tuple(logits_emb.shape)}  (via {submodule_used})")
+    # Risk 2 forward (inputs_embeds path) — wrapped so failures are caught cleanly
+    risk2_pass = True
+    submodule_used = None
+    logits_emb = None
+    try:
+        logits_emb, submodule_used = _forward_with_inputs_embeds(model, embeds)
+        print(f"[emb]   logits shape = {tuple(logits_emb.shape)}  (via {submodule_used})")
+    except Exception as e_risk2:
+        risk2_pass = False
+        print(f"[FAIL] _forward_with_inputs_embeds lanzó: {type(e_risk2).__name__}: {e_risk2}")
+
+    # Mirror routing: run input_ids through the SAME sub-module as inputs_embeds so
+    # the Risk 1 diff is an apples-to-apples comparison.
+    if risk2_pass:
+        if submodule_used == "model.language_model":
+            print("[ids]  Usando model.language_model(input_ids=…) para paridad de ruta")
+            with torch.no_grad():
+                logits_ids = model.language_model(input_ids=ids).logits
+        else:
+            logits_ids = _forward_with_input_ids(model, ids)
+        print(f"[ids]   logits shape = {tuple(logits_ids.shape)}")
 
     # Alinear shapes: si se usó language_model el shape puede diferir del top-level
     # (e.g., el top-level puede devolver (1, seq, V) con V ligeramente distinto si
     # hay proyección extra). Comparamos sólo si las shapes coinciden.
-    if logits_ids.shape != logits_emb.shape:
+    if not risk2_pass:
+        # inputs_embeds forward crashed — Risk 1 is meaningless
+        risk1_pass = None
+        max_diff = None
+    elif logits_ids.shape != logits_emb.shape:
         print(f"[WARN] shapes distintos: {logits_ids.shape} vs {logits_emb.shape}")
         print("       La comparación cuantitativa no es posible con los logits directos.")
         print("       Esto puede ocurrir si top-level y language_model tienen cabezas distintas.")
         risk1_pass = None   # indeterminado
-        max_diff = float("nan")
+        max_diff = None
     else:
         diff = (logits_ids.float() - logits_emb.float()).abs()
         max_diff = diff.max().item()
@@ -165,20 +185,28 @@ def main():
         risk1_pass = max_diff < args.threshold
 
     # --- Risk 2: forward text-only sin pixel_values ---
-    # Ya resuelto implícitamente: _forward_with_inputs_embeds no pasa pixel_values y
-    # si llegamos aquí sin excepción no controlada, el forward funcionó.
+    # risk2_pass ya fue fijado arriba al ejecutar _forward_with_inputs_embeds.
     print("\n--- Risk 2: forward text-only sin pixel_values ---")
-    risk2_pass = True   # Si llegamos aquí, el forward completó sin crash
-    print(f"[OK] Forward con inputs_embeds completó usando: {submodule_used}")
+    if risk2_pass:
+        print(f"[OK] Forward con inputs_embeds completó usando: {submodule_used}")
+    else:
+        print("[FAIL] Forward con inputs_embeds no completó — ver error arriba.")
+        print("RESULT: FAIL")
 
     # --- Resumen ---
     print("\n" + "=" * 60)
     print("RESUMEN")
     print("=" * 60)
     print(f"  Submodule usado para inputs_embeds: {submodule_used}")
-    print(f"  max|logits diff|                  : {max_diff:.4f}  (umbral = {args.threshold})")
+    if max_diff is None:
+        max_diff_str = "n/a (shapes diferentes)" if risk2_pass else "n/a (forward falló)"
+    else:
+        max_diff_str = f"{max_diff:.4f}  (umbral = {args.threshold})"
+    print(f"  max|logits diff|                  : {max_diff_str}")
 
-    if risk1_pass is None:
+    if not risk2_pass:
+        r1_label = "INDETERMINATE (Risk 2 falló)"
+    elif risk1_pass is None:
         r1_label = "INDETERMINATE (shapes distintos)"
     elif risk1_pass:
         r1_label = "PASS"
