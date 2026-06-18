@@ -24,6 +24,7 @@ from src.mslm.training.loss_ce_vocab import imitator_ce_loss, ce_floor
 from src.mslm.training.loss_ce_ar import imitator_ar_loss, build_ar_labels as _build_ar_labels
 from src.mslm.training.collapse_metrics import compute_collapse_metrics
 from src.mslm.training.sigreg import sigreg_loss
+from src.mslm.training.loss_infonce import prefix_text_infonce
 import nvtx
 from datetime import datetime
 
@@ -140,11 +141,13 @@ class Trainer:
 
             _k = self.k_prefix
             _bridge = self.bridge
+            _self = self
 
             def _ce_ar_criterion(output, embedding, mask_embedding, token_ids):
                 B, L = token_ids.shape
                 # embed target tokens for teacher-forcing input (tokens 0..L-2)
-                text_ids = token_ids[:, :-1].clone()
+                text_ids_orig = token_ids[:, :-1]                    # [B, L-1] — keep -100
+                text_ids = text_ids_orig.clone()
                 text_ids[text_ids == -100] = 0  # safe embedding lookup for padding positions
                 text_embeds = _bridge.embed_tokens(text_ids)        # [B, L-1, H]
                 inputs_embeds = torch.cat([output, text_embeds], dim=1)  # [B, K+L-1, H]
@@ -159,7 +162,15 @@ class Trainer:
                 # Bug-1 fix: mask only K-1 prefix positions so that position K-1
                 # (last prefix slot) supervises token_ids[:, 0] (first text token).
                 labels = _build_ar_labels(token_ids, _k)               # [B, K+L-1]
-                return imitator_ar_loss(logits, labels, _k)
+                ce, _, top1, top5 = imitator_ar_loss(logits, labels, _k)
+                if _self.infonce_enabled:
+                    nce = prefix_text_infonce(output, text_embeds, text_ids_orig, _self.infonce_temperature)
+                    ce_total = ce + _self.infonce_lambda * nce
+                    _self._infonce_sum += nce.detach().item()
+                    _self._infonce_n += 1
+                else:
+                    ce_total = ce
+                return ce_total, ce.detach(), top1, top5
 
             base_criterion = _ce_ar_criterion
         else:
@@ -240,6 +251,27 @@ class Trainer:
         self._sigreg_sum = 0.0
         self._sigreg_n = 0
 
+        # InfoNCE contrastive loss (v117): prevents prefix collapse.
+        infonce_cfg = kwargs.get("infonce")
+        if infonce_cfg is None:
+            try:
+                from src.mslm.utils.config_loader import cfg
+                infonce_cfg = dict(getattr(cfg, "infonce", {}))
+            except Exception:
+                infonce_cfg = {}
+        self.infonce_enabled = bool(infonce_cfg.get("enabled", False))
+        self.infonce_lambda = float(infonce_cfg.get("lambda", 0.1))
+        self.infonce_temperature = float(infonce_cfg.get("temperature", 0.07))
+        self._infonce_sum = 0.0
+        self._infonce_n = 0
+
+        # Gradient norm logging (v117).
+        self._grad_norm_sum = 0.0
+        self._grad_norm_n = 0
+
+        # Best checkpoint by chrF (v117) — selected in _run_generation_eval.
+        self.best_chrf = -float("inf")
+
         # Generative evaluation (v116.0): greedy decode from soft prefix + chrF.
         gen_cfg = kwargs.get("eval_gen")
         if gen_cfg is None:
@@ -251,6 +283,7 @@ class Trainer:
         self.gen_interval = int(gen_cfg.get("gen_interval", 5))
         self.gen_max_tokens = int(gen_cfg.get("max_new_tokens", 50))
         self.gen_val_batches = int(gen_cfg.get("gen_val_batches", 4))
+        self.shuffle_prefix_diag = bool(gen_cfg.get("shuffle_prefix_diag", False))
 
 
     def prepare_trainer(self):
@@ -396,6 +429,10 @@ class Trainer:
         top5_acc = 0.0
         self._sigreg_sum = 0.0
         self._sigreg_n = 0
+        self._infonce_sum = 0.0
+        self._infonce_n = 0
+        self._grad_norm_sum = 0.0
+        self._grad_norm_n = 0
         for batch in self.train_loader:
             keypoint, frames_padding_mask, embedding, mask_embedding = batch[:4]
             token_ids = batch[4] if len(batch) > 4 else None
@@ -447,6 +484,12 @@ class Trainer:
             final_sigreg = self._sigreg_sum / self._sigreg_n
             self.writer.add_scalar("Loss/train_sigreg", final_sigreg, epoch)
             sigreg_str = f" SIGReg: {final_sigreg:.4f} (λ={self.sigreg_lambda})"
+
+        if self.infonce_enabled and self._infonce_n:
+            self.writer.add_scalar("Loss/train_infonce", self._infonce_sum / self._infonce_n, epoch)
+
+        if self._grad_norm_n:
+            self.writer.add_scalar("Train/grad_norm_imitator", self._grad_norm_sum / self._grad_norm_n, epoch)
 
         if epoch % self.log_interval == 0:
             if self.loss_type in ("ce_vocab", "ce_ar"):
@@ -514,6 +557,14 @@ class Trainer:
                         batch_top5 += top5.detach()
 
             with nvtx.annotate("Step", color="blue"):
+                with torch.no_grad():
+                    norm_sq = sum(
+                        p.grad.detach().norm() ** 2
+                        for p in self.model.parameters()
+                        if p.grad is not None
+                    )
+                    self._grad_norm_sum += float(norm_sq.sqrt())
+                    self._grad_norm_n += 1
                 params_to_clip = list(self.model.parameters())
                 if self.loss_type == "ce_vocab" and self.log_temp is not None:
                     params_to_clip.append(self.log_temp)
@@ -582,7 +633,7 @@ class Trainer:
             self._run_diagnostics(epoch)
 
         if (self.loss_type == "ce_ar" and self.bridge is not None
-                and epoch > 0 and epoch % self.gen_interval == 0):
+                and epoch % self.gen_interval == 0):
             self._run_generation_eval(epoch)
 
         import gc
@@ -739,6 +790,45 @@ class Trainer:
         if self.accelerator.is_main_process:
             self.writer.add_scalar("Gen/val_chrf", chrf, epoch)
             tqdm.write(f"[Gen ep{epoch}] chrF={chrf:.2f} ({len(hyps)} muestras)")
+            if chrf > self.best_chrf:
+                self.best_chrf = chrf
+                self.ckpt_mgr.save_checkpoint(self.model, epoch, self.optimizer, self.scheduler, tag="best_chrf")
+                tqdm.write(f"  ↑ best chrF: {chrf:.2f} (ep {epoch})")
+
+        if getattr(self, "shuffle_prefix_diag", False):
+            hyps_shuf: "list[str]" = []
+            refs_shuf: "list[str]" = []
+            for i, batch in enumerate(self.val_loader):
+                if i >= self.gen_val_batches:
+                    break
+                keypoint = batch[0]
+                frames_padding_mask = batch[1]
+                token_ids = batch[4] if len(batch) > 4 else None
+                if token_ids is None:
+                    continue
+                B = keypoint.size(0)
+                sub = self.sub_batch if self.batch_sampling else B
+                prefix_chunks = []
+                for s in range(0, B, sub):
+                    e = min(s + sub, B)
+                    with self.accelerator.autocast():
+                        prefix_chunk, _ = self.model(keypoint[s:e], frames_padding_mask[s:e])
+                    prefix_chunks.append(prefix_chunk.float())
+                prefix_full = torch.cat(prefix_chunks, dim=0)
+                prefix_shuffled = torch.roll(prefix_full, 1, dims=0)
+                gen_ids_shuf = self.bridge.generate(prefix_shuffled, max_new_tokens=self.gen_max_tokens)
+                gen_texts_shuf = self.bridge.decode(gen_ids_shuf)
+                ref_ids = token_ids.clone()
+                pad_id_shuf = getattr(self.bridge.tokenizer, "pad_token_id", None) or 0
+                ref_ids[ref_ids == -100] = pad_id_shuf
+                ref_texts_shuf = self.bridge.decode(ref_ids)
+                hyps_shuf.extend(gen_texts_shuf)
+                refs_shuf.extend(ref_texts_shuf)
+            if hyps_shuf:
+                chrf_shuf = _compute_chrf(hyps_shuf, refs_shuf)
+                if self.accelerator.is_main_process:
+                    self.writer.add_scalar("Gen/val_chrf_shuffled", chrf_shuf, epoch)
+                    tqdm.write(f"  chrF (shuffled prefix): {chrf_shuf:.2f}  gap: {chrf - chrf_shuf:+.2f}")
 
     @nvtx.annotate("Val: Validate Batch", color="green")
     @torch.no_grad()
