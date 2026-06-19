@@ -109,10 +109,11 @@ def main():
 
     include = _cfg("data", "primary_datasets", ["dataset2"])
     train_ratio = float(_cfg("data", "train_ratio", 0.8))
+    text_group = _cfg("data", "text_group", "embeddings")
 
     tr_ds, val_ds, _, _ = prepare_datasets(
         h5_file, train_ratio, model_cfg.get("input_size", 111),
-        include_datasets=include, return_token_ids=False)
+        include_datasets=include, return_token_ids=False, text_group=text_group)
     tr_dl, val_dl = create_dataloaders(tr_ds, val_ds, batch_size, num_workers=8)
 
     aligner = ContrastiveAligner(
@@ -124,7 +125,7 @@ def main():
     n_params = sum(p.numel() for p in aligner.parameters() if p.requires_grad) / 1e6
     print(f"[v118] ContrastiveAligner: {n_params:.2f} M params entrenables | "
           f"loss={loss_type} proj_dim={proj_dim} batch={batch_size} "
-          f"max_frames={max_frames} grad_ckpt={grad_ckpt}")
+          f"max_frames={max_frames} grad_ckpt={grad_ckpt} text_group={text_group}")
 
     # logit_scale solo lo usa InfoNCE; excluirlo evita que el weight decay
     # desacoplado de AdamW lo arrastre sin gradiente cuando se usa VICReg.

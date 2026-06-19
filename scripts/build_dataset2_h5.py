@@ -167,6 +167,89 @@ def phase_embeddings(f, clips, llm_model):
     return dim
 
 
+# ----------------------------- Text contextual (v118e) -----------------------------
+TEXT_CTX_MODEL = "unsloth/gemma-3n-E2B-it"  # variante SIN cuantizar (bf16), ver nota abajo
+
+
+def _load_lm_bf16(llm_model):
+    """Igual que _load_lm pero sin bitsandbytes 4bit.
+
+    phase_text_ctx necesita un forward real (no solo `get_input_embeddings()`).
+    La variante -bnb-4bit usada en phase_embeddings revienta con un
+    AssertionError dentro de bitsandbytes (`fix_4bit_weight_quant_state_from_module`,
+    `assert module.weight.shape[1] == 1`) al pasar por las capas `altup_projections`
+    propias de la arquitectura AltUp de Gemma-3n -- bug de compatibilidad
+    bitsandbytes/transformers para esa capa concreta, no de este código. La
+    variante sin cuantizar (bf16) no tiene ese problema. Requiere ~5-7GB de
+    descarga la primera vez; usar HF_HOME apuntando a un disco con espacio
+    (en esta máquina /home estaba al 99%, se usó /shared/Code/Sign-AI/.hf_cache).
+    """
+    from transformers import AutoModelForCausalLM
+    import torch
+    try:
+        return AutoModelForCausalLM.from_pretrained(llm_model, device_map="cuda", dtype=torch.bfloat16)
+    except Exception as e1:
+        print(f"[ctx] AutoModelForCausalLM no aplica ({type(e1).__name__}); probando ImageTextToText")
+        from transformers import AutoModelForImageTextToText
+        return AutoModelForImageTextToText.from_pretrained(llm_model, device_map="cuda", dtype=torch.bfloat16)
+
+
+def phase_text_ctx(f, clips, llm_model=None):
+    """Último hidden state contextual de Gemma por clip (1 vector, NO per-token).
+
+    v118 (contrastivo) promediaba la TABLA DE EMBEDDINGS DE ENTRADA por token
+    (`phase_embeddings`) como representación de frase. El diagnóstico de
+    discriminabilidad mostró que ese espacio es casi isotrópico entre frases
+    distintas (coseno medio entre pares = 0.80, vecino más cercano = 0.90 de
+    mediana) -> techo de retrieval bajo por construcción, no por el encoder de
+    vídeo. Esta fase corre un forward real (no solo lookup) y toma el ÚLTIMO
+    token de la representación final de la última capa: en un decoder causal
+    es el único token que ya vio toda la frase (mean-pool mezclaría contexto
+    parcial de posiciones tempranas). Se guarda como (1, dim) para no tocar
+    collate_fn/masked_mean (tratado como secuencia de 1 "token" sin padding).
+
+    IMPORTANTE (AltUp): `output_hidden_states=True` + `outputs.hidden_states[-1]`
+    en Gemma3n NO da la representación final -- da el tensor crudo por capa con
+    una dimensión extra de 4 "streams" (mecanismo AltUp, ver
+    `Gemma3nTextModel.forward` en transformers). La representación correcta
+    (la que de hecho alimenta al LM head) es `outputs.last_hidden_state`,
+    calculada internamente como la media de los 4 streams re-escalados +
+    RMSNorm final. Por eso se llama a `model.model(...)` (el submódulo base)
+    en vez de pasar por el wrapper ForCausalLM/ConditionalGeneration completo.
+    """
+    import torch
+
+    from transformers import AutoTokenizer
+    tok = AutoTokenizer.from_pretrained(TEXT_CTX_MODEL)
+    model = _load_lm_bf16(TEXT_CTX_MODEL)
+    model.eval()
+    device = next(model.parameters()).device
+    dim = model.config.text_config.hidden_size if hasattr(model.config, "text_config") else model.config.hidden_size
+
+    g_ctx = f["dataset2"].require_group("text_ctx")
+    g_kp = f["dataset2"]["keypoints"]
+
+    done = 0
+    for idx, (fname, label) in enumerate(clips):
+        key = str(idx)
+        if key not in g_kp:        # solo clips con keypoints válidos
+            continue
+        if key in g_ctx:
+            continue
+        with torch.no_grad():
+            inputs = tok(label, return_tensors="pt").to(device)
+            out = model.model(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"])
+            vec = out.last_hidden_state[0, -1].detach().cpu().float().numpy()  # último token, ya reducido (no AltUp)
+        g_ctx.create_dataset(key, data=vec[None, :], compression="gzip", compression_opts=4)
+        done += 1
+        if done % 50 == 0:
+            f.flush()
+            print(f"[ctx] {done} hechos")
+    f.flush()
+    print(f"[ctx] FASE text_ctx lista: {done} hechos | dim={dim}")
+    return dim
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=600, help="nº de clips del subconjunto")
@@ -174,7 +257,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", type=Path, default=Path("data/processed/dataset_v6_unsloth.hdf5"))
     ap.add_argument("--llm-model", type=str, default="unsloth/gemma-3n-E2B-it-unsloth-bnb-4bit")
     ap.add_argument("--seed", type=int, default=23)
-    ap.add_argument("--phase", choices=["all", "keypoints", "embeddings"], default="all")
+    ap.add_argument("--phase", choices=["all", "keypoints", "embeddings", "text_ctx"], default="all")
     args = ap.parse_args()
 
     out = args.out
@@ -191,6 +274,9 @@ if __name__ == "__main__":
             phase_keypoints(f, clips, args.max_frames)
         if args.phase in ("all", "embeddings"):
             phase_embeddings(f, clips, args.llm_model)
+        if args.phase == "text_ctx":
+            phase_text_ctx(f, clips, args.llm_model)
         nk = len(f["dataset2"]["keypoints"]) if "keypoints" in f["dataset2"] else 0
         ne = len(f["dataset2"]["embeddings"]) if "embeddings" in f["dataset2"] else 0
-        print(f"HDF5 listo: dataset2 con {nk} keypoints y {ne} embeddings")
+        nc = len(f["dataset2"]["text_ctx"]) if "text_ctx" in f["dataset2"] else 0
+        print(f"HDF5 listo: dataset2 con {nk} keypoints, {ne} embeddings, {nc} text_ctx")

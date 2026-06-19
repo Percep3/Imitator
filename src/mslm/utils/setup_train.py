@@ -26,14 +26,16 @@ def setup_paths():
     h5_file = path_vars.h5_file
     return data_path, model_path, h5_file
 
-def prepare_datasets(h5File, train_ratio, n_keypoints=111, include_datasets=None, return_token_ids=False):
+def prepare_datasets(h5File, train_ratio, n_keypoints=111, include_datasets=None, return_token_ids=False, text_group="embeddings"):
     """Carga el dataset base, lo envuelve y lo divide en entrenamiento y validación.
 
     include_datasets: lista opcional de grupos del HDF5 a usar (p.ej. ["dataset2"] para
     el experimento SIGReg). Si es None se usan los datasets por defecto.
     return_token_ids: incluye los token IDs en los batches (experimento CE-vocab, v115).
+    text_group: grupo HDF5 de donde leer el embedding de texto ("embeddings" = tabla de
+    entrada de Gemma per-token; "text_ctx" = último hidden state contextual, v118e).
     """
-    keypoint_reader = KeypointDataset(h5Path=h5File, return_label=False, n_keypoints=n_keypoints, data_augmentation=False, max_length=4000, include_datasets=include_datasets, return_token_ids=return_token_ids)
+    keypoint_reader = KeypointDataset(h5Path=h5File, return_label=False, n_keypoints=n_keypoints, data_augmentation=False, max_length=4000, include_datasets=include_datasets, return_token_ids=return_token_ids, text_group=text_group)
     train_dataset, validation_dataset, train_length, val_length = keypoint_reader.split_dataset(train_ratio)
 
     print(f"Train size:\t{len(train_dataset)}\nValidation size:\t{len(validation_dataset)}")

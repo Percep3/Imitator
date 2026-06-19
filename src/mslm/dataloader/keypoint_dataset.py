@@ -36,7 +36,7 @@ class KeypointDataset(Dataset):
     # se pasa include_datasets=["dataset2"] (frases, LSA) como dataset principal.
     DEFAULT_INCLUDE_DATASETS = ["dataset1", "dataset3", "dataset5", "dataset7"]
 
-    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None, return_token_ids=False):
+    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None, return_token_ids=False, text_group="embeddings"):
         self.h5Path = h5Path
         self.n_keypoints = n_keypoints
         self.transform = transform
@@ -44,6 +44,12 @@ class KeypointDataset(Dataset):
         # Experimento CE-vocab: devuelve los token IDs (grupo `token_ids` del HDF5,
         # generado por scripts/add_token_ids_h5.py) en el tercer slot de la tupla.
         self.return_token_ids = return_token_ids
+        # Grupo HDF5 de donde leer el "embedding" de texto en __getitem__. Por defecto
+        # "embeddings" (tabla de entrada de Gemma, per-token, usado por CE-AR v116/v117).
+        # v118e usa "text_ctx" (último hidden state contextual, 1 vector por clip) porque
+        # el mean-pool de input-embeddings resultó tener techo de retrieval bajo: ver
+        # memoria v118-text-discriminability.
+        self.text_group = text_group
         self.max_length = max_length
         self.video_lengths = []
         self.data_augmentation = data_augmentation
@@ -146,7 +152,7 @@ class KeypointDataset(Dataset):
 
         with h5py.File(self.h5Path, 'r') as f:
             keypoint = f[mapped_idx[0]]["keypoints"][mapped_idx[1]][:]
-            embedding = f[mapped_idx[0]]["embeddings"][mapped_idx[1]][:]
+            embedding = f[mapped_idx[0]][self.text_group][mapped_idx[1]][:]
 
             if self.return_token_ids:
                 token_ids = torch.as_tensor(f[mapped_idx[0]]["token_ids"][mapped_idx[1]][:], dtype=torch.long)
