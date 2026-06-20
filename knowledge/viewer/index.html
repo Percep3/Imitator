@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>KB Viewer - Sign Language CSLR</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>KB Viewer</h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="graph">Grafo</button>
+      <button class="tab-btn" data-tab="table">Tabla</button>
+    </nav>
+  </header>
+
+  <section id="tab-graph" class="tab-panel active">
+    <div class="toolbar">
+      <div class="filters" id="type-filters">
+        <label><input type="checkbox" value="paper" checked> Paper</label>
+        <label><input type="checkbox" value="method" checked> Method</label>
+        <label><input type="checkbox" value="dataset" checked> Dataset</label>
+        <label><input type="checkbox" value="gap" checked> Gap</label>
+      </div>
+      <input type="text" id="search-box" placeholder="Buscar nodo...">
+    </div>
+    <div class="graph-layout">
+      <div id="cy"></div>
+      <aside id="detail-panel">
+        <p class="empty-hint">Click en un nodo para ver detalle.</p>
+      </aside>
+    </div>
+    <div id="graph-error" class="error-box" hidden></div>
+  </section>
+
+  <section id="tab-table" class="tab-panel">
+    <div class="toolbar">
+      <input type="text" id="table-search" placeholder="Buscar paper/dataset/baseline...">
+      <select id="confidence-filter">
+        <option value="">Todas las confidences</option>
+        <option value="EXTRACTED">EXTRACTED</option>
+        <option value="INFERRED">INFERRED</option>
+        <option value="AMBIGUOUS">AMBIGUOUS</option>
+      </select>
+    </div>
+    <table id="extraction-table">
+      <thead>
+        <tr><th>Type</th><th>Paper</th><th>Dataset/Baseline</th><th>Metric</th><th>Value</th><th>Confidence</th></tr>
+      </thead>
+      <tbody id="extraction-table-body"></tbody>
+    </table>
+    <div id="table-error" class="error-box" hidden></div>
+    <h2>Research Gaps</h2>
+    <div id="research-gaps"></div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
