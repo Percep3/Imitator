@@ -1,0 +1,619 @@
+{
+  "nodes": [
+    {
+      "id": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "label": "Continuous Sign Language Recognition with Multi-Scale Spatial-Temporal Feature Enhancement",
+      "node_type": "paper",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md",
+      "authors": [
+        "Zhen Wang",
+        "Dongyuan Li",
+        "Renhe Jiang",
+        "Manabu Okumura"
+      ],
+      "year": 2025,
+      "venue": "IEEE Access",
+      "doi": "10.1109/ACCESS.2025.3526330"
+    },
+    {
+      "id": "method_stnet",
+      "label": "STNet",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_corrnet",
+      "label": "CorrNet",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_vac",
+      "label": "VAC",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_tlp",
+      "label": "TLP",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_sen",
+      "label": "SEN",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_fcn",
+      "label": "FCN",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_sfl",
+      "label": "SFL",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_smkd",
+      "label": "SMKD",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_c2slr",
+      "label": "C2SLR",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_stmc",
+      "label": "STMC",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_slt",
+      "label": "SLT",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_dnf",
+      "label": "DNF",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_cma",
+      "label": "CMA",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_ls_han",
+      "label": "LS-HAN",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_tin_iterative",
+      "label": "TIN-Iterative",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_joint_slrt",
+      "label": "Joint-SLRT",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "method_bn_tin",
+      "label": "BN-TIN",
+      "node_type": "method",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "dataset_phoenix14",
+      "label": "PHOENIX14",
+      "node_type": "dataset",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "dataset_phoenix14_t",
+      "label": "PHOENIX14-T",
+      "node_type": "dataset",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "dataset_csl_daily",
+      "label": "CSL-Daily",
+      "node_type": "dataset",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "gap_gpu_memory_constraint",
+      "label": "GPU memory constraints for long videos",
+      "node_type": "gap",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "gap_information_bias",
+      "label": "Information bias in hand focus",
+      "node_type": "gap",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "gap_data_imbalance",
+      "label": "Data imbalance in CSLR datasets",
+      "node_type": "gap",
+      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+    },
+    {
+      "id": "lift_sign_at_sign_eval_2026",
+      "label": "LiftSign at SignEval 2026: A Distilled Multi-Stream Ensemble with Temporal Lift Pooling for Skeleton-Based Sign Language Recognition",
+      "node_type": "paper",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md",
+      "authors": [
+        "Nguyen Tu Nam",
+        "Hiroki Takahashi"
+      ],
+      "year": 2026,
+      "venue": "CVPR Workshop 2026",
+      "doi": null
+    },
+    {
+      "id": "lift_sign",
+      "label": "LiftSign",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "temporal_lift_pooling",
+      "label": "Temporal Lift Pooling (TLP)",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "cosign",
+      "label": "CoSign-2s",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "isharah_2000",
+      "label": "Isharah-2000",
+      "node_type": "dataset",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "vac",
+      "label": "VAC",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "smkd",
+      "label": "SMKD",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "swin_mstp",
+      "label": "Swin-MSTP",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "slowfast_sign",
+      "label": "SlowFastSign",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "corrnet",
+      "label": "CorrNet",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "sen",
+      "label": "SEN",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "algosailh",
+      "label": "Algosalih",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "el_iitk",
+      "label": "El-iitk",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "vipl_slp",
+      "label": "VIPL_SLP",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "ahmedmo10",
+      "label": "Ahmedmo10",
+      "node_type": "method",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "csrl_daily",
+      "label": "CSL-Daily",
+      "node_type": "dataset",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "lack_generalization_to_novel_sentences",
+      "label": "Lack of generalization to novel sentences due to co-articulation (high WER on Unseen-Sentences compared to Signer-Independent)",
+      "node_type": "gap",
+      "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    }
+  ],
+  "edges": [
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_stnet",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "dataset_phoenix14",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "19.3"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "dataset_phoenix14_t",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "19.8"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "dataset_csl_daily",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "27.2"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_corrnet",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "20.1"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_vac",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "22.3"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_tlp",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "20.8"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_sen",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "21.0"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_fcn",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "23.9"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_sfl",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "26.8"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_smkd",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "21.0"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_c2slr",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "20.4"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_stmc",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "20.7"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_slt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "24.6"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_dnf",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "22.9"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_cma",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "21.9"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_ls_han",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "39.4"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_tin_iterative",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "32.4"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_joint_slrt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "32.0"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "method_bn_tin",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "33.1"
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "gap_gpu_memory_constraint",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "gap_information_bias",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_continuous_sign_language_recognition_with_multi_scale_spatial_temporal_feature_enhancement",
+      "target": "gap_data_imbalance",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "method_stnet",
+      "target": "method_corrnet",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "lift_sign",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "isharah_2000",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "5.70"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "isharah_2000",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "27.35"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "vac",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "34.9"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "smkd",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "39.0"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "temporal_lift_pooling",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "31.4"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "sen",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "32.4"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "corrnet",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "31.2"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "swin_mstp",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "36.2"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "slowfast_sign",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "27.4"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "algosailh",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "8.13"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "el_iitk",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "7.14"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "vipl_slp",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "6.37"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "ahmedmo10",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "5.68"
+    },
+    {
+      "source": "lift_sign_at_sign_eval_2026",
+      "target": "lack_generalization_to_novel_sentences",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    }
+  ]
+}

@@ -52,3 +52,7 @@ pip-packages/
 
 # Compiler dependencies
 **/deps/
+
+knowledge/papers
+knowledge/markdown
+knowledge/kb
