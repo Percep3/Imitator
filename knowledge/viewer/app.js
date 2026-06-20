@@ -92,6 +92,8 @@ function initCytoscape(elements) {
     layout: { name: 'cose', animate: false },
   });
   initNodeClicks();
+  initTypeFilters();
+  initSearch();
 }
 
 function showGraphError(message) {
@@ -136,6 +138,28 @@ function renderDetailPanel(node) {
 
 function initNodeClicks() {
   state.cy.on('tap', 'node', evt => renderDetailPanel(evt.target));
+}
+
+function initTypeFilters() {
+  document.querySelectorAll('#type-filters input[type=checkbox]').forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+      const type = checkbox.value;
+      state.cy.nodes(`[node_type = "${type}"]`).style('display', checkbox.checked ? 'element' : 'none');
+    });
+  });
+}
+
+function initSearch() {
+  document.getElementById('search-box').addEventListener('input', evt => {
+    const term = evt.target.value.trim().toLowerCase();
+    state.cy.elements().removeClass('highlighted');
+    if (!term) return;
+    const match = state.cy.nodes().filter(n => n.data('label').toLowerCase().includes(term))[0];
+    if (match) {
+      match.addClass('highlighted');
+      state.cy.animate({ center: { eles: match } }, { duration: 300 });
+    }
+  });
 }
 
 function loadGraph() {
