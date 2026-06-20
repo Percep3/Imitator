@@ -221,7 +221,6 @@ function loadTable() {
   ])
     .then(([rows, gapsMd]) => {
       state.extractionRows = rows;
-      initTableFilters();
       renderExtractionTable(rows);
       document.getElementById('research-gaps').innerHTML = marked.parse(gapsMd);
     })
@@ -234,6 +233,7 @@ function loadTable() {
 function init() {
   initTabs();
   loadGraph();
+  initTableFilters();
 }
 
 document.addEventListener('DOMContentLoaded', init);
