@@ -1,0 +1,45 @@
+{
+  "kb_built_at": null,
+  "papers": {
+    "41598_2025_Article_32768": {
+      "converted": true,
+      "extracted": false,
+      "source_hash": "sha256:b522b05364fb4e72e503eef3205f48f2669183f9143d182087a17f2119068908"
+    },
+    "Continuous_Sign_Language_Recognition_with_Multi-Sc": {
+      "converted": true,
+      "extracted": true,
+      "source_hash": "sha256:0f509ddd81ae57716128b72c0b45ac5166a8d76773e49f97710cfadde26acef8"
+    },
+    "Deep_Learning_Based_Sign_Language_Recognition_Usin": {
+      "converted": true,
+      "extracted": false,
+      "source_hash": "sha256:5d6b7d1dafecfee2129aff45162c4196780c6e94f87f171883fda6d3a150d8ba"
+    },
+    "Joe_Huamani": {
+      "converted": true,
+      "extracted": false,
+      "source_hash": "sha256:03adc0468221fd73d0a4d20c1c5eb559875d5964f87f79e24f2ef13510f61133"
+    },
+    "LREC26-26014": {
+      "converted": true,
+      "extracted": false,
+      "source_hash": "sha256:daff9b4030957ce75b9c7a89c5d99dcd2f7b6a81e9515e564ca9b212ad878421"
+    },
+    "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper": {
+      "converted": true,
+      "extracted": false,
+      "source_hash": "sha256:95b93deefcc9b0ce3fffab28d03cf7520be08d9fd1f578676eb81c1b78b89122"
+    },
+    "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper": {
+      "converted": true,
+      "extracted": true,
+      "source_hash": "sha256:9e223434b8d316cc86b43812d938f342bb9d1edecacbc64792d4807193cb0420"
+    },
+    "SM4465": {
+      "converted": true,
+      "extracted": false,
+      "source_hash": "sha256:bbeeaeada21940aa746fc66a6371c1072e4322d932ad10ab74dab4439df1580c"
+    }
+  }
+}

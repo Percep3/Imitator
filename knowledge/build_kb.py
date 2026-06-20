@@ -11,10 +11,18 @@ Uso:
     knowledge/.venv/bin/python knowledge/build_kb.py
 """
 import json
+from datetime import datetime, timezone
 from pathlib import Path
+
+from pipeline_status import load_status, save_status
 
 GRAPH_PATH = Path(__file__).parent / "graph.json"
 KB_DIR = Path(__file__).parent / "kb"
+
+
+def mark_kb_built(status: dict, built_at: str) -> dict:
+    status["kb_built_at"] = built_at
+    return status
 
 
 def build_papers_metadata(nodes_by_id: dict) -> list[dict]:
@@ -103,6 +111,10 @@ def main() -> None:
     (KB_DIR / "research_gaps.md").write_text(
         build_research_gaps_md(nodes_by_id, edges), encoding="utf-8"
     )
+
+    status = load_status()
+    save_status(mark_kb_built(status, datetime.now(timezone.utc).isoformat()))
+
     print(f"KB escrito en {KB_DIR}/: papers_metadata.json, extraction_table.json, research_gaps.md")
 
 

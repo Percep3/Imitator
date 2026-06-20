@@ -12,9 +12,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from pipeline_status import bootstrap_if_missing, load_status, save_status
+
 load_dotenv(Path(__file__).parent / ".env")
 
 MARKDOWN_DIR = Path(__file__).parent / "markdown"
+PAPERS_DIR = Path(__file__).parent / "papers"
 OUTPUT_PATH = Path(__file__).parent / "graph.json"
 MODEL = "deepseek-chat"
 
@@ -97,29 +100,58 @@ def extract_paper(client: OpenAI, md_path: Path) -> dict:
     return json.loads(response.choices[0].message.content)
 
 
+def needs_extract(entry: dict | None, force: bool) -> bool:
+    if force:
+        return True
+    if entry is None:
+        return True
+    return not entry.get("extracted", False)
+
+
+def merge_graph(existing: dict, new_nodes: list[dict], new_edges: list[dict]) -> dict:
+    nodes_by_id = {n["id"]: n for n in existing.get("nodes", [])}
+    for n in new_nodes:
+        nodes_by_id[n["id"]] = n
+    edges = list(existing.get("edges", [])) + list(new_edges)
+    return {"nodes": list(nodes_by_id.values()), "edges": edges}
+
+
 def main(force: bool) -> None:
-    if OUTPUT_PATH.exists() and not force:
-        print(f"{OUTPUT_PATH.name} ya existe, usa --force para regenerar")
-        return
+    status = load_status()
+    bootstrap_if_missing(status, PAPERS_DIR, MARKDOWN_DIR, OUTPUT_PATH)
+    papers_status = status["papers"]
+
+    if force or not OUTPUT_PATH.exists():
+        graph = {"nodes": [], "edges": []}
+    else:
+        graph = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
 
     client = OpenAI(api_key=os.environ["LLM_API_KEY"], base_url="https://api.deepseek.com")
 
-    all_nodes: dict[str, dict] = {}
-    all_edges: list[dict] = []
-
+    processed = 0
     for md_path in sorted(MARKDOWN_DIR.glob("*.md")):
+        stem = md_path.stem
+        entry = papers_status.get(stem)
+        if not needs_extract(entry, force):
+            print(f"skip  {md_path.name} (ya extraido)")
+            continue
+
         print(f"extrayendo {md_path.name}...")
         result = extract_paper(client, md_path)
-        for node in result["nodes"]:
-            all_nodes[node["id"]] = node
-        all_edges.extend(result["edges"])
+        graph = merge_graph(graph, result["nodes"], result["edges"])
+        papers_status[stem] = {**(entry or {}), "extracted": True}
+        processed += 1
+
+        OUTPUT_PATH.write_text(
+            json.dumps(graph, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        save_status(status)
         print(f"  -> {len(result['nodes'])} nodes, {len(result['edges'])} edges")
 
-    OUTPUT_PATH.write_text(
-        json.dumps({"nodes": list(all_nodes.values()), "edges": all_edges}, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
-    print(f"Grafo guardado en {OUTPUT_PATH} ({len(all_nodes)} nodes, {len(all_edges)} edges)")
+    if processed == 0:
+        print("Nada para extraer, todos los papers ya estaban procesados (usa --force para regenerar todo)")
+    else:
+        print(f"Grafo guardado en {OUTPUT_PATH} ({len(graph['nodes'])} nodes, {len(graph['edges'])} edges)")
 
 
 if __name__ == "__main__":
