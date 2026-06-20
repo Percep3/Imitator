@@ -174,8 +174,61 @@ function loadGraph() {
     .catch(err => showGraphError(`No se pudo cargar graph.json: ${err.message}`));
 }
 
+function showTableError(message) {
+  const box = document.getElementById('table-error');
+  box.textContent = message;
+  box.hidden = false;
+}
+
+function renderExtractionTable(rows) {
+  const search = document.getElementById('table-search').value.trim().toLowerCase();
+  const confidence = document.getElementById('confidence-filter').value;
+  const filtered = rows.filter(row => {
+    const matchesSearch = !search || [row.paper, row.dataset, row.baseline_method]
+      .some(v => v && v.toLowerCase().includes(search));
+    const matchesConfidence = !confidence || row.confidence === confidence;
+    return matchesSearch && matchesConfidence;
+  });
+  const body = document.getElementById('extraction-table-body');
+  body.innerHTML = filtered.map(row => `
+    <tr>
+      <td>${row.type}</td>
+      <td>${row.paper}</td>
+      <td>${row.dataset ?? row.baseline_method ?? '—'}</td>
+      <td>${row.metric ?? '—'}</td>
+      <td>${row.value ?? '—'}</td>
+      <td>${row.confidence}</td>
+    </tr>
+  `).join('');
+}
+
+function initTableFilters() {
+  document.getElementById('table-search').addEventListener('input', () => renderExtractionTable(state.extractionRows));
+  document.getElementById('confidence-filter').addEventListener('change', () => renderExtractionTable(state.extractionRows));
+}
+
 function loadTable() {
-  // implemented in Task 5
+  state.tableLoaded = true;
+  Promise.all([
+    fetch('../kb/extraction_table.json').then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status} extraction_table.json`);
+      return res.json();
+    }),
+    fetch('../kb/research_gaps.md').then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status} research_gaps.md`);
+      return res.text();
+    }),
+  ])
+    .then(([rows, gapsMd]) => {
+      state.extractionRows = rows;
+      initTableFilters();
+      renderExtractionTable(rows);
+      document.getElementById('research-gaps').innerHTML = marked.parse(gapsMd);
+    })
+    .catch(err => {
+      state.tableLoaded = false;
+      showTableError(`No se pudo cargar la tabla: ${err.message}`);
+    });
 }
 
 function init() {
