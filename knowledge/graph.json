@@ -19,19 +19,19 @@
       "id": "method_stnet",
       "label": "STNet",
       "node_type": "method",
-      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
     },
     {
       "id": "method_corrnet",
       "label": "CorrNet",
       "node_type": "method",
-      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
     },
     {
       "id": "method_vac",
       "label": "VAC",
       "node_type": "method",
-      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
     },
     {
       "id": "method_tlp",
@@ -133,7 +133,7 @@
       "id": "dataset_csl_daily",
       "label": "CSL-Daily",
       "node_type": "dataset",
-      "source_file": "Continuous_Sign_Language_Recognition_with_Multi-Sc.md"
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
     },
     {
       "id": "gap_gpu_memory_constraint",
@@ -261,6 +261,377 @@
       "label": "Lack of generalization to novel sentences due to co-articulation (high WER on Unseen-Sentences compared to Signer-Independent)",
       "node_type": "gap",
       "source_file": "Nam_LiftSign_at_SignEval_2026_A_Distilled_Multi-Stream_Ensemble_with_Temporal_CVPRW_2026_paper.md"
+    },
+    {
+      "id": "paper_41598_2025_article_32768",
+      "label": "A deep learning-based method combines manual and non-manual features for sign language recognition",
+      "node_type": "paper",
+      "source_file": "41598_2025_Article_32768.md",
+      "authors": [
+        "Haifa Harrouch",
+        "Lamia Trabelsi",
+        "Maher Jebali",
+        "Olfa Gammoudi"
+      ],
+      "year": 2026,
+      "venue": "Scientific Reports",
+      "doi": "10.1038/s41598-025-32768-3"
+    },
+    {
+      "id": "method_multi_stream_deep_learning_framework",
+      "label": "Multi-stream deep learning recognition framework (proposed method)",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_head_pose_rectification",
+      "label": "Head pose rectification",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_skeleton_normalization",
+      "label": "Skeleton normalization",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_attention_enhanced_temporal_convolutional_network",
+      "label": "Attention Enhanced Temporal Convolutional Network (AETCN)",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_multi_scale_attention_gcn",
+      "label": "Multi-Scale Attention GCN (MSA-GCN)",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_st_gcn",
+      "label": "ST-GCN",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_mnm_vgg16",
+      "label": "MNM-VGG16",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_mnm_slr",
+      "label": "MNM-SLR",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_simple_rnn",
+      "label": "Simple RNN",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_lstm",
+      "label": "LSTM",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_bilstm",
+      "label": "BiLSTM",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_i3d",
+      "label": "I3D",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_pose_gru",
+      "label": "Pose-based gated recurrent unit (Pose-GRU)",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "method_pose_tgcn",
+      "label": "Pose-based temporal graph convolutional network (Pose-TGCN)",
+      "node_type": "method",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "dataset_autsl",
+      "label": "AUTSL",
+      "node_type": "dataset",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "dataset_wlasl",
+      "label": "WLASL",
+      "node_type": "dataset",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "gap_not_tested_on_continuous_sign_language",
+      "label": "Model not tested on continuous sign language (only isolated)",
+      "node_type": "gap",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "gap_limited_diversity_signers_backgrounds_recording_conditions",
+      "label": "Limited diversity of signers, backgrounds, and recording conditions in datasets",
+      "node_type": "gap",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "gap_dependence_on_precise_pose_estimation",
+      "label": "Dependence on precise pose and hand landmark estimation; errors/occlusions affect classification",
+      "node_type": "gap",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "gap_robustness_across_sign_languages_untested",
+      "label": "Robustness across sign languages untested; no cross-lingual or cross-dataset evaluation",
+      "node_type": "gap",
+      "source_file": "41598_2025_Article_32768.md"
+    },
+    {
+      "id": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "label": "Deep Learning Based Sign Language Recognition Using Efficient Multi-Feature Attention Mechanism",
+      "node_type": "paper",
+      "source_file": "Deep_Learning_Based_Sign_Language_Recognition_Usin.md",
+      "authors": [
+        "Esma Yenisari",
+        "Sirma Yavuz"
+      ],
+      "year": 2025,
+      "venue": "IEEE Access",
+      "doi": "10.1109/ACCESS.2025.3586096"
+    },
+    {
+      "id": "method_deepema",
+      "label": "DeepEMA",
+      "node_type": "method",
+      "source_file": "Deep_Learning_Based_Sign_Language_Recognition_Usin.md"
+    },
+    {
+      "id": "method_efficientnetb7",
+      "label": "EfficientNet-B7",
+      "node_type": "method",
+      "source_file": "Deep_Learning_Based_Sign_Language_Recognition_Usin.md"
+    },
+    {
+      "id": "method_multichannel_mobilenetv2",
+      "label": "MultiChannel-MobileNetV2",
+      "node_type": "method",
+      "source_file": "Deep_Learning_Based_Sign_Language_Recognition_Usin.md"
+    },
+    {
+      "id": "dataset_bosphorussign22k",
+      "label": "BosphorusSign22k",
+      "node_type": "dataset",
+      "source_file": "Deep_Learning_Based_Sign_Language_Recognition_Usin.md"
+    },
+    {
+      "id": "dataset_lsa64",
+      "label": "LSA64",
+      "node_type": "dataset",
+      "source_file": "Deep_Learning_Based_Sign_Language_Recognition_Usin.md"
+    },
+    {
+      "id": "dataset_include50",
+      "label": "INCLUDE50",
+      "node_type": "dataset",
+      "source_file": "Deep_Learning_Based_Sign_Language_Recognition_Usin.md"
+    },
+    {
+      "id": "paper_less_is_more",
+      "label": "Less is More: Techniques to Reduce Overfitting in your Transformer Model for Sign Language Recognition",
+      "node_type": "paper",
+      "source_file": "Joe_Huamani.md",
+      "authors": [
+        "Joe Huamani-malca",
+        "Gissella Bejarano"
+      ],
+      "year": null,
+      "venue": null,
+      "doi": null
+    },
+    {
+      "id": "method_spoter",
+      "label": "SPOTER",
+      "node_type": "method",
+      "source_file": "Joe_Huamani.md"
+    },
+    {
+      "id": "dataset_aec",
+      "label": "AEC",
+      "node_type": "dataset",
+      "source_file": "Joe_Huamani.md"
+    },
+    {
+      "id": "dataset_pucp_dgi156",
+      "label": "PUCP-DGI156",
+      "node_type": "dataset",
+      "source_file": "Joe_Huamani.md"
+    },
+    {
+      "id": "dataset_pucp_dgi305",
+      "label": "PUCP-DGI305",
+      "node_type": "dataset",
+      "source_file": "Joe_Huamani.md"
+    },
+    {
+      "id": "gap_overfitting_limited_datasets",
+      "label": "overfitting due to limited datasets",
+      "node_type": "gap",
+      "source_file": "Joe_Huamani.md"
+    },
+    {
+      "id": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "label": "Continuous Sign Language Recognition using Multimodal Input and Handshape-aware Boundary Detection",
+      "node_type": "paper",
+      "source_file": "LREC26-26014.md",
+      "authors": [
+        "Mingyu Zhao",
+        "Zhanfu Yang",
+        "Yang Zhou",
+        "Zhaoyang Xia",
+        "Can Jin",
+        "Xiaoxiao He",
+        "Shuhang Lin",
+        "Carol Neidle",
+        "Dimitris N. Metaxas"
+      ],
+      "year": 2026,
+      "venue": "LREC 2026 Workshop on Sign Language",
+      "doi": null
+    },
+    {
+      "id": "method_spatio_temporal_convolutional_segmentation",
+      "label": "Spatio-Temporal Convolutional Segmentation Network",
+      "node_type": "method",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "method_multimodal_fusion_module",
+      "label": "Multimodal Fusion Module",
+      "node_type": "method",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "method_handshape_classifier",
+      "label": "Handshape Classifier (3-layer GCN)",
+      "node_type": "method",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "method_sign_recognition_model_zhou2024",
+      "label": "Sign Recognition Model (Zhou et al., 2024)",
+      "node_type": "method",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "dataset_asllrp_s",
+      "label": "ASLLRP Sentences (ASLLRP-S)",
+      "node_type": "dataset",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "dataset_ncslgr_handshapes",
+      "label": "NCSLGR Handshapes",
+      "node_type": "dataset",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "dataset_asllvd",
+      "label": "ASLLVD",
+      "node_type": "dataset",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "dataset_dsp",
+      "label": "DawnSignPress (DSP)",
+      "node_type": "dataset",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "dataset_rit",
+      "label": "RIT",
+      "node_type": "dataset",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "dataset_dsp_sentences",
+      "label": "DSP Sentences",
+      "node_type": "dataset",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "gap_lack_of_large_scale_annotated_datasets",
+      "label": "Lack of large-scale annotated datasets for continuous sign language",
+      "node_type": "gap",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "gap_neglect_of_multimodal_signals_for_boundary_detection",
+      "label": "Neglect of multimodal signals (handshape, motion, velocity, acceleration, etc.) for boundary detection",
+      "node_type": "gap",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "gap_limited_studies_on_real_large_scale_continuous_datasets",
+      "label": "Limited studies applying boundary detection to real large-scale continuous sign language datasets",
+      "node_type": "gap",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "gap_no_end_to_end_sign_recognition",
+      "label": "No end-to-end sign recognition; recognition only for signs with sufficient examples",
+      "node_type": "gap",
+      "source_file": "LREC26-26014.md"
+    },
+    {
+      "id": "paper_a_closer_look_at_skeleton-based_continuous_sign_language_recognition",
+      "label": "A Closer Look at Skeleton-based Continuous Sign Language Recognition",
+      "node_type": "paper",
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md",
+      "authors": [
+        "Yuecong Min",
+        "Yifan Yang",
+        "Peiqi Jiao",
+        "Zixi Nan",
+        "Xilin Chen"
+      ],
+      "year": 2025,
+      "venue": "ICCVW",
+      "doi": null
+    },
+    {
+      "id": "method_cosign",
+      "label": "CoSign",
+      "node_type": "method",
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
+    },
+    {
+      "id": "dataset_isharah",
+      "label": "Isharah",
+      "node_type": "dataset",
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
+    },
+    {
+      "id": "dataset_phoenix14t",
+      "label": "Phoenix14T",
+      "node_type": "dataset",
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
+    },
+    {
+      "id": "gap_limited_generalization_due_to_scarce_training_data",
+      "label": "Limited generalization capacity likely due to scarcity of training data",
+      "node_type": "gap",
+      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
     }
   ],
   "edges": [
@@ -612,6 +983,474 @@
       "relation": "identifies_gap",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_multi_stream_deep_learning_framework",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_head_pose_rectification",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_skeleton_normalization",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_attention_enhanced_temporal_convolutional_network",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_multi_scale_attention_gcn",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "dataset_autsl",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "90.5"
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "dataset_wlasl",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "88.2"
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_mnm_vgg16",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_mnm_slr",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_simple_rnn",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_lstm",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_bilstm",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_i3d",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_pose_gru",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "method_pose_tgcn",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "gap_not_tested_on_continuous_sign_language",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "gap_limited_diversity_signers_backgrounds_recording_conditions",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "gap_dependence_on_precise_pose_estimation",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_41598_2025_article_32768",
+      "target": "gap_robustness_across_sign_languages_untested",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "method_multi_scale_attention_gcn",
+      "target": "method_st_gcn",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    },
+    {
+      "source": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "target": "method_deepema",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "target": "dataset_bosphorussign22k",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "99.21%"
+    },
+    {
+      "source": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "target": "dataset_bosphorussign22k",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "96.84%"
+    },
+    {
+      "source": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "target": "dataset_lsa64",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "99.94%"
+    },
+    {
+      "source": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "target": "dataset_include50",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "98.41%"
+    },
+    {
+      "source": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "target": "method_efficientnetb7",
+      "relation": "compares_against",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    },
+    {
+      "source": "paper_deep_learning_based_slr_using_efficient_multi_feature_attention_mechanism",
+      "target": "method_multichannel_mobilenetv2",
+      "relation": "compares_against",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    },
+    {
+      "source": "paper_less_is_more",
+      "target": "method_spoter",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_less_is_more",
+      "target": "dataset_aec",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_less_is_more",
+      "target": "dataset_pucp_dgi156",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_less_is_more",
+      "target": "dataset_pucp_dgi305",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_less_is_more",
+      "target": "gap_overfitting_limited_datasets",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "method_spoter",
+      "target": "gap_overfitting_limited_datasets",
+      "relation": "addresses_gap",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "method_spatio_temporal_convolutional_segmentation",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "method_multimodal_fusion_module",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "method_handshape_classifier",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_asllrp_s",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "mF1B",
+      "metric_value": "79.40"
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_asllrp_s",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "mF1S",
+      "metric_value": "58.26"
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_ncslgr_handshapes",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_asllvd",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_dsp",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_wlasl",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_rit",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "dataset_dsp_sentences",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "method_sign_recognition_model_zhou2024",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "gap_lack_of_large_scale_annotated_datasets",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "gap_neglect_of_multimodal_signals_for_boundary_detection",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "gap_limited_studies_on_real_large_scale_continuous_datasets",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_lrec2026_continuous_sign_language_recognition_multimodal_handshape",
+      "target": "gap_no_end_to_end_sign_recognition",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_a_closer_look_at_skeleton-based_continuous_sign_language_recognition",
+      "target": "method_cosign",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_a_closer_look_at_skeleton-based_continuous_sign_language_recognition",
+      "target": "dataset_isharah",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "7.4"
+    },
+    {
+      "source": "paper_a_closer_look_at_skeleton-based_continuous_sign_language_recognition",
+      "target": "dataset_phoenix14t",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_a_closer_look_at_skeleton-based_continuous_sign_language_recognition",
+      "target": "dataset_csl_daily",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "paper_a_closer_look_at_skeleton-based_continuous_sign_language_recognition",
+      "target": "method_vac",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "8.3"
+    },
+    {
+      "source": "paper_a_closer_look_at_skeleton-based_continuous_sign_language_recognition",
+      "target": "gap_limited_generalization_due_to_scarce_training_data",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "method_cosign",
+      "target": "method_vac",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "method_cosign",
+      "target": "method_stnet",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "metric": null,
+      "metric_value": null
+    },
+    {
+      "source": "method_cosign",
+      "target": "method_corrnet",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
       "metric": null,
       "metric_value": null
     }

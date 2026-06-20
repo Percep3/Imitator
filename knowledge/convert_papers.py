@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--force", action="store_true", help="Regenerar incluso si el .md ya existe")
     parser.add_argument("--parser", choices=["markitdown", "llamaparse"], default="markitdown")
-    parser.add_argument("--tier", choices=["fast", "cost_effective", "agentic", "agentic_plus"], default="cost_effective",
+    parser.add_argument("--tier", choices=["fast", "cost_effective", "agentic", "agentic_plus"], default="agentic",
                          help="Solo aplica con --parser llamaparse")
     args = parser.parse_args()
     convert_all(force=args.force, parser_name=args.parser, tier=args.tier)

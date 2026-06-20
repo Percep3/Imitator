@@ -1,0 +1,34 @@
+# v119b (A2): igual que v119 (A1) + stream de movimiento (diferencias
+# frame-a-frame, CoSign/LiftSign §3.2.1). Aísla el aporte de static+motion
+# sobre el CTC single-stream de A1.
+[experiment]
+name  = "ctc_v119b"
+phase = "ctc"
+seed  = 23
+
+[model]
+use_motion_stream = true
+use_tlp            = false
+
+[data]
+primary_datasets = ["dataset2"]
+n_keypoints      = 111
+train_ratio      = 0.8
+text_group       = "text_ctx"
+
+[loss]
+lambda_u = 0.1
+lambda_p = 0.1
+
+[training]
+model_version           = 119
+run_id                  = 2
+epochs                  = 60
+batch_size              = 16
+learning_rate           = 3e-4
+weight_decay            = 0.05
+warmup_epochs           = 5
+max_frames              = 1024
+checkpoint_interval     = 10
+log_interval            = 1
+early_stopping_patience = 25

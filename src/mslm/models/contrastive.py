@@ -2,8 +2,16 @@
 
 Etapa de pre-entrenamiento contrastivo SIN LLM. El lado texto usa los embeddings
 de Gemma ya cacheados en el HDF5 (batch[2]/[3]); no se carga el LLM. El encoder de
-vídeo es el mismo PrefixImitator de v116/v117, de modo que sus pesos transfieren
-directamente a la etapa generativa v119 (PrefixImitator + QLoRA).
+vídeo es el mismo PrefixImitator de v116/v117.
+
+Nota: v119 YA NO es "PrefixImitator + QLoRA" (plan original, ver historial de este
+comentario). El diagnóstico train/val sobre v118c (gap_factor≈1.0 en
+outputs/diag_v118_train_val_gap.json: R@1 igual de malo en train que en val)
+descartó sobreajuste y señaló que el cuello de botella es la formulación de la
+tarea (comprimir la frase a un vector y rankearla), no la falta de una etapa
+generativa con el LLM. v119 pasa a ser CTC sobre secuencia (CTCEncoder en
+src/mslm/models/ctc_encoder.py, sin LLM en el loop, igual que esta etapa), ver
+report.md y scripts/train_ctc_v119.py.
 """
 import math
 import torch

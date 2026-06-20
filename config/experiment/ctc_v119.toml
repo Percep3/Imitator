@@ -1,0 +1,39 @@
+# v119 (A1): CTC sobre secuencia, single-stream, sin TLP.
+#
+# Reemplaza el objetivo contrastivo global de v118 (InfoNCE/VICReg sobre un
+# vector por clip, techo R@1≈2.5-2.9% tanto en train como en val -- no es
+# sobreajuste, ver outputs/diag_v118_train_val_gap.json). CTCEncoder clasifica
+# por-frame en vez de comprimir la frase a un vector y rankearla (LiftSign,
+# CVPRW 2026, §3.1). Decisivo: ¿el train-WER baja mucho por debajo del val-WER
+# (rompe el gap_factor≈1.0 de v118)? Si no, la causa no era solo la formulación.
+[experiment]
+name  = "ctc_v119"
+phase = "ctc"
+seed  = 23
+
+[model]
+use_motion_stream = false
+use_tlp            = false
+
+[data]
+primary_datasets = ["dataset2"]
+n_keypoints      = 111
+train_ratio      = 0.8
+text_group       = "text_ctx"
+
+[loss]
+lambda_u = 0.1
+lambda_p = 0.1
+
+[training]
+model_version           = 119
+run_id                  = 1
+epochs                  = 60
+batch_size              = 16
+learning_rate           = 3e-4
+weight_decay            = 0.05
+warmup_epochs           = 5
+max_frames              = 1024
+checkpoint_interval     = 10
+log_interval            = 1
+early_stopping_patience = 25

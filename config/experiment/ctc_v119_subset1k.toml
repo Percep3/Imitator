@@ -1,0 +1,42 @@
+# v119 — chequeo rápido en background sobre un subconjunto de 1000 clips
+# (no son literalmente "los 600 originales": se verificó que las claves
+# "0".."599" de dataset2 ya no corresponden a ese subconjunto documentado en
+# report.md -- v118f mezcló los 5000 clips nuevos bajo el mismo índice
+# secuencial sin preservar esa identidad. Se usa una muestra aleatoria
+# determinista de tamaño comparable en su lugar).
+#
+# Mismos hiperparámetros que A1 (ctc_v119.toml, single-stream, sin TLP) para
+# una lectura limpia: ¿el CTC por-frame rompe el techo R@1≈2.5-2.9% documentado
+# en v118c/e (outputs/diag_v118_train_val_gap.json) con esta cantidad de datos?
+[experiment]
+name  = "ctc_v119_subset1k"
+phase = "ctc"
+seed  = 23
+
+[model]
+use_motion_stream = false
+use_tlp            = false
+
+[data]
+primary_datasets = ["dataset2"]
+n_keypoints      = 111
+train_ratio      = 0.8
+text_group       = "text_ctx"
+max_samples      = 1000
+
+[loss]
+lambda_u = 0.1
+lambda_p = 0.1
+
+[training]
+model_version           = 119
+run_id                  = 10
+epochs                  = 60
+batch_size              = 16
+learning_rate           = 3e-4
+weight_decay            = 0.05
+warmup_epochs           = 5
+max_frames              = 1024
+checkpoint_interval     = 10
+log_interval            = 1
+early_stopping_patience = 20

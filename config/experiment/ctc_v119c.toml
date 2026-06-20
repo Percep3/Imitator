@@ -1,0 +1,36 @@
+# v119c (A3): igual que v119b (A2) + TLP (Temporal Lift Pooling, LiftSign
+# §3.2.2) en vez de mean-pool fijo -- equivalente a K3-P2-K3-P2 del paper.
+# Aísla el aporte del pooling aprendible; relevante porque los clips de
+# dataset2 son largos (media 469 frames, máx 1312, ver bug de truncado de
+# v118c en report.md).
+[experiment]
+name  = "ctc_v119c"
+phase = "ctc"
+seed  = 23
+
+[model]
+use_motion_stream = true
+use_tlp            = true
+
+[data]
+primary_datasets = ["dataset2"]
+n_keypoints      = 111
+train_ratio      = 0.8
+text_group       = "text_ctx"
+
+[loss]
+lambda_u = 0.1
+lambda_p = 0.1
+
+[training]
+model_version           = 119
+run_id                  = 3
+epochs                  = 60
+batch_size              = 16
+learning_rate           = 3e-4
+weight_decay            = 0.05
+warmup_epochs           = 5
+max_frames              = 1024
+checkpoint_interval     = 10
+log_interval            = 1
+early_stopping_patience = 25

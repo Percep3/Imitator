@@ -327,3 +327,83 @@ Con el bug de truncado corregido y tres formulaciones de pérdida (InfoNCE, Info
 | `scripts/build_dataset2_h5.py` | Extractor de keypoints (bug de truncado a 250 frames documentado y corregido) |
 | `data/processed/dataset_v6_unsloth.hdf5.bak_pre250fix` | Backup del HDF5 antes del fix de truncado |
 | `../outputs/checkpoints/118/4/best_r1/` | Mejor checkpoint v118c sobre datos corregidos (R@1=2.9%, ep24) |
+
+---
+
+## v119 — CTC sobre secuencia (reemplaza el objetivo contrastivo global)
+
+**Diagnóstico que motivó el giro:** `outputs/diag_v118_train_val_gap.json` mostró
+que v118c (VICReg) tiene **train R@1 ≈ val R@1** (0.73% vs 2.94%, ambos ~3.5×
+azar, gap_factor≈1.0) — el encoder ni siquiera ajusta el train, lo que descarta
+sobreajuste y señala que el cuello de botella es la **formulación de la tarea**
+(comprimir la frase a un vector y rankearla), no la pérdida ni la cantidad de
+datos per se. La literatura cargada (LiftSign, CVPRW 2026, único paper
+skeleton-based del KB) formula CSLR como secuencia con CTC, no como retrieval
+global. v119 introduce `CTCEncoder` (clasifica por-frame, sin el cuello de
+botella de K=20 tokens fijos de `Imitator`) + vocabulario propio word-level
+(no el BPE de Gemma) construido solo con labels de train.
+
+Cambia el redireccionamiento documentado en `contrastive.py`: v119 ya **no** es
+"PrefixImitator + QLoRA" (plan original) sino CTC sin LLM en el loop, por el
+mismo motivo del diagnóstico anterior.
+
+### A1 sobre subconjunto de 1000 clips (chequeo rápido, `ctc_v119_subset1k.toml`)
+
+Antes de correr la ablation completa (A1/A2/A3) sobre el dataset completo, se
+hizo un chequeo rápido en background sobre 1000 clips muestreados al azar
+(seed=23) de dataset2 (800 train / 200 val) — **no** son los 600 clips
+originales documentados arriba: se verificó que las claves `"0".."599"` del
+HDF5 actual no corresponden a ese subconjunto (su media de frames no coincide:
+266 vs los 469 documentados), v118f mezcló los 5000 clips nuevos bajo el mismo
+índice secuencial sin preservar esa identidad.
+
+**Resultado (single-stream, sin TLP, 41 épocas, early-stopped):**
+
+| Métrica | ep 0 | ep 10 | ep 20 | ep 41 |
+|---|---|---|---|---|
+| train CTC loss | 32.30 | 5.08 | 3.35 | 1.26 |
+| val CTC loss | 10.01 | 16.30 | 16.06 | 18.63 |
+| val WER | 100.0% | 99.9% | 100.0% | 100.0% |
+
+Train loss cae 25× mientras val loss casi se duplica (sobreajuste de manual) y
+el WER de val queda clavado en ~100% durante las 41 épocas — un patrón
+completamente distinto al de v118 (ahí train y val eran igual de malos).
+
+**Diagnóstico post-mortem** (cargando `outputs/checkpoints/119/10/best_wer/`):
+
+1. **Colapso a blank, no solo overfitting.** El argmax por-frame predice
+   blank en 98.3-100% de los frames **incluso en muestras de TRAIN**
+   (`frac_argmax_es_blank` entre 0.983 y 1.000, ≤1 clase no-blank gana el
+   argmax en toda la secuencia). El train loss bajando no implica que el
+   greedy-decode recupere palabras: CTC puede minimizar su loss colocando una
+   probabilidad mínima sobre la palabra correcta en algún frame (suficiente
+   para el forward-backward) sin que esa probabilidad supere nunca a blank en
+   el argmax.
+2. **Vocabulario demasiado esparso para el tamaño de la muestra.** 3505
+   palabras desde solo 801 frases de train: la mayoría de palabras aparece 1-2
+   veces, insuficiente para que el modelo desarrolle confianza por encima de
+   blank. OOV en val: 20.6% de las palabras (684/3323), pero el colapso a
+   blank ocurre también en frases sin ninguna palabra OOV, así que el OOV no es
+   la causa dominante — es la escasez de ejemplos por palabra.
+
+**Conclusión:** este resultado **no refuta** la hipótesis CTC — está confundido
+por el tamaño de muestra (800 train) combinado con un vocabulario de cola larga
+(3505 clases). Lanzar A2/A3 (motion stream + TLP) sobre el mismo subconjunto
+solo reproduciría el mismo colapso. Se relanza A1 sobre el **dataset completo**
+(4481 train / 1119 val, 5.6× más ejemplos por palabra en promedio) antes de
+sacar conclusiones sobre la formulación, usando el config original
+`ctc_v119.toml` (sin `max_samples`).
+
+### Artefactos
+
+| Archivo | Descripción |
+|---------|-------------|
+| `src/mslm/models/ctc_encoder.py` | `CTCEncoder`: STGCN+Transformer reusados de `Imitator`, sin el cuello de botella de K tokens fijos; flags `use_motion_stream`/`use_tlp` |
+| `src/mslm/dataloader/vocab.py` | `Vocab` word-level (blank=0, unk=1) construido solo con labels de train |
+| `src/mslm/models/components/tlp.py` | Temporal Lift Pooling (LiftSign §3.2.2), para A3 |
+| `src/mslm/training/loss_ctc.py`, `src/mslm/utils/wer.py` | `nn.CTCLoss` wrapper + greedy decode + WER (ecuación 9 de LiftSign) |
+| `scripts/train_ctc_v119.py` | Loop de entrenamiento CTC, selección de checkpoint por menor WER, codifica cada vídeo del batch por separado (gradient checkpointing) para evitar OOM en clips largos — mismo problema y misma solución que `encode_video_batch` en v118 |
+| `config/experiment/ctc_v119.toml` / `v119b.toml` / `v119c.toml` | A1 (single-stream) / A2 (+motion) / A3 (+TLP) sobre dataset completo |
+| `config/experiment/ctc_v119_subset1k.toml` | Chequeo rápido sobre 1000 clips (resultado: colapso a blank, ver arriba) |
+| `../outputs/checkpoints/119/10/best_wer/` | Checkpoint del chequeo rápido sobre subset (WER≈100%, colapso a blank documentado) |
+| `reports/cleanup_2026-06-20.md` | Limpieza de checkpoints v113-v117 (43.7G) para liberar espacio antes de este run |
