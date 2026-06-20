@@ -91,12 +91,51 @@ function initCytoscape(elements) {
     style: cytoscapeStyle(),
     layout: { name: 'cose', animate: false },
   });
+  initNodeClicks();
 }
 
 function showGraphError(message) {
   const box = document.getElementById('graph-error');
   box.textContent = message;
   box.hidden = false;
+}
+
+function edgeLabel(edge, otherId) {
+  const otherNode = state.cy.getElementById(otherId);
+  const metric = edge.data('metric') ? ` (${edge.data('metric')}=${edge.data('metric_value')})` : '';
+  return `${edge.data('relation')} → ${otherNode.data('label')}${metric} [${edge.data('confidence')}]`;
+}
+
+function renderDetailPanel(node) {
+  const panel = document.getElementById('detail-panel');
+  const d = node.data();
+  let html = `<h3>${d.label}</h3><p><strong>Tipo:</strong> ${d.node_type}</p>`;
+  if (d.node_type === 'paper') {
+    html += `<p><strong>Autores:</strong> ${(d.authors || []).join(', ') || '—'}</p>`;
+    html += `<p><strong>Año:</strong> ${d.year ?? '—'}</p>`;
+    html += `<p><strong>Venue:</strong> ${d.venue ?? '—'}</p>`;
+    html += `<p><strong>DOI:</strong> ${d.doi ?? '—'}</p>`;
+  }
+  const connected = state.cy.edges(`[source = "${d.id}"], [target = "${d.id}"]`);
+  html += `<p><strong>Relaciones (${connected.length}):</strong></p>`;
+  connected.forEach(edge => {
+    const otherId = edge.data('source') === d.id ? edge.data('target') : edge.data('source');
+    html += `<div class="edge-row" data-node-id="${otherId}">${edgeLabel(edge, otherId)}</div>`;
+  });
+  panel.innerHTML = html;
+  panel.querySelectorAll('.edge-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const target = state.cy.getElementById(row.dataset.nodeId);
+      state.cy.elements().removeClass('highlighted');
+      target.addClass('highlighted');
+      state.cy.animate({ center: { eles: target } }, { duration: 300 });
+      renderDetailPanel(target);
+    });
+  });
+}
+
+function initNodeClicks() {
+  state.cy.on('tap', 'node', evt => renderDetailPanel(evt.target));
 }
 
 function loadGraph() {
