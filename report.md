@@ -394,16 +394,196 @@ solo reproduciría el mismo colapso. Se relanza A1 sobre el **dataset completo**
 sacar conclusiones sobre la formulación, usando el config original
 `ctc_v119.toml` (sin `max_samples`).
 
+### A1 sobre dataset completo: el colapso a blank persiste (refuta "falta de datos")
+
+Mismo run (`ctc_v119.toml`, sin `max_samples`, 4481 train / 1119 val) llevado a
+40 épocas: **el mismo patrón se repite idéntico, con 5.6× más datos.**
+
+| Métrica | ep 0 | ep 15 | ep 27 (mejor) | ep 39 |
+|---|---|---|---|---|
+| train CTC loss | 26.0 | — | — | 1.87 |
+| val WER | — | 99.9% | **99.5%** | 99.8% |
+
+Train loss cae 14× (26.0→1.87) mientras val WER queda clavado en ~99.5-99.9%
+durante 12 épocas sin mejora tras el mejor punto (ep27). Esto **refuta** la
+hipótesis de que el colapso a blank era un problema de escasez de datos por
+palabra: con 5.6× más frases de train el síntoma es exactamente igual. La causa
+es arquitectural/de entrenamiento, no de cantidad de datos en este rango — se
+mata el run en ep40 (`btcyyvc78`) en vez de esperar el early-stopping (ep52),
+dado que la tendencia de 12 épocas sin mejora ya es concluyente.
+
+### Pivote: adoptar la arquitectura de Min et al. (no más ablation A1→A2→A3)
+
+Literatura nueva cargada al KB (`knowledge/markdown/`) da la respuesta directa
+al síntoma observado, no solo gaps para diseñar ablations:
+
+- **Min et al., "A Closer Look at Skeleton-based CSLR" (ICCVW 2025)** —
+  arquitectura CoSign: GCN multi-capa → TCN (1D-CNN K3-P2-K3-P2) → BiLSTM, con
+  **supervisión CTC dual** (ecuación 6: `L = CTC(Y_s,G) + CTC(Y_l,G)`, Y_s =
+  salida del TCN "corto plazo", Y_l = salida del BiLSTM "largo plazo"),
+  clasificador **compartido** entre ambas cabezas (§3.3). Reporta WER 4.6%
+  (Signer-Independent) / 41.0% (Unseen-Sentence) en Isharah. Su ablation
+  "choice of predicted modules" (§4.2) encuentra exactamente nuestro síntoma:
+  *"the limited generalization capacity of the backend module, likely caused
+  by the scarcity of training data"* — el módulo de contexto largo no
+  generaliza con pocos datos, y la supervisión de corto plazo es la respuesta
+  del paper a ese mismo problema. También muestra (Table 3) que un framerate
+  alto **empeora** el WER (ratio de downsampling 0.5 óptimo vs 1.0), no solo
+  cuesta memoria — relevante porque nuestros clips no se downsamplean en
+  absoluto antes del módulo de contexto.
+- **Huamani-Malca & Bejarano, "Less is More" (PUCP, LSP — mismo dominio)** —
+  con datasets chicos de LSP, las técnicas data-oriented superan a las
+  model-oriented para reducir overfitting en transformers de SLR (Table 1:
+  reducir el dataset 55%→68.21% acc vs reducir feedforward dim 4096→256:
+  ganancia menor pero real, Table 2). Confirma que el Transformer de 1024-dim/
+  6 capas heredado de `Imitator` (diseñado para otra tarea) es candidato a
+  sobre-dimensionado para esta escala de datos (4481 clips).
+
+**Decisión: portar la arquitectura de Min et al. directamente a `CTCEncoder`**,
+no diseñar una ablation nueva sobre el diseño viejo. Se reemplaza 1 STGCNBlock +
+Transformer de 6 capas + 1 cabeza por: GCN de 3 capas (`gcn_channels=[32,64,128]`)
+→ TCN (`Conv1d` K3 + `TemporalLiftPooling` como P2, en cascada ×2, equivalente a
+K3-P2-K3-P2) → BiLSTM de 2 capas (`hidden_size=256`, bidireccional) → **un solo**
+`nn.Linear` compartido para Y_s (post-TCN) y Y_l (post-BiLSTM), pérdida =
+`CTC(Y_s,G) + CTC(Y_l,G)`. Hiperparámetros de optimización (AdamW lr=4e-4
+wd=1e-4, step-decay /10 en ep20/35, 40 épocas) también portados literal de
+Min et al. §4.1, no inventados. Resultado: 2.88M params entrenables (smoke test,
+64 clips) vs los ~30M+ del Transformer de 1024-dim anterior — consistente con
+"Less is More". `use_motion_stream` queda como único toggle de ablation
+(`ctc_v119b.toml`), ya no hay `use_tlp` como flag (TLP es parte fija de la
+arquitectura, no opcional) — se retira `ctc_v119c.toml`.
+
+TDD completo (8 tests nuevos en `tests/test_ctc_encoder.py`, incl. verificación
+de que el BiLSTM no filtra padding de muestras largas a muestras cortas en el
+mismo batch vía `pack_padded_sequence`), 85/85 tests pasan, smoke test contra
+datos reales (64 clips, 2 épocas) corre sin NaN/OOM.
+
+### A1 con la arquitectura portada, dataset completo, SIN palancas data-oriented
+
+`ctc_v119.toml` (4481 train / 1119 val, sin `min_frames`/`filter_invalid_labels`/
+`data_augmentation`, run_id=1, 40 épocas — TB events en
+`../outputs/reports/119/1_baseline_no_data_levers/`):
+
+| Métrica | ep 0 | ep 15 (mejor) | ep 39 |
+|---|---|---|---|
+| train CTC loss | 33.9 | 11.9 | 10.2 |
+| val WER | 100.0% | **99.25%** | 100.23% |
+
+Mismo síntoma que con la arquitectura anterior: train loss baja monótono
+(33.9→10.2), val WER mejora apenas 0.75pp sobre el punto de partida (ep15) y
+luego degrada por 24 épocas seguidas hasta terminar peor que el inicio
+(100.23% > 100.0%). La arquitectura nueva (supervisión CTC dual, downsampling)
+mueve la aguja menos de 1pp — consistente con "Less is More" (PUCP): en este
+régimen de datos, las palancas model-oriented no son el cuello de botella.
+
+### Palancas data-oriented: filtro de calidad + augmentation
+
+Encima de la misma arquitectura y el mismo dataset (run anterior como
+baseline limpio), se prueban las dos palancas que "Less is More" encuentra
+dominantes sobre las model-oriented en el mismo dominio (LSP, dataset chico):
+
+- **Bug encontrado y arreglado en `TransformedSubset`**
+  (`src/mslm/dataloader/keypoint_dataset.py:107`): `split_dataset()` pasaba
+  `return_label=False` hardcodeado a las 4 copias aumentadas, sin importar
+  `self.return_label` del dataset padre. Activar `data_augmentation=True` con
+  `return_label=True` (nunca antes combinados en el repo) habría roto
+  silenciosamente las labels del 80% del train set. Cubierto por
+  `tests/test_keypoint_dataset.py::test_transformed_subset_with_augmentation_preserves_labels`.
+- **Filtro de calidad** (`KeypointDataset(min_frames=0, filter_invalid_labels=False)`,
+  default no-op): excluye label vacío tras `tokenize()` y `frames // 4 <
+  len(tokens)` (la longitud post-downsampling, por los 2 `TemporalLiftPooling`
+  en cascada, debe alcanzar para el largo del label — restricción real de
+  `nn.CTCLoss`), más un piso absoluto `min_frames=16`. Sobre los 5600 clips de
+  `dataset2`: **56 excluidos (1%)**. 4 tests nuevos en `tests/test_keypoint_dataset.py`.
+- **Bug adicional encontrado al activar augmentation** (`scripts/train_ctc_v119.py`):
+  con `data_augmentation=True`, `split_dataset()` devuelve un `ConcatDataset`
+  para el train set, que no tiene `.indices` -- rompía la construcción del
+  vocab (`train_subset.indices`, vocab debe verse SOLO con labels de train).
+  Arreglado leyendo `.indices` del primer elemento de `ConcatDataset.datasets`
+  (el subconjunto original, sin augmentation).
+- **Smoke test** (`ctc_v119_smoke.toml`, 100 clips, 2 épocas, las 3 palancas
+  activas a la vez): sin crash, filtro excluyó 56/5600 clips (consistente con
+  el dataset completo), augmentation produjo 26 batches/época vs ~25
+  esperados (×5 sobre ~80 train clips / batch_size=16).
+- **Run con las palancas activas** (mismo `ctc_v119.toml`, ahora con
+  `min_frames=16, filter_invalid_labels=true, data_augmentation=true`): mejor
+  WER **99.7% en ep2**, degrada monótonamente después (101.2% ep9, 103.5%
+  ep11, 104.9% ep12) -- mismo patrón cualitativo que el baseline sin palancas
+  (mejor punto temprano, degradación sostenida después), solo que más rápido
+  (ep2 vs ep15). **Detenido manualmente en ep12** (a pedido, no
+  early-stopping) una vez que el diagnóstico de interpretabilidad de abajo
+  confirmó que el síntoma de fondo no cambió -- seguir entrenando no iba a
+  aportar señal nueva. Conclusión: las palancas data-oriented **tampoco**
+  mueven la aguja de forma relevante (99.25%→99.7%, dentro del ruido) --
+  mismo techo que con la arquitectura sola y que con la arquitectura
+  original. Esto descarta tanto "falta de datos" como "calidad/ruido de
+  datos" como causa raíz; ver el diagnóstico siguiente para dónde mirar.
+
+### Diagnóstico de interpretabilidad: por qué el WER no baja de ~99-100%
+
+`scripts/diagnose_ctc_posteriors.py` (nuevo): grafica P(blank) vs P(top
+no-blank) por frame post-downsampling (T', técnica estándar de debugging de
+CTC/ASR -- "espectro de posteriors") para clips individuales de val, más un
+resumen agregado. Corrido contra el checkpoint `best_wer` real (ep2, WER
+99.7%) sobre 300 clips de val:
+
+| Métrica | Valor |
+|---|---|
+| WER promedio | 99.8% |
+| Clips con WER=100% | 99.0% |
+| Clips con colapso total (0 palabras decodificadas) | 25.3% |
+| Frames con argmax=blank (promedio por clip) | 98.2% |
+
+**Hallazgo clave, visible en los 6 clips graficados** (`outputs/diagnostics/119/1/clip_000*.png`):
+P(blank) se mantiene >0.8 en TODO el interior de la secuencia (frames ~5 hasta
+T'-5), sin excepción, en clips de 40 a 140 frames post-downsampling por igual
+-- no hay picos de señal localizados que el decoder no alcance a juntar
+("alineamiento parcial"), es colapso de contenido genuino. La ÚNICA variación
+de P(blank) ocurre en dos puntos fijos, siempre los mismos sin importar el
+clip: un dip cerca del frame 1 (inicio) y otro en el último frame (fin) --
+nunca en el medio. En la mayoría de los clips ese dip no alcanza a cruzar a
+P(top no-blank) (decodifica vacío); en algunos sí, y entonces decodifica
+exactamente **una** palabra pegada al último frame de la secuencia (ej. clip 4:
+label con 1 palabra, decodificado "sorda" en el frame final), sin relación
+aparente con el contenido real del clip.
+
+**Interpretación**: el patrón es consistente con un efecto de BORDE de
+secuencia (estado inicial/final del BiLSTM), no con discriminación de
+contenido visual -- el modelo no está "viendo" las señas intermedias, solo
+reacciona a los bordes de la secuencia que él mismo define. Esto apunta la
+causa raíz río arriba del BiLSTM: o (a) el BiLSTM no logra propagar
+información discriminativa de frames intermedios (vanishing signal pese a
+ser solo 2 capas), o (b) la señal que llega desde GCN+TCN/TLP a la entrada
+del BiLSTM ya viene plana por frame, y el BiLSTM solo refleja sus propios
+estados de borde porque no hay nada que propagar. Diferenciar (a) de (b)
+requiere probing de activaciones por capa (estadísticas de varianza en la
+salida de GCN, TCN/TLP, BiLSTM por separado) -- técnica complementaria, no
+implementada en esta sesión.
+
+### Bug pre-existente fuera de alcance: `BatchSampler` no agrupa por longitud
+
+`BatchSampler.__init__` (`src/mslm/dataloader/batch_sampler.py:6`,
+`lengths = [len(item) for item in dataset]`) mide la longitud de la TUPLA
+`(keypoint, embedding, label)` en vez de la secuencia temporal -- siempre da
+3. El agrupamiento por longitud que debería hacer `get_length_grouped_indices`
+es un no-op en TODO el proyecto, no solo v119 (confirmado por lectura directa,
+no solo inferencia). No se toca junto con las palancas data-oriented (sería un
+confound), queda anotado aquí para una iteración futura.
+
 ### Artefactos
 
 | Archivo | Descripción |
 |---------|-------------|
-| `src/mslm/models/ctc_encoder.py` | `CTCEncoder`: STGCN+Transformer reusados de `Imitator`, sin el cuello de botella de K tokens fijos; flags `use_motion_stream`/`use_tlp` |
+| `src/mslm/models/ctc_encoder.py` | `CTCEncoder` v2: GCN 3 capas → TCN(K3-P2-K3-P2, P2=TLP) → BiLSTM 2 capas → clasificador compartido, CTC dual (Y_s+Y_l). Arquitectura portada de Min et al./CoSign, no la original (STGCN+Transformer+1 cabeza) |
 | `src/mslm/dataloader/vocab.py` | `Vocab` word-level (blank=0, unk=1) construido solo con labels de train |
-| `src/mslm/models/components/tlp.py` | Temporal Lift Pooling (LiftSign §3.2.2), para A3 |
+| `src/mslm/models/components/tlp.py` | Temporal Lift Pooling (LiftSign §3.2.2), ahora parte fija de la arquitectura (ya no es flag opcional) |
 | `src/mslm/training/loss_ctc.py`, `src/mslm/utils/wer.py` | `nn.CTCLoss` wrapper + greedy decode + WER (ecuación 9 de LiftSign) |
-| `scripts/train_ctc_v119.py` | Loop de entrenamiento CTC, selección de checkpoint por menor WER, codifica cada vídeo del batch por separado (gradient checkpointing) para evitar OOM en clips largos — mismo problema y misma solución que `encode_video_batch` en v118 |
-| `config/experiment/ctc_v119.toml` / `v119b.toml` / `v119c.toml` | A1 (single-stream) / A2 (+motion) / A3 (+TLP) sobre dataset completo |
-| `config/experiment/ctc_v119_subset1k.toml` | Chequeo rápido sobre 1000 clips (resultado: colapso a blank, ver arriba) |
-| `../outputs/checkpoints/119/10/best_wer/` | Checkpoint del chequeo rápido sobre subset (WER≈100%, colapso a blank documentado) |
+| `scripts/train_ctc_v119.py` | Loop de entrenamiento con pérdida CTC dual (Y_s+Y_l), decode/WER sobre Y_l, step-decay de LR en ep20/35 (portado de Min et al. §4.1), codifica cada vídeo del batch por separado (gradient checkpointing) para evitar OOM — mismo patrón que `encode_video_batch` en v118 |
+| `config/experiment/ctc_v119.toml` / `v119b.toml` | Arquitectura portada, static-only / +motion stream (único toggle restante); `ctc_v119.toml` ahora con las palancas data-oriented activas |
+| `config/experiment/ctc_v119_smoke.toml` | Smoke test de las palancas data-oriented (filtro + augmentation) sobre datos reales, 100 clips/2 épocas, throwaway |
+| `config/experiment/ctc_v119_subset1k.toml` | Histórico: diagnóstico de colapso a blank con la arquitectura ORIGINAL (ya reemplazada) |
+| `tests/test_keypoint_dataset.py` | Bug fix de `TransformedSubset.return_label` + filtro de calidad (`min_frames`, `filter_invalid_labels`) |
+| `scripts/diagnose_ctc_posteriors.py` | Diagnóstico de interpretabilidad: posteriors de CTC por frame (P(blank) vs P(top no-blank)) + resumen agregado de colapso sobre val |
+| `../outputs/checkpoints/119/1_baseline_no_data_levers/`, `../outputs/reports/119/1_baseline_no_data_levers/` | Baseline preservado (arquitectura nueva, dataset completo, SIN palancas data-oriented) antes de relanzar A1 con ellas bajo el mismo run_id=1 |
+| `../outputs/checkpoints/119/10/best_wer/` | Checkpoint del chequeo rápido sobre subset con la arquitectura original (WER≈100%, colapso a blank documentado) |
 | `reports/cleanup_2026-06-20.md` | Limpieza de checkpoints v113-v117 (43.7G) para liberar espacio antes de este run |

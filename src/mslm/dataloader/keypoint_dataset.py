@@ -4,6 +4,7 @@ import torch
 from typing import Optional, List, Tuple
 from torch.utils.data import random_split, Dataset, Subset, ConcatDataset
 from .data_augmentation import normalize_augment_data, remove_keypoints
+from .vocab import tokenize
 class TransformedSubset(Dataset):
     def __init__(self, subset: Subset, transform_fn: str, return_label=False, video_lengths=[], n_keypoints=133):
         self.subset    = subset
@@ -36,11 +37,18 @@ class KeypointDataset(Dataset):
     # se pasa include_datasets=["dataset2"] (frases, LSA) como dataset principal.
     DEFAULT_INCLUDE_DATASETS = ["dataset1", "dataset3", "dataset5", "dataset7"]
 
-    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None, return_token_ids=False, text_group="embeddings"):
+    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None, return_token_ids=False, text_group="embeddings", min_frames=0, filter_invalid_labels=False):
         self.h5Path = h5Path
         self.n_keypoints = n_keypoints
         self.transform = transform
         self.return_label = return_label
+        # Filtro de calidad de datos (v119, "Less is More" generalizado a la
+        # restricción real de nn.CTCLoss en esta arquitectura). Default no-op:
+        # min_frames=0 y filter_invalid_labels=False no cambian valid_index
+        # respecto al comportamiento previo (protege a otros call-sites, p.ej.
+        # setup_train.py, que no pasan estos kwargs).
+        self.min_frames = min_frames
+        self.filter_invalid_labels = filter_invalid_labels
         # Experimento CE-vocab: devuelve los token IDs (grupo `token_ids` del HDF5,
         # generado por scripts/add_token_ids_h5.py) en el tercer slot de la tupla.
         self.return_token_ids = return_token_ids
@@ -84,7 +92,12 @@ class KeypointDataset(Dataset):
                         if self.return_token_ids and clip not in f[dataset]["token_ids"]:
                             continue
                         shape = f[dataset]["keypoints"][clip].shape[0]
-                        if shape < self.max_length:
+                        if shape < self.max_length and shape >= self.min_frames:
+                            if self.filter_invalid_labels:
+                                label = f[dataset]["labels"][clip][:][0].decode()
+                                n_tokens = len(tokenize(label))
+                                if n_tokens == 0 or shape // 4 < n_tokens:
+                                    continue
                             self.valid_index.append((dataset, clip))
                             self.video_lengths.append(shape)
                     except KeyError:
@@ -102,9 +115,9 @@ class KeypointDataset(Dataset):
                             for i in train_dataset.indices]
             train_subset = Subset(self, train_dataset.indices)
             aug_subsets = [
-                TransformedSubset(train_subset, 
+                TransformedSubset(train_subset,
                                   transform_fn=tf,
-                                  return_label=False,
+                                  return_label=self.return_label,
                                   video_lengths=train_length,
                                   n_keypoints=self.n_keypoints
                                   )

@@ -7,13 +7,20 @@ sino comprimir la frase entera en un vector y rankearla. Aquí el encoder emite
 una distribución por paso temporal y CTC aprende el alineamiento implícito
 contra la secuencia de palabras -- igual que LiftSign (CVPRW 2026) formula CSLR.
 
+La primera versión de v119 (1 STGCNBlock + Transformer + 1 sola cabeza CTC)
+colapsó a blank tanto en 1000 como en 5600 clips reales (ver report.md). La
+arquitectura actual está PORTADA de Min et al. ("A Closer Look at Skeleton-based
+CSLR", ICCVW 2025) / LiftSign: GCN multi-capa -> TCN (K3-P2-K3-P2, P2=TLP) ->
+BiLSTM -> clasificador compartido con supervisión CTC dual (Y_s sobre el TCN,
+Y_l sobre el BiLSTM) -- exactamente la respuesta que esa literatura da al mismo
+síntoma (el módulo de contexto largo no generaliza con pocos datos).
+
 Vocabulario propio (word-level, NO el BPE de Gemma): se construye desde las
 labels de TRAIN únicamente (evita fuga val->vocab), blank=0 (convención CTC).
 
-Ablation (mismo script, flags en [model] del toml):
-    ctc_v119.toml  (A1): use_motion_stream=false, use_tlp=false
-    ctc_v119b.toml (A2): use_motion_stream=true,  use_tlp=false
-    ctc_v119c.toml (A3): use_motion_stream=true,  use_tlp=true
+use_motion_stream (flag en [model] del toml) sigue siendo el único toggle de
+ablation -- Min et al. Table 6/8 muestran que fusionar motion+skeleton da una
+mejora adicional pero menor que el resto de la arquitectura.
 
 Uso:
     MSLM_EXPERIMENT_CONFIG=config/experiment/ctc_v119.toml \
@@ -29,11 +36,11 @@ from settings import initialize
 initialize()
 
 import functools
-import math
 import random
 from datetime import datetime
 from pathlib import Path
 
+import h5py
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -94,6 +101,12 @@ def ctc_collate_fn(batch, vocab: Vocab):
     return keypoints_padded, frames_mask.bool(), targets_concat, target_lengths, labels
 
 
+def _pad_cat(tensors):
+    max_t = max(t.size(1) for t in tensors)
+    padded = [F.pad(t, (0, 0, 0, max_t - t.size(1))) for t in tensors]
+    return torch.cat(padded, dim=0)
+
+
 def _encode_batch(model, keypoint, frames_mask, grad_ckpt: bool):
     """Codifica cada vídeo del batch por separado (con gradient checkpointing),
     igual que encode_video_batch en train_contrastive_v118.py: un forward batcheado
@@ -103,36 +116,38 @@ def _encode_batch(model, keypoint, frames_mask, grad_ckpt: bool):
     """
     B = keypoint.size(0)
     lengths = (~frames_mask).sum(dim=1)
-    log_probs_list, seq_lengths_list, aux_list = [], [], []
+    short_list, long_list, seq_lengths_list, aux_list = [], [], [], []
     for i in range(B):
         L = int(lengths[i].item())
         kp = keypoint[i : i + 1, :L]
         fm = torch.zeros(1, L, dtype=torch.bool, device=keypoint.device)
         if grad_ckpt and model.training:
-            lp, sl, aux = checkpoint(model, kp, fm, use_reentrant=False)
+            lp_s, lp_l, sl, aux = checkpoint(model, kp, fm, use_reentrant=False)
         else:
-            lp, sl, aux = model(kp, fm)
-        log_probs_list.append(lp)
+            lp_s, lp_l, sl, aux = model(kp, fm)
+        short_list.append(lp_s)
+        long_list.append(lp_l)
         seq_lengths_list.append(sl)
         aux_list.append(aux)
 
-    max_t = max(lp.size(1) for lp in log_probs_list)
-    padded = [F.pad(lp, (0, 0, 0, max_t - lp.size(1))) for lp in log_probs_list]
-    log_probs = torch.cat(padded, dim=0)
+    log_probs_short = _pad_cat(short_list)
+    log_probs_long = _pad_cat(long_list)
     seq_lengths = torch.cat(seq_lengths_list)
-    aux = {}
-    if aux_list and aux_list[0]:
-        aux = {k: sum(a[k] for a in aux_list) / len(aux_list) for k in aux_list[0]}
-    return log_probs, seq_lengths, aux
+    aux = {k: sum(a[k] for a in aux_list) / len(aux_list) for k in aux_list[0]}
+    return log_probs_short, log_probs_long, seq_lengths, aux
 
 
 def _forward_batch(model, keypoint, frames_mask, targets, target_lengths, device, max_frames,
                     grad_ckpt: bool = True):
     keypoint, frames_mask = keypoint.to(device), frames_mask.to(device)
     keypoint, frames_mask = _truncate(keypoint, frames_mask, max_frames)
-    log_probs, seq_lengths, aux = _encode_batch(model, keypoint, frames_mask, grad_ckpt)
-    loss = ctc_loss(log_probs, targets.to(device), seq_lengths, target_lengths.to(device))
-    return log_probs, seq_lengths, aux, loss
+    log_probs_short, log_probs_long, seq_lengths, aux = _encode_batch(
+        model, keypoint, frames_mask, grad_ckpt)
+    targets, target_lengths = targets.to(device), target_lengths.to(device)
+    loss_short = ctc_loss(log_probs_short, targets, seq_lengths, target_lengths)
+    loss_long = ctc_loss(log_probs_long, targets, seq_lengths, target_lengths)
+    loss = loss_short + loss_long
+    return log_probs_long, seq_lengths, aux, loss
 
 
 def main():
@@ -145,7 +160,6 @@ def main():
 
     model_cfg = dict(cfg.model)
     use_motion_stream = bool(model_cfg.get("use_motion_stream", False))
-    use_tlp = bool(model_cfg.get("use_tlp", False))
     lambda_u = float(_cfg("loss", "lambda_u", 0.1))
     lambda_p = float(_cfg("loss", "lambda_p", 0.1))
 
@@ -165,11 +179,25 @@ def main():
     n_keypoints = int(_cfg("data", "n_keypoints", model_cfg.get("input_size", 111)))
     max_samples = _cfg("data", "max_samples", None)
 
+    # Palancas data-oriented (v119, "Less is More" generalizado a la restricción
+    # real de nn.CTCLoss en esta arquitectura): filtro de calidad + augmentation.
+    # Ver report.md para el detalle del criterio y el bug de TransformedSubset
+    # que motivó probarlos recién ahora.
+    min_frames = int(_cfg("data", "min_frames", 16))
+    filter_invalid_labels = bool(_cfg("data", "filter_invalid_labels", True))
+    data_augmentation = bool(_cfg("data", "data_augmentation", True))
+
+    with h5py.File(h5_file, "r") as f:
+        raw_clip_count = sum(len(f[d]["embeddings"].keys()) for d in include if d in f)
+
     ds = KeypointDataset(
         h5Path=h5_file, n_keypoints=n_keypoints, return_label=True,
         text_group=text_group, include_datasets=include,
-        data_augmentation=False, max_length=4000,
+        data_augmentation=data_augmentation, max_length=4000,
+        min_frames=min_frames, filter_invalid_labels=filter_invalid_labels,
     )
+    print(f"[v119] Filtro de calidad: {raw_clip_count - len(ds.valid_index)} de {raw_clip_count} "
+          f"clips excluidos (min_frames={min_frames}, filter_invalid_labels={filter_invalid_labels}).")
 
     if max_samples and int(max_samples) < len(ds.valid_index):
         # Muestra aleatoria determinista (seed=23): dataset2 mezcla los 600 clips
@@ -189,8 +217,12 @@ def main():
 
     train_subset, val_subset, _, _ = ds.split_dataset(train_ratio)
 
-    # Vocab SOLO con labels de train (evita fuga val->vocab).
-    train_clip_ids = [ds.valid_index[i][1] for i in train_subset.indices]
+    # Vocab SOLO con labels de train (evita fuga val->vocab). Con
+    # data_augmentation=True, split_dataset() devuelve un ConcatDataset (la
+    # copia original + 4 aumentadas) que no tiene `.indices` -- el subconjunto
+    # original (sin augmentation) siempre es el primer elemento de `.datasets`.
+    base_train_subset = train_subset.datasets[0] if hasattr(train_subset, "datasets") else train_subset
+    train_clip_ids = [ds.valid_index[i][1] for i in base_train_subset.indices]
     train_labels = collect_labels(h5_file, include[0], train_clip_ids)
     vocab = Vocab.build_from_labels(train_labels)
     print(f"[v119] Vocab: {len(vocab)} tokens (incl. blank+unk) desde {len(train_labels)} labels de train.")
@@ -210,32 +242,37 @@ def main():
     # el índice 0 del clasificador siga correspondiendo a blank.
     model = CTCEncoder(
         A=A, input_size=model_cfg.get("input_size", n_keypoints),
-        hidden_size=model_cfg.get("hidden_size", 1024),
-        nhead=model_cfg.get("nhead", 16),
-        ff_dim=model_cfg.get("ff_dim", 2816),
-        n_layers=model_cfg.get("n_layers", 6),
-        encoder_dropout=model_cfg.get("encoder_dropout", 0.4),
-        multihead_dropout=model_cfg.get("multihead_dropout", 0.1),
+        gcn_channels=tuple(model_cfg.get("gcn_channels", [32, 64, 128])),
+        hidden_size=model_cfg.get("hidden_size", 256),
+        lstm_layers=model_cfg.get("lstm_layers", 2),
         vocab_size=len(vocab) - 1,
         use_motion_stream=use_motion_stream,
-        use_tlp=use_tlp,
     ).to(device)
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6
     print(f"[v119] CTCEncoder: {n_params:.2f} M params entrenables | "
-          f"use_motion_stream={use_motion_stream} use_tlp={use_tlp} "
+          f"use_motion_stream={use_motion_stream} (GCN+TCN/TLP+BiLSTM+CTC dual) "
           f"batch={batch_size} max_frames={max_frames}")
 
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=wd)
     steps_per_epoch = max(1, len(train_dl))
 
+    # Step-decay /10 en lr_decay_epochs (default 20/35) -- portado literal de
+    # Min et al. §4.1 ("reduced by a factor of 10 at 20 and 35 epochs"), no un
+    # cosine inventado: es parte de la metodología que ya funciona (WER
+    # 4.6%/41.0% en Isharah), no solo la arquitectura.
+    lr_decay_epochs = _cfg("training", "lr_decay_epochs", [20, 35])
+
     def lr_at(step):
         warm = warmup * steps_per_epoch
-        total = epochs * steps_per_epoch
         if step < warm:
             return step / max(1, warm)
-        prog = (step - warm) / max(1, total - warm)
-        return 0.5 * (1 + math.cos(math.pi * prog))
+        epoch_now = step / steps_per_epoch
+        factor = 1.0
+        for de in lr_decay_epochs:
+            if epoch_now >= de:
+                factor *= 0.1
+        return factor
 
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_at)
 
@@ -254,8 +291,7 @@ def main():
         ):
             _, _, aux, loss = _forward_batch(
                 model, keypoint, frames_mask, targets, target_lengths, device, max_frames)
-            if use_tlp:
-                loss = loss + lambda_u * aux["L_u"] + lambda_p * aux["L_p"]
+            loss = loss + lambda_u * aux["L_u"] + lambda_p * aux["L_p"]
 
             opt.zero_grad()
             loss.backward()
@@ -275,8 +311,7 @@ def main():
             for keypoint, frames_mask, targets, target_lengths, labels in val_dl:
                 log_probs, seq_lengths, aux, loss = _forward_batch(
                     model, keypoint, frames_mask, targets, target_lengths, device, max_frames)
-                if use_tlp:
-                    loss = loss + lambda_u * aux["L_u"] + lambda_p * aux["L_p"]
+                loss = loss + lambda_u * aux["L_u"] + lambda_p * aux["L_p"]
                 val_tot += loss.item()
                 vb += 1
 

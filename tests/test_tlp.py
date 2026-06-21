@@ -68,6 +68,19 @@ def test_stacking_two_reduces_length_by_four():
     assert lengths.tolist() == [10, 10]
 
 
+def test_forward_does_not_crash_when_output_length_is_one():
+    """Clips cortos pueden quedar en T=1 tras el pooling (ej. T=2 de entrada,
+    visto en producción con CTCEncoder sobre clips reales de pocos frames).
+    nn.InstanceNorm1d exige >1 elemento espacial en modo training y crashea
+    con ValueError -- la normalización del gate debe tolerar T=1."""
+    tlp = TemporalLiftPooling(C)
+    x = torch.randn(1, 2, C)
+    lengths = torch.tensor([2])
+    out, out_lengths, aux = tlp(x, lengths)
+    assert out.shape == (1, 1, C)
+    assert torch.isfinite(out).all()
+
+
 def test_gradients_flow_to_input():
     tlp = TemporalLiftPooling(C)
     x = torch.randn(B, 20, C, requires_grad=True)
