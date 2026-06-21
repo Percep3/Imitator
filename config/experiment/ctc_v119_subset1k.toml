@@ -41,5 +41,4 @@ weight_decay            = 0.05
 warmup_epochs           = 5
 max_frames              = 1024
 checkpoint_interval     = 10
-log_interval            = 1
 early_stopping_patience = 20

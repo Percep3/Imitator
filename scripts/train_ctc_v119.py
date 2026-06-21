@@ -147,7 +147,7 @@ def _forward_batch(model, keypoint, frames_mask, targets, target_lengths, device
     loss_short = ctc_loss(log_probs_short, targets, seq_lengths, target_lengths)
     loss_long = ctc_loss(log_probs_long, targets, seq_lengths, target_lengths)
     loss = loss_short + loss_long
-    return log_probs_long, seq_lengths, aux, loss
+    return log_probs_short, log_probs_long, seq_lengths, aux, loss
 
 
 def main():
@@ -215,7 +215,7 @@ def main():
         ds.dataset_length = len(ds.valid_index)
         print(f"[v119] Subset aleatorio: {ds.dataset_length} clips (max_samples={max_samples}).")
 
-    train_subset, val_subset, _, _ = ds.split_dataset(train_ratio)
+    train_subset, val_subset, train_lengths, val_length = ds.split_dataset(train_ratio)
 
     # Vocab SOLO con labels de train (evita fuga val->vocab). Con
     # data_augmentation=True, split_dataset() devuelve un ConcatDataset (la
@@ -230,11 +230,11 @@ def main():
     collate = functools.partial(ctc_collate_fn, vocab=vocab)
     train_dl = DataLoader(
         train_subset, num_workers=8, pin_memory=True, persistent_workers=True,
-        collate_fn=collate, batch_sampler=BatchSampler(train_subset, batch_size),
+        collate_fn=collate, batch_sampler=BatchSampler(train_subset, batch_size, lengths=train_lengths),
     )
     val_dl = DataLoader(
         val_subset, num_workers=8, pin_memory=True, persistent_workers=True,
-        collate_fn=collate, batch_sampler=BatchSampler(val_subset, batch_size),
+        collate_fn=collate, batch_sampler=BatchSampler(val_subset, batch_size, lengths=val_length),
     )
 
     # CTCEncoder.vocab_size = clases SIN contar blank (suma +1 internamente para
@@ -289,7 +289,7 @@ def main():
         for keypoint, frames_mask, targets, target_lengths, _ in tqdm(
             train_dl, desc=f"ep{epoch} train", leave=False, mininterval=10.0
         ):
-            _, _, aux, loss = _forward_batch(
+            _, _, _, aux, loss = _forward_batch(
                 model, keypoint, frames_mask, targets, target_lengths, device, max_frames)
             loss = loss + lambda_u * aux["L_u"] + lambda_p * aux["L_p"]
 
@@ -303,36 +303,49 @@ def main():
             n_steps += 1
         train_loss = tot / max(1, n_steps)
 
-        # ---- val: WER sobre TODO el val (greedy decode) ----
+        # ---- val: WER sobre TODO el val (greedy decode), ambas cabezas ----
+        # Min et al. (ICCVW 2025) §5.3: el módulo de contexto largo (Y_l,
+        # BiLSTM) generaliza peor que el de corto plazo (Y_s, TCN) con pocos
+        # datos de train -- eligen la cabeza según la tarea en vez de
+        # hardcodear largo plazo. Acá se decodifican ambas y se selecciona
+        # checkpoint por la mejor de las dos, en vez de descartar Y_s.
         model.eval()
         val_tot, vb = 0.0, 0
-        hyp_words_all, ref_words_all = [], []
+        hyp_short_all, hyp_long_all, ref_words_all = [], [], []
         with torch.no_grad():
             for keypoint, frames_mask, targets, target_lengths, labels in val_dl:
-                log_probs, seq_lengths, aux, loss = _forward_batch(
+                log_probs_short, log_probs_long, seq_lengths, aux, loss = _forward_batch(
                     model, keypoint, frames_mask, targets, target_lengths, device, max_frames)
                 loss = loss + lambda_u * aux["L_u"] + lambda_p * aux["L_p"]
                 val_tot += loss.item()
                 vb += 1
 
-                decoded_ids = greedy_ctc_decode(log_probs.cpu(), seq_lengths.cpu(), blank=vocab.blank_id)
-                for ids, label in zip(decoded_ids, labels):
-                    hyp_words_all.append(vocab.decode(ids))
+                decoded_short = greedy_ctc_decode(log_probs_short.cpu(), seq_lengths.cpu(), blank=vocab.blank_id)
+                decoded_long = greedy_ctc_decode(log_probs_long.cpu(), seq_lengths.cpu(), blank=vocab.blank_id)
+                for ids_s, ids_l, label in zip(decoded_short, decoded_long, labels):
+                    hyp_short_all.append(vocab.decode(ids_s))
+                    hyp_long_all.append(vocab.decode(ids_l))
                     ref_words_all.append(tokenize(label))
         val_loss = val_tot / max(1, vb)
-        wers = [word_error_rate(h, r) for h, r in zip(hyp_words_all, ref_words_all) if r]
-        val_wer = sum(wers) / max(1, len(wers))
+        wers_short = [word_error_rate(h, r) for h, r in zip(hyp_short_all, ref_words_all) if r]
+        wers_long = [word_error_rate(h, r) for h, r in zip(hyp_long_all, ref_words_all) if r]
+        wer_short = sum(wers_short) / max(1, len(wers_short))
+        wer_long = sum(wers_long) / max(1, len(wers_long))
+        val_wer = min(wer_short, wer_long)
+        best_head = "short" if wer_short <= wer_long else "long"
 
         writer.add_scalar("Loss/train", train_loss, epoch)
         writer.add_scalar("Loss/val", val_loss, epoch)
-        writer.add_scalar("WER/val", val_wer, epoch)
-        tqdm.write(f"ep{epoch:>3} | train {train_loss:.3f} | val {val_loss:.3f} | val WER {val_wer:.1%}")
+        writer.add_scalar("WER/val_short", wer_short, epoch)
+        writer.add_scalar("WER/val_long", wer_long, epoch)
+        tqdm.write(f"ep{epoch:>3} | train {train_loss:.3f} | val {val_loss:.3f} | "
+                   f"WER short {wer_short:.1%} | WER long {wer_long:.1%} | best={best_head}")
 
         improved = val_wer < best_wer
         if improved:
             best_wer, since_improve = val_wer, 0
             ckpt.save_checkpoint(model, epoch, opt, sched, tag="best_wer")
-            tqdm.write(f"  ↓ best WER: {best_wer:.1%} (ep {epoch})")
+            tqdm.write(f"  ↓ best WER: {best_wer:.1%} (ep {epoch}, cabeza={best_head})")
         else:
             since_improve += 1
         if (epoch + 1) % int(_cfg("training", "checkpoint_interval", 10)) == 0:

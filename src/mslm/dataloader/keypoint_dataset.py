@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from typing import Optional, List, Tuple
 from torch.utils.data import random_split, Dataset, Subset, ConcatDataset
-from .data_augmentation import normalize_augment_data, remove_keypoints
+from .data_augmentation import normalize_augment_data, remove_keypoints, TEMPORAL_DROP_PROB
 from .vocab import tokenize
 class TransformedSubset(Dataset):
     def __init__(self, subset: Subset, transform_fn: str, return_label=False, video_lengths=[], n_keypoints=133):
@@ -12,9 +12,11 @@ class TransformedSubset(Dataset):
         self.return_label = return_label
         self.video_lengths = video_lengths
         self.n_keypoints = n_keypoints
-        
+
         if self.transform == "Length_variance":
             self.video_lengths = [int(round(0.8 * video)) for video in self.video_lengths]
+        elif self.transform == "Temporal_drop":
+            self.video_lengths = [int(round((1 - TEMPORAL_DROP_PROB) * video)) for video in self.video_lengths]
 
     def __len__(self):
         return len(self.subset)
@@ -37,10 +39,9 @@ class KeypointDataset(Dataset):
     # se pasa include_datasets=["dataset2"] (frases, LSA) como dataset principal.
     DEFAULT_INCLUDE_DATASETS = ["dataset1", "dataset3", "dataset5", "dataset7"]
 
-    def __init__(self, h5Path, n_keypoints=111, transform=None, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None, return_token_ids=False, text_group="embeddings", min_frames=0, filter_invalid_labels=False):
+    def __init__(self, h5Path, n_keypoints=111, return_label=False, max_length=4000, data_augmentation=True, include_datasets=None, return_token_ids=False, text_group="embeddings", min_frames=0, filter_invalid_labels=False):
         self.h5Path = h5Path
         self.n_keypoints = n_keypoints
-        self.transform = transform
         self.return_label = return_label
         # Filtro de calidad de datos (v119, "Less is More" generalizado a la
         # restricción real de nn.CTCLoss en esta arquitectura). Default no-op:
@@ -67,7 +68,8 @@ class KeypointDataset(Dataset):
             0: "Length_variance",
             1: "Gaussian_jitter",
             2: "Rotation_2D",
-            4: "Scaling"
+            4: "Scaling",
+            5: "Temporal_drop",
         }
 
         self.dataset_length = 0
@@ -139,9 +141,6 @@ class KeypointDataset(Dataset):
         print("Videos: ", self.dataset_length)
         return train_dataset, validation_dataset, train_lengths, val_length
 
-    def get_video_lengths(self):
-        return self.dataset_length 
-    
     def __len__(self):
         return len(self.valid_index)
 

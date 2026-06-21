@@ -36,7 +36,6 @@ class CTCEncoder(nn.Module):
         lstm_layers: int = 2,
         vocab_size: int = 100,
         use_motion_stream: bool = False,
-        tlp_dropout: float = 0.0,
     ):
         super().__init__()
         self.use_motion_stream = use_motion_stream
@@ -66,9 +65,9 @@ class CTCEncoder(nn.Module):
 
         pad = 1
         self.tcn_conv1 = nn.Conv1d(hidden_size, hidden_size, kernel_size=3, padding=pad)
-        self.tlp1 = TemporalLiftPooling(hidden_size, dropout=tlp_dropout)
+        self.tlp1 = TemporalLiftPooling(hidden_size)
         self.tcn_conv2 = nn.Conv1d(hidden_size, hidden_size, kernel_size=3, padding=pad)
-        self.tlp2 = TemporalLiftPooling(hidden_size, dropout=tlp_dropout)
+        self.tlp2 = TemporalLiftPooling(hidden_size)
 
         self.bilstm = nn.LSTM(
             input_size=hidden_size,

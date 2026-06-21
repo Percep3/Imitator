@@ -7,10 +7,6 @@ def scaling(keypoint):
     scale = random.uniform(0.9, 1.1)
     return keypoint * scale
 
-def horizontal_flip(keypoint):
-    # Reflejar horizontalmente la secuencia de keypoints
-    return keypoint.flip(dims=[1])  # Reflejo horizontal
-
 def rotation_2D(keypoint):
     # Aseguramos que la rotación no cambie la cantidad de keypoints
     angle = random.uniform(-15, 15)  # Rotación aleatoria en grados
@@ -39,25 +35,39 @@ def gaussian_jitter(keypoint, sigma=0.0014, clip=3.0):
     keypoint_jitter = np.random.normal(loc=0.0, scale=sigma, size=keypoint.shape)
 
     if clip is not None:
-        np.clip(keypoint_jitter, -clip, clip, out=keypoint_jitter)    
-    
+        np.clip(keypoint_jitter, -clip, clip, out=keypoint_jitter)
+
     return keypoint + keypoint_jitter
+
+# Min et al. (ICCVW 2025) Tabla 5: temporal drop (~15% de frames) reduce WER
+# en el escenario de generalización limitada del backend (BiLSTM).
+TEMPORAL_DROP_PROB = 0.15
+
+def temporal_drop(keypoint, drop_prob=TEMPORAL_DROP_PROB):
+    # Elimina ~drop_prob de los frames al azar, conservando el orden temporal.
+    T = keypoint.shape[0]
+    n_drop = int(round(T * drop_prob))
+    if n_drop <= 0 or T - n_drop < 1:
+        return keypoint
+    drop_idx = set(random.sample(range(T), n_drop))
+    keep_idx = [i for i in range(T) if i not in drop_idx]
+    return keypoint[keep_idx]
 
 def apply_augmentation(keypoint, augmentation_type):
     """
     Aplica diferentes augmentaciones de acuerdo al tipo.
     """
-    
+
     if augmentation_type == "Gaussian_jitter":
         return gaussian_jitter(keypoint)
     elif augmentation_type == "Length_variance":
         return length_variance(keypoint)
     elif augmentation_type == "Rotation_2D":
         return rotation_2D(keypoint)
-    elif augmentation_type == "Horizontal_flip":
-        return horizontal_flip(keypoint) #TDB
     elif augmentation_type == "Scaling":
         return scaling(keypoint)
+    elif augmentation_type == "Temporal_drop":
+        return temporal_drop(keypoint)
     return keypoint
 
 def keypoint_normalization(keypoint):
