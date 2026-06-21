@@ -560,6 +560,65 @@ requiere probing de activaciones por capa (estadísticas de varianza en la
 salida de GCN, TCN/TLP, BiLSTM por separado) -- técnica complementaria, no
 implementada en esta sesión.
 
+### Probing de activaciones por capa: el BiLSTM lava la señal temporal
+
+El diagnóstico de posteriors (arriba) ubica la causa raíz río arriba del
+BiLSTM pero no distingue entre (a) el BiLSTM no logra propagar información
+discriminativa de frames intermedios, o (b) la señal ya viene plana por frame
+desde GCN+TCN/TLP y el BiLSTM no tiene nada que propagar. Diseño completo en
+`docs/superpowers/specs/2026-06-21-ctc-activation-probing-design.md`.
+
+**Método** (`scripts/diagnose_ctc_activations.py`, nuevo): reconstrucción
+manual del forward de `CTCEncoder` (sin forward hooks, los submódulos son
+atributos públicos) capturando el tensor en 4 puntos — `gcn` (tras GCN +
+`linear_hidden` + mean-pool sobre nodos), `tcn1` (tras `tcn_conv1`+`tlp1`),
+`tcn2_short` (tras `tcn_conv2`+`tlp2`, = Y_s, entrada al BiLSTM), `bilstm_long`
+(tras el BiLSTM, = Y_l). Métrica por canal, promediada sobre canales:
+`activity = var_t(x) / (mean_t(x²) + ε)` — normalizar por potencia permite
+comparar etapas con escalas de activación distintas; score cercano a 0 =
+representación constante en el tiempo, más alto = más variación frame a frame.
+
+Corrido sobre 20 clips de val en **ambos** checkpoints: el de las palancas
+data-oriented (`119/1/best_wer`, ep2) y el baseline sin ellas
+(`119/1_baseline_no_data_levers/best_wer`, ep15) — sondear los dos confirma si
+el patrón es independiente de esa variable (ya descartada como causa raíz).
+
+| Etapa | Con palancas data-oriented | Baseline sin palancas |
+|---|---|---|
+| `gcn` | 0.58 ± 0.16 | 0.50 ± 0.15 |
+| `tcn1` | 0.62 ± 0.11 | 0.63 ± 0.13 |
+| `tcn2_short` | 0.54 ± 0.09 | 0.54 ± 0.06 |
+| `bilstm_long` | **0.21 ± 0.09** | **0.27 ± 0.07** |
+
+**Hallazgo clave**: en ambos checkpoints, la actividad temporal se mantiene
+estable (0.50-0.63) a lo largo de `gcn`→`tcn1`→`tcn2_short` y cae fuerte
+(2.3-2.6×) justo al pasar por el BiLSTM. El patrón es idéntico
+independientemente de las palancas data-oriented, descartando que sea un
+artefacto de esa variable. **Confirma la hipótesis (a)**: la señal
+discriminativa por frame SÍ sobrevive hasta la entrada del BiLSTM (Y_s,
+supervisado directamente por la cabeza CTC de corto plazo) pero el BiLSTM la
+aplana — consistente con el hallazgo de posteriors de que solo los bordes de
+secuencia (estados inicial/final del BiLSTM) sobreviven a la salida Y_l. Min
+et al. atribuyen este mismo síntoma a "la limitada capacidad de generalización
+del módulo de backend, probablemente por escasez de datos de entrenamiento" —
+con 2 capas BiLSTM bidireccional sobre ~480-580 clips de train, el módulo de
+contexto largo no tiene presión suficiente para preservar variación temporal
+en vez de colapsar a un resumen casi constante por secuencia.
+
+**Nota de integridad de datos encontrada en el camino**: el `vocab.json` de
+`1_baseline_no_data_levers` (9880 tokens) no coincide con el tamaño que espera
+el `classifier` guardado en ese checkpoint (9915) — probablemente sobrescrito
+cuando se relanzó `run_id=1` con las palancas activas. El probing no usa
+`classifier` (es la capa siguiente a los 4 puntos de sondeo), así que el
+loader simplemente omite esas dos claves (logueado explícitamente vía
+`_load_state_dict_skip_mismatched` en `build_val`) sin reentrenar ni tocar el
+checkpoint.
+
+**Próximo paso** (no implementado en esta sesión): con (a) confirmado, las
+opciones son recortar/simplificar el BiLSTM (menos capacidad para forzarlo a
+no colapsar), o aumentar la supervisión directa sobre Y_l más allá de la
+pérdida CTC dual ya existente.
+
 ### Bug pre-existente fuera de alcance: `BatchSampler` no agrupa por longitud
 
 `BatchSampler.__init__` (`src/mslm/dataloader/batch_sampler.py:6`,
@@ -583,7 +642,9 @@ confound), queda anotado aquí para una iteración futura.
 | `config/experiment/ctc_v119_smoke.toml` | Smoke test de las palancas data-oriented (filtro + augmentation) sobre datos reales, 100 clips/2 épocas, throwaway |
 | `config/experiment/ctc_v119_subset1k.toml` | Histórico: diagnóstico de colapso a blank con la arquitectura ORIGINAL (ya reemplazada) |
 | `tests/test_keypoint_dataset.py` | Bug fix de `TransformedSubset.return_label` + filtro de calidad (`min_frames`, `filter_invalid_labels`) |
-| `scripts/diagnose_ctc_posteriors.py` | Diagnóstico de interpretabilidad: posteriors de CTC por frame (P(blank) vs P(top no-blank)) + resumen agregado de colapso sobre val |
+| `scripts/diagnose_ctc_posteriors.py` | Diagnóstico de interpretabilidad: posteriors de CTC por frame (P(blank) vs P(top no-blank)) + resumen agregado de colapso sobre val; `build_val()` ahora acepta `run_dir` (checkpoints fuera del esquema `{version}/{run_id}`) y `strict` (tolera mismatch de forma en capas no usadas por el caller) |
+| `docs/superpowers/specs/2026-06-21-ctc-activation-probing-design.md` | Diseño del probing de activaciones por capa (4 puntos de sondeo, métrica de actividad temporal) |
+| `scripts/diagnose_ctc_activations.py` | Probing de activaciones por capa (`gcn`/`tcn1`/`tcn2_short`/`bilstm_long`): confirma que el BiLSTM aplana la señal temporal que sobrevive hasta su entrada |
 | `../outputs/checkpoints/119/1_baseline_no_data_levers/`, `../outputs/reports/119/1_baseline_no_data_levers/` | Baseline preservado (arquitectura nueva, dataset completo, SIN palancas data-oriented) antes de relanzar A1 con ellas bajo el mismo run_id=1 |
 | `../outputs/checkpoints/119/10/best_wer/` | Checkpoint del chequeo rápido sobre subset con la arquitectura original (WER≈100%, colapso a blank documentado) |
 | `reports/cleanup_2026-06-20.md` | Limpieza de checkpoints v113-v117 (43.7G) para liberar espacio antes de este run |

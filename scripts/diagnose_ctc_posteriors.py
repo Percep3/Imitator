@@ -37,7 +37,34 @@ import train_ctc_v119 as tv
 from src.mslm.utils.paths import path_vars
 
 
-def build_val(tag):
+def _load_state_dict_skip_mismatched(model, state_dict):
+    """Como load_state_dict(strict=False) pero también tolera mismatch de
+    forma (no solo de claves) -- strict=False de PyTorch sigue lanzando
+    RuntimeError si una clave existe en ambos lados con shape distinta.
+    Necesario para checkpoints donde vocab.json fue sobrescrito después del
+    entrenamiento original (el classifier quedó dimensionado para un vocab
+    distinto al guardado en disco). Solo seguro de usar cuando las capas con
+    mismatch no se usan (p.ej. probing de activaciones que no llega a
+    `classifier`)."""
+    own = model.state_dict()
+    filtered, skipped = {}, []
+    for k, v in state_dict.items():
+        if k in own and own[k].shape != v.shape:
+            skipped.append(k)
+            continue
+        filtered[k] = v
+    if skipped:
+        print(f"[diag] state_dict: claves omitidas por mismatch de forma: {skipped}")
+    model.load_state_dict(filtered, strict=False)
+
+
+def build_val(tag, run_dir: str | None = None, strict: bool = True):
+    """run_dir: si se pasa, reemplaza str(run_id) en la ruta de checkpoint, de
+    vocab y de salida de diagnósticos -- permite apuntar a checkpoints fuera
+    del esquema {version}/{run_id} (p.ej. 'run_id_baseline_no_data_levers').
+    Sin el parámetro, comportamiento idéntico al original.
+    strict=False usa `_load_state_dict_skip_mismatched` -- solo seguro si el
+    caller no usa las capas con mismatch (ver su docstring)."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     _, _, h5_file = tv.setup_paths()
     A = np.load(path_vars.data_path / "processed" / "adjacency_matrix.npy", allow_pickle=True)
@@ -53,6 +80,7 @@ def build_val(tag):
     max_samples = tv._cfg("data", "max_samples", None)
     version = int(tv._cfg("training", "model_version", 119))
     run_id = int(tv._cfg("training", "run_id", 1))
+    dir_name = run_dir if run_dir is not None else str(run_id)
 
     ds = tv.KeypointDataset(
         h5Path=h5_file, n_keypoints=n_keypoints, return_label=True,
@@ -75,7 +103,7 @@ def build_val(tag):
     # depender de este seed global; se mantiene por paridad con el script real.
     _, val_subset, _, _ = ds.split_dataset(train_ratio)
 
-    vocab_path = f"../outputs/checkpoints/{version}/{run_id}/vocab.json"
+    vocab_path = f"../outputs/checkpoints/{version}/{dir_name}/vocab.json"
     vocab = tv.Vocab.load(vocab_path)
 
     collate = functools.partial(tv.ctc_collate_fn, vocab=vocab)
@@ -90,13 +118,16 @@ def build_val(tag):
         use_motion_stream=use_motion_stream,
     ).to(device)
 
-    ckpt_path = f"../outputs/checkpoints/{version}/{run_id}/{tag}/checkpoint.pth"
+    ckpt_path = f"../outputs/checkpoints/{version}/{dir_name}/{tag}/checkpoint.pth"
     state = torch.load(ckpt_path, map_location=device)
-    model.load_state_dict(state["model_state"])
+    if strict:
+        model.load_state_dict(state["model_state"])
+    else:
+        _load_state_dict_skip_mismatched(model, state["model_state"])
     model.eval()
     print(f"[diag] Checkpoint cargado: {ckpt_path} (epoch={state.get('epoch')})")
 
-    out_dir = f"../outputs/diagnostics/{version}/{run_id}"
+    out_dir = f"../outputs/diagnostics/{version}/{dir_name}"
     os.makedirs(out_dir, exist_ok=True)
     return model, val_dl, vocab, device, out_dir
 
