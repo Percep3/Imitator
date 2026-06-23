@@ -43,6 +43,14 @@ class OracleSample:
     embeddings: np.ndarray
 
 
+@dataclass(frozen=True)
+class OraclePrompt:
+    name: str
+    pre: str
+    post: str
+    fewshot_clip_ids: tuple[str, ...]
+
+
 def load_transform(
     path: Path,
 ) -> tuple[str, EmbeddingTransform | StandardizedEmbeddingTransform]:
@@ -66,11 +74,11 @@ def load_transform(
 
 
 def load_samples(
-    h5_path: Path, split_path: Path, n_samples: int, seed: int
+    h5_path: Path, split_path: Path, n_samples: int, seed: int, split_key: str = "val"
 ) -> list[OracleSample]:
     split = json.loads(split_path.read_text())
     rng = random.Random(seed)
-    selected = rng.sample(split["val"], min(n_samples, len(split["val"])))
+    selected = rng.sample(split[split_key], min(n_samples, len(split[split_key])))
     samples = []
     with h5py.File(h5_path, "r") as file:
         dataset = file["dataset2"]
@@ -86,25 +94,56 @@ def load_samples(
     return samples
 
 
-def prompt_token_ids(bridge: GemmaBridge, sign_ids: torch.Tensor) -> torch.Tensor:
+def build_fewshot_minimal_prompt(
+    bridge: GemmaBridge, examples: list[OracleSample]
+) -> OraclePrompt:
+    """Build the v125 official oracle prompt selected by prompt sweep.
+
+    The examples come from the train split only and teach Gemma the expected
+    output format: final Spanish text only, no explanation/markdown/code.
+    """
+    blocks = []
+    for idx, example in enumerate(examples, start=1):
+        text = bridge.tokenizer.decode(example.token_ids, skip_special_tokens=True)
+        blocks.append(
+            f"Ejemplo {idx}\n"
+            f"Entrada: {text}\n"
+            f"Salida: {example.label}\n"
+        )
+    examples_text = "\n".join(blocks)
+    return OraclePrompt(
+        name=f"fewshot_{len(examples)}_minimal",
+        pre=(
+            "Responde sólo con la salida, sin explicación.\n\n"
+            f"{examples_text}\n"
+            "Entrada: "
+        ),
+        post="\nSalida:",
+        fewshot_clip_ids=tuple(example.clip_id for example in examples),
+    )
+
+
+def prompt_token_ids(
+    bridge: GemmaBridge, prompt: OraclePrompt, sign_ids: torch.Tensor
+) -> torch.Tensor:
     pre = bridge.tokenizer(
-        PROMPT_PRE, return_tensors="pt", add_special_tokens=True
+        prompt.pre, return_tensors="pt", add_special_tokens=True
     ).input_ids.to(sign_ids.device)
     post = bridge.tokenizer(
-        PROMPT_POST, return_tensors="pt", add_special_tokens=False
+        prompt.post, return_tensors="pt", add_special_tokens=False
     ).input_ids.to(sign_ids.device)
     return torch.cat([pre, sign_ids.unsqueeze(0), post], dim=1)
 
 
 def prompt_embeddings(
-    bridge: GemmaBridge, sign_embeddings: torch.Tensor
+    bridge: GemmaBridge, prompt: OraclePrompt, sign_embeddings: torch.Tensor
 ) -> torch.Tensor:
     device = sign_embeddings.device
     pre_ids = bridge.tokenizer(
-        PROMPT_PRE, return_tensors="pt", add_special_tokens=True
+        prompt.pre, return_tensors="pt", add_special_tokens=True
     ).input_ids.to(device)
     post_ids = bridge.tokenizer(
-        PROMPT_POST, return_tensors="pt", add_special_tokens=False
+        prompt.post, return_tensors="pt", add_special_tokens=False
     ).input_ids.to(device)
     return torch.cat(
         [
@@ -116,12 +155,15 @@ def prompt_embeddings(
     )
 
 
-def prompt_per_layer_inputs(bridge: GemmaBridge, sign_ids: torch.Tensor) -> torch.Tensor:
-    return bridge.get_per_layer_inputs(prompt_token_ids(bridge, sign_ids))
+def prompt_per_layer_inputs(
+    bridge: GemmaBridge, prompt: OraclePrompt, sign_ids: torch.Tensor
+) -> torch.Tensor:
+    return bridge.get_per_layer_inputs(prompt_token_ids(bridge, prompt, sign_ids))
 
 
 def run_sample(
     bridge: GemmaBridge,
+    prompt: OraclePrompt,
     sample: OracleSample,
     transform: EmbeddingTransform | StandardizedEmbeddingTransform,
     max_new_tokens: int,
@@ -148,11 +190,11 @@ def run_sample(
     )
 
     output_ids = bridge.generate_from_ids(
-        prompt_token_ids(bridge, sign_ids), max_new_tokens=max_new_tokens
+        prompt_token_ids(bridge, prompt, sign_ids), max_new_tokens=max_new_tokens
     )
-    per_layer_inputs = prompt_per_layer_inputs(bridge, sign_ids)
+    per_layer_inputs = prompt_per_layer_inputs(bridge, prompt, sign_ids)
     output_exact = bridge.generate(
-        prompt_embeddings(bridge, stored),
+        prompt_embeddings(bridge, prompt, stored),
         max_new_tokens=max_new_tokens,
         per_layer_inputs=per_layer_inputs,
     )
@@ -160,7 +202,7 @@ def run_sample(
         output_transformed = output_exact
     else:
         output_transformed = bridge.generate(
-            prompt_embeddings(bridge, reconstructed_tensor),
+            prompt_embeddings(bridge, prompt, reconstructed_tensor),
             max_new_tokens=max_new_tokens,
             per_layer_inputs=per_layer_inputs,
         )
@@ -175,7 +217,7 @@ def run_sample(
     }
 
 
-def summarize(rows: list[dict], space_mode: str) -> dict:
+def summarize(rows: list[dict], space_mode: str, prompt: OraclePrompt) -> dict:
     def average(metric, key):
         return sum(metric(row[key], row["label"]) for row in rows) / max(len(rows), 1)
 
@@ -183,6 +225,10 @@ def summarize(rows: list[dict], space_mode: str) -> dict:
         "n_samples": len(rows),
         "space_mode": space_mode,
         "bridge_mode": "inputs_embeds_with_gemma3n_per_layer_inputs",
+        "prompt_name": prompt.name,
+        "prompt_pre": prompt.pre,
+        "prompt_post": prompt.post,
+        "fewshot_clip_ids": list(prompt.fewshot_clip_ids),
     }
     for key in ("token_ids", "exact", "transformed"):
         summary[key] = {
@@ -222,6 +268,7 @@ def main(
     n_samples: int,
     seed: int,
     max_new_tokens: int,
+    fewshot_examples: int,
 ) -> None:
     samples = load_samples(h5_path, split_path, n_samples, seed)
     if not samples:
@@ -229,6 +276,14 @@ def main(
 
     space_mode, transform = load_transform(transform_path)
     bridge = GemmaBridge(model_id)
+    examples = load_samples(
+        h5_path,
+        split_path,
+        fewshot_examples,
+        seed + 1009,
+        split_key="train",
+    )
+    prompt = build_fewshot_minimal_prompt(bridge, examples)
 
     special_ids = {
         bridge.tokenizer.bos_token_id,
@@ -247,6 +302,7 @@ def main(
         rows.append(
             run_sample(
                 bridge,
+                prompt,
                 sample,
                 transform,
                 max_new_tokens,
@@ -255,7 +311,7 @@ def main(
         )
         print(f"[oracle] {index}/{len(samples)} clip={sample.clip_id}")
 
-    summary = summarize(rows, space_mode)
+    summary = summarize(rows, space_mode, prompt)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
         json.dumps({"summary": summary, "rows": rows}, indent=2, ensure_ascii=False)
@@ -283,6 +339,7 @@ if __name__ == "__main__":
     parser.add_argument("--n-samples", type=int, default=100)
     parser.add_argument("--seed", type=int, default=23)
     parser.add_argument("--max-new-tokens", type=int, default=64)
+    parser.add_argument("--fewshot-examples", type=int, default=3)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1].parent
     main(
@@ -294,4 +351,5 @@ if __name__ == "__main__":
         args.n_samples,
         args.seed,
         args.max_new_tokens,
+        args.fewshot_examples,
     )
