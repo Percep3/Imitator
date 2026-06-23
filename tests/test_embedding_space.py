@@ -2,7 +2,9 @@ import numpy as np
 
 from src.mslm.utils.embedding_space import (
     EmbeddingTransform,
+    StandardizedEmbeddingTransform,
     fit_embedding_transform,
+    fit_standardized_embedding_transform,
     reconstruction_cosine,
 )
 
@@ -59,3 +61,20 @@ def test_transform_rejects_wrong_dim():
 
     with pytest.raises(ValueError):
         t.transform(np.zeros((3, 100), dtype=np.float32))
+
+
+def test_full_standardization_round_trip_is_exact():
+    data = np.random.default_rng(4).normal(size=(50, 32)).astype(np.float32)
+    t = fit_standardized_embedding_transform(data)
+    assert isinstance(t, StandardizedEmbeddingTransform)
+    z = t.transform(data)
+    assert np.allclose(z.mean(axis=0), 0.0, atol=1e-5)
+    assert np.allclose(t.inverse_transform(z), data, atol=1e-5)
+
+
+def test_full_standardization_handles_constant_dimensions():
+    data = np.ones((10, 4), dtype=np.float32)
+    t = fit_standardized_embedding_transform(data)
+    z = t.transform(data)
+    assert np.isfinite(z).all()
+    assert np.allclose(t.inverse_transform(z), data)

@@ -12,7 +12,11 @@ import torch
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.mslm.utils.embedding_space import fit_embedding_transform, reconstruction_cosine  # noqa: E402
+from src.mslm.utils.embedding_space import (  # noqa: E402
+    fit_embedding_transform,
+    fit_standardized_embedding_transform,
+    reconstruction_cosine,
+)
 
 
 def collect_token_ids(h5_path: Path, clip_ids: list[str]) -> set[int]:
@@ -48,19 +52,29 @@ def main(h5_path: Path, table_path: Path, split_path: Path, out_path: Path, n_co
         "gate_cosine_mean_ge_0.99": bool(cos.mean() >= 0.99),
         "gate_cosine_p5_ge_0.97": bool(np.percentile(cos, 5) >= 0.97),
     }
+    pca_accepted = result["gate_cosine_mean_ge_0.99"] and result["gate_cosine_p5_ge_0.97"]
+    result["selected_mode"] = "pca_whitening" if pca_accepted else "full_standardized"
     out_path.write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2))
 
-    torch.save(
-        {
+    if pca_accepted:
+        transform_blob = {
+            "mode": "pca_whitening",
             "mean": torch.from_numpy(transform.mean),
             "components": torch.from_numpy(transform.components),
             "singular_values": torch.from_numpy(transform.singular_values),
             "n_samples": transform.n_samples,
             "epsilon": transform.epsilon,
-        },
-        out_path.with_suffix(".transform.pt"),
-    )
+        }
+    else:
+        fallback = fit_standardized_embedding_transform(train_emb, epsilon=1e-5)
+        transform_blob = {
+            "mode": "full_standardized",
+            "mean": torch.from_numpy(fallback.mean),
+            "scale": torch.from_numpy(fallback.scale),
+            "epsilon": fallback.epsilon,
+        }
+    torch.save(transform_blob, out_path.with_suffix(".transform.pt"))
 
 
 if __name__ == "__main__":

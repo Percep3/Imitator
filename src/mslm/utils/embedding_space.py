@@ -44,6 +44,33 @@ class EmbeddingTransform:
         return unwhitened @ self.components + self.mean
 
 
+@dataclass
+class StandardizedEmbeddingTransform:
+    """Transformación full-rank usada cuando PCA-512 no supera el gate."""
+
+    mean: np.ndarray
+    scale: np.ndarray
+    epsilon: float
+
+    @property
+    def dim(self) -> int:
+        return self.mean.shape[0]
+
+    @property
+    def n_components(self) -> int:
+        return self.dim
+
+    def transform(self, x: np.ndarray) -> np.ndarray:
+        if x.shape[-1] != self.dim:
+            raise ValueError(f"esperaba dim={self.dim}, recibido {x.shape[-1]}")
+        return (x - self.mean) / self.scale
+
+    def inverse_transform(self, z: np.ndarray) -> np.ndarray:
+        if z.shape[-1] != self.dim:
+            raise ValueError(f"esperaba dim={self.dim}, recibido {z.shape[-1]}")
+        return z * self.scale + self.mean
+
+
 def fit_embedding_transform(
     train_embeddings: np.ndarray, n_components: int = 512, epsilon: float = 1e-5
 ) -> EmbeddingTransform:
@@ -58,6 +85,15 @@ def fit_embedding_transform(
         n_samples=train_embeddings.shape[0],
         epsilon=epsilon,
     )
+
+
+def fit_standardized_embedding_transform(
+    train_embeddings: np.ndarray, epsilon: float = 1e-5
+) -> StandardizedEmbeddingTransform:
+    mean = train_embeddings.mean(axis=0).astype(np.float32)
+    variance = train_embeddings.var(axis=0).astype(np.float32)
+    scale = np.sqrt(variance + epsilon).astype(np.float32)
+    return StandardizedEmbeddingTransform(mean=mean, scale=scale, epsilon=epsilon)
 
 
 def reconstruction_cosine(original: np.ndarray, reconstructed: np.ndarray) -> np.ndarray:

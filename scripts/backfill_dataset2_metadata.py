@@ -56,8 +56,12 @@ def main(h5_path: Path, n: int, seed: int) -> None:
             key = str(idx)
             if key not in g_kp:
                 continue
-            if key in g_video:
-                continue
+            stored_label = g["labels"][key][0].decode()
+            if stored_label != label:
+                raise ValueError(
+                    f"clip {key}: el orden reconstruido no coincide con el H5 "
+                    f"({label!r} != {stored_label!r})"
+                )
             clip_id_csv = Path(fname).stem
             video_column = video_by_id.get(clip_id_csv)
             if video_column is None:
@@ -68,11 +72,28 @@ def main(h5_path: Path, n: int, seed: int) -> None:
             token_count = g_ids[key].shape[0] if g_ids is not None and key in g_ids else 0
             fields = compute_metadata_fields(fname, video_column, label, frame_count, token_count)
 
-            g_video.create_dataset(key, data=[fields["video_id"]], dtype=dt)
-            g_group.create_dataset(key, data=[fields["source_group"]], dtype=dt)
-            g_frames.create_dataset(key, data=np.array([fields["frame_count"]], dtype=np.int32))
-            g_tokens.create_dataset(key, data=np.array([fields["token_count"]], dtype=np.int32))
-            g_words.create_dataset(key, data=np.array([fields["word_count"]], dtype=np.int32))
+            if key not in g_video:
+                g_video.create_dataset(key, data=[fields["video_id"]], dtype=dt)
+            if key not in g_group:
+                g_group.create_dataset(key, data=[fields["source_group"]], dtype=dt)
+            if key not in g_frames:
+                g_frames.create_dataset(
+                    key, data=np.array([fields["frame_count"]], dtype=np.int32)
+                )
+            else:
+                g_frames[key][0] = fields["frame_count"]
+            if key not in g_tokens:
+                g_tokens.create_dataset(
+                    key, data=np.array([fields["token_count"]], dtype=np.int32)
+                )
+            else:
+                g_tokens[key][0] = fields["token_count"]
+            if key not in g_words:
+                g_words.create_dataset(
+                    key, data=np.array([fields["word_count"]], dtype=np.int32)
+                )
+            else:
+                g_words[key][0] = fields["word_count"]
             done += 1
             if done % 500 == 0:
                 f.flush()

@@ -31,6 +31,9 @@ Loading note (Gemma-3n / unsloth checkpoints):
     weights.
 """
 
+import os
+from types import SimpleNamespace
+
 import torch
 import torch.nn as nn
 
@@ -46,6 +49,17 @@ def _load_lm(model_id: str, max_seq_length: int = 128):
     Returns (model, tokenizer) — the tokenizer is needed for generation decoding.
     """
     import gc
+
+    # Unsloth can decorate internal Gemma-3n kernels with torch.compile even
+    # in inference mode.  Some supported environments intentionally pin a
+    # Torch/Triton pair without the private ``triton_key`` API, so compilation
+    # fails before the first real forward.  The bridge favors portable eager
+    # execution over compilation.
+    os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
+    try:
+        torch._dynamo.config.disable = True
+    except Exception:
+        pass
 
     try:
         from unsloth import FastModel
@@ -136,6 +150,11 @@ class GemmaBridge(nn.Module):
             self._text_model = lm.language_model
         else:
             self._text_model = lm
+        self._language_model = None
+        self._lm_head = None
+        if hasattr(lm, "model") and hasattr(lm.model, "language_model") and hasattr(lm, "lm_head"):
+            self._language_model = lm.model.language_model
+            self._lm_head = lm.lm_head
 
         # Expose integer attributes for downstream modules.
         embed_layer = lm.get_input_embeddings()
@@ -151,10 +170,38 @@ class GemmaBridge(nn.Module):
         # torch.compile region from tracing into the Gemma model and caching
         # large dequantized NF4 weight buffers in CUDA memory.
         _text = self._text_model
+        _language_model = self._language_model
+        _lm_head = self._lm_head
+        _config = getattr(lm.config, "text_config", lm.config)
+        _final_logit_softcapping = getattr(_config, "final_logit_softcapping", None)
 
         @torch._dynamo.disable
-        def _lm_forward(inputs_embeds, attention_mask):
-            return _text(inputs_embeds=inputs_embeds, attention_mask=attention_mask)
+        def _lm_forward(**kwargs):
+            if kwargs.get("per_layer_inputs", None) is not None:
+                if _language_model is None or _lm_head is None:
+                    raise ValueError("per_layer_inputs requiere acceso a language_model + lm_head")
+                outputs = _language_model(
+                    input_ids=None,
+                    per_layer_inputs=kwargs.pop("per_layer_inputs"),
+                    attention_mask=kwargs.get("attention_mask"),
+                    position_ids=kwargs.get("position_ids"),
+                    past_key_values=kwargs.get("past_key_values"),
+                    inputs_embeds=kwargs.get("inputs_embeds"),
+                    use_cache=kwargs.get("use_cache"),
+                    return_dict=True,
+                )
+                logits = _lm_head(outputs.last_hidden_state)
+                if _final_logit_softcapping is not None:
+                    logits = logits / _final_logit_softcapping
+                    logits = torch.tanh(logits)
+                    logits = logits * _final_logit_softcapping
+                return SimpleNamespace(
+                    logits=logits,
+                    past_key_values=outputs.past_key_values,
+                    hidden_states=getattr(outputs, "hidden_states", None),
+                    attentions=getattr(outputs, "attentions", None),
+                )
+            return _text(**kwargs)
 
         self._lm_forward = _lm_forward
 
@@ -181,6 +228,34 @@ class GemmaBridge(nn.Module):
         with torch.no_grad():
             return self._embed_layer(ids)
 
+    def get_per_layer_inputs(self, ids: torch.Tensor) -> torch.Tensor:
+        """Return Gemma-3n per-layer token embeddings for discrete IDs.
+
+        Gemma-3n text uses an auxiliary per-layer embedding (PLE) table.  The
+        full conditional-generation wrapper masks IDs outside the PLE vocab to
+        zero before lookup; this helper mirrors that behavior.
+        """
+        text = self._text_model
+        if hasattr(text, "model") and hasattr(text.model, "language_model"):
+            text = text.model.language_model
+        elif hasattr(text, "language_model"):
+            text = text.language_model
+        elif hasattr(text, "model") and hasattr(text.model, "get_per_layer_inputs"):
+            text = text.model
+
+        if not hasattr(text, "get_per_layer_inputs"):
+            raise AttributeError("el modelo cargado no expone get_per_layer_inputs")
+
+        limit = getattr(text.config, "vocab_size_per_layer_input", None)
+        if limit is not None:
+            ids = torch.where(
+                (ids >= 0) & (ids < limit),
+                ids,
+                torch.zeros_like(ids),
+            )
+        with torch.no_grad():
+            return text.get_per_layer_inputs(ids)
+
     def forward(
         self,
         inputs_embeds: torch.Tensor,
@@ -206,8 +281,83 @@ class GemmaBridge(nn.Module):
         # during autocast), which would cause dtype mismatch in Gemma's linears.
         target_dtype = self._embed_layer.weight.dtype
         inputs_embeds = inputs_embeds.to(dtype=target_dtype)
-        out = self._lm_forward(inputs_embeds, attention_mask)
+        out = self._lm_forward(inputs_embeds=inputs_embeds, attention_mask=attention_mask)
         return out.logits
+
+    @torch.no_grad()
+    def _generate_greedy(
+        self,
+        *,
+        input_ids: "torch.Tensor | None" = None,
+        inputs_embeds: "torch.Tensor | None" = None,
+        per_layer_inputs: "torch.Tensor | None" = None,
+        attention_mask: "torch.Tensor | None" = None,
+        max_new_tokens: int = 50,
+    ) -> torch.Tensor:
+        if (input_ids is None) == (inputs_embeds is None):
+            raise ValueError("proporcione exactamente uno de input_ids o inputs_embeds")
+
+        prefix = input_ids if input_ids is not None else inputs_embeds
+        assert prefix is not None
+        batch, seq_len = prefix.shape[:2]
+        device = prefix.device
+        if attention_mask is None:
+            attention_mask = torch.ones(batch, seq_len, dtype=torch.long, device=device)
+
+        kwargs = {
+            "attention_mask": attention_mask,
+            "use_cache": True,
+        }
+        if input_ids is not None:
+            kwargs["input_ids"] = input_ids
+        else:
+            kwargs["inputs_embeds"] = inputs_embeds.to(dtype=self._embed_layer.weight.dtype)
+            if per_layer_inputs is not None:
+                kwargs["per_layer_inputs"] = per_layer_inputs.to(dtype=self._embed_layer.weight.dtype)
+
+        generated = []
+        finished = torch.zeros(batch, dtype=torch.bool, device=device)
+        eos_id = self.tokenizer.eos_token_id
+        out = self._lm_forward(**kwargs)
+
+        for step in range(max_new_tokens):
+            next_id = out.logits[:, -1, :].argmax(dim=-1)
+            if eos_id is not None:
+                next_id = torch.where(finished, torch.full_like(next_id, eos_id), next_id)
+                finished |= next_id.eq(eos_id)
+            generated.append(next_id)
+            if eos_id is not None and bool(finished.all()):
+                break
+            if step + 1 == max_new_tokens:
+                break
+
+            attention_mask = torch.cat(
+                [attention_mask, torch.ones(batch, 1, dtype=attention_mask.dtype, device=device)],
+                dim=1,
+            )
+            out = self._lm_forward(
+                input_ids=next_id.unsqueeze(1),
+                attention_mask=attention_mask,
+                past_key_values=out.past_key_values,
+                use_cache=True,
+            )
+
+        if not generated:
+            return torch.empty(batch, 0, dtype=torch.long, device=device)
+        return torch.stack(generated, dim=1)
+
+    def generate_from_ids(
+        self,
+        input_ids: torch.Tensor,
+        max_new_tokens: int = 50,
+        attention_mask: "torch.Tensor | None" = None,
+    ) -> torch.Tensor:
+        """Greedy decode using Gemma's native discrete-token path."""
+        return self._generate_greedy(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_new_tokens=max_new_tokens,
+        )
 
     @torch.no_grad()
     def generate(
@@ -215,6 +365,7 @@ class GemmaBridge(nn.Module):
         prefix: torch.Tensor,
         max_new_tokens: int = 50,
         attention_mask: "torch.Tensor | None" = None,
+        per_layer_inputs: "torch.Tensor | None" = None,
     ) -> torch.Tensor:
         """Greedy autoregressive decode conditioned on a soft prefix.
 
@@ -234,30 +385,12 @@ class GemmaBridge(nn.Module):
         torch.Tensor
             Long tensor of shape ``[B, max_new_tokens]`` — generated token IDs.
         """
-        B, K, _ = prefix.shape
-        device = prefix.device
-
-        if attention_mask is None:
-            attention_mask = torch.ones(B, K, dtype=torch.long, device=device)
-
-        target_dtype = self._embed_layer.weight.dtype
-        current_embeds = prefix.to(dtype=target_dtype)
-        current_mask = attention_mask
-        generated = []
-
-        for _ in range(max_new_tokens):
-            logits = self.forward(current_embeds, current_mask)  # [B, S, V]
-            next_id = logits[:, -1, :].argmax(dim=-1)           # [B]
-            generated.append(next_id)
-
-            next_embed = self.embed_tokens(next_id.unsqueeze(1)) # [B, 1, H]
-            current_embeds = torch.cat([current_embeds, next_embed], dim=1)
-            current_mask = torch.cat(
-                [current_mask, torch.ones(B, 1, dtype=torch.long, device=device)],
-                dim=1,
-            )
-
-        return torch.stack(generated, dim=1)  # [B, max_new_tokens]
+        return self._generate_greedy(
+            inputs_embeds=prefix,
+            per_layer_inputs=per_layer_inputs,
+            attention_mask=attention_mask,
+            max_new_tokens=max_new_tokens,
+        )
 
     def decode(self, token_ids: torch.Tensor) -> "list[str]":
         """Decode token IDs to strings using the LLM's tokenizer.

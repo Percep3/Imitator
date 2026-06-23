@@ -55,7 +55,26 @@ def build_records(h5_path: Path) -> list[ClipRecord]:
     records = []
     with h5py.File(h5_path, "r") as f:
         g = f["dataset2"]
-        clip_ids = sorted(g["keypoints"].keys(), key=int)
+        groups_to_cover = (
+            "keypoints",
+            "labels",
+            "embeddings",
+            "token_ids",
+            "video_id",
+            "source_group",
+            "frame_count",
+            "token_count",
+            "word_count",
+        )
+        clip_ids = sorted(
+            {
+                key
+                for group_name in groups_to_cover
+                if group_name in g
+                for key in g[group_name].keys()
+            },
+            key=int,
+        )
         for key in clip_ids:
             has_kp = key in g["keypoints"]
             has_label = key in g["labels"]
