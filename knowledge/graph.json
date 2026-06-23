@@ -133,7 +133,7 @@
       "id": "dataset_csl_daily",
       "label": "CSL-Daily",
       "node_type": "dataset",
-      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md"
     },
     {
       "id": "gap_gpu_memory_constraint",
@@ -623,15 +623,570 @@
     },
     {
       "id": "dataset_phoenix14t",
-      "label": "Phoenix14T",
+      "label": "RWTH-PHOENIX-Weather 2014 T",
       "node_type": "dataset",
-      "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md"
     },
     {
       "id": "gap_limited_generalization_due_to_scarce_training_data",
       "label": "Limited generalization capacity likely due to scarcity of training data",
       "node_type": "gap",
       "source_file": "Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md"
+    },
+    {
+      "id": "how_contextual_are_contextualized_word_representations",
+      "label": "How Contextual are Contextualized Word Representations? Comparing the Geometry of BERT, ELMo, and GPT-2 Embeddings",
+      "node_type": "paper",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md",
+      "authors": [
+        "Kawin Ethayarajh"
+      ],
+      "year": 2019,
+      "venue": "EMNLP-IJCNLP 2019",
+      "doi": null
+    },
+    {
+      "id": "method_elmo",
+      "label": "ELMo",
+      "node_type": "method",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md"
+    },
+    {
+      "id": "method_bert",
+      "label": "BERT",
+      "node_type": "method",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md"
+    },
+    {
+      "id": "method_gpt2",
+      "label": "GPT-2",
+      "node_type": "method",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md"
+    },
+    {
+      "id": "dataset_semeval_sts_2012_2016",
+      "label": "SemEval Semantic Textual Similarity tasks 2012-2016",
+      "node_type": "dataset",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md"
+    },
+    {
+      "id": "gap_anisotropy_in_contextualized_representations",
+      "label": "Contextualized representations are highly anisotropic, which may harm performance",
+      "node_type": "gap",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md"
+    },
+    {
+      "id": "gap_lack_of_understanding_of_contextuality",
+      "label": "Contextualized word representations remain poorly understood; unclear how contextual they truly are",
+      "node_type": "gap",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md"
+    },
+    {
+      "id": "gap_high_anisotropy_in_gpt2_last_layer",
+      "label": "GPT-2's last layer exhibits extreme anisotropy where random words have almost perfect cosine similarity",
+      "node_type": "gap",
+      "source_file": "Contextual_Embeddings_Encode_Word_Knowledge_Anisotropy.md"
+    },
+    {
+      "id": "paper_fla_llm",
+      "label": "Factorized Learning Assisted with Large Language Model for Gloss-free Sign Language Translation",
+      "node_type": "paper",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md",
+      "authors": [
+        "Zhigang Chen",
+        "Benjia Zhou",
+        "Jun Li",
+        "Jun Wan",
+        "Zhen Lei",
+        "Ning Jiang",
+        "Quan Lu",
+        "Guoqing Zhao"
+      ],
+      "year": 2024,
+      "venue": "LREC-COLING 2024",
+      "doi": null
+    },
+    {
+      "id": "method_fla_llm",
+      "label": "FLa-LLM",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_mbart",
+      "label": "MBart",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_slrt",
+      "label": "SLRT",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_stmc_t",
+      "label": "STMC-T",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_signbt",
+      "label": "SignBT",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_mmtlb",
+      "label": "MMTLB",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_ts_slt",
+      "label": "TS-SLT",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_nslt",
+      "label": "NSLT",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_slrt_gf",
+      "label": "SLRT-GF",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_tk_slt",
+      "label": "TK-SLT",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_tspnet",
+      "label": "TSPNet",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_csgcr",
+      "label": "CSGCR",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_gaslt",
+      "label": "GASLT",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_gfslt_vlp",
+      "label": "GFSLT-VLP",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_tf_h2s",
+      "label": "TF-H2S",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_slt_iv",
+      "label": "SLT-IV",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_glofe_vn",
+      "label": "GloFE-VN",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_mt5_base",
+      "label": "MT5-Base",
+      "node_type": "method",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "dataset_rwth_phoenix_2014_t",
+      "label": "RWTH-PHOENIX-2014-T",
+      "node_type": "dataset",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "dataset_how2sign",
+      "label": "How2Sign",
+      "node_type": "dataset",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "gap_gloss_annotation_cost",
+      "label": "High cost of gloss annotation limits large-scale dataset construction and generalizability",
+      "node_type": "gap",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "gap_insufficient_visual_learning_with_llm",
+      "label": "Directly introducing LLM into SLT leads to insufficient learning of visual representations as LLM dominates the learning curve",
+      "node_type": "gap",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "gap_factorized_training_cumbersome",
+      "label": "Factorized learning is more cumbersome compared to end-to-end training",
+      "node_type": "gap",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "gap_llm_scale_limited",
+      "label": "Fine-tuning all parameters of LLM limits the scale of LLM that can be used",
+      "node_type": "gap",
+      "source_file": "FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md"
+    },
+    {
+      "id": "paper_legoslm",
+      "label": "LegoSLM: Language Modeling with Embedded Speech Units",
+      "node_type": "paper",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md",
+      "authors": [
+        "Rao Ma",
+        "Tongzhou Chen",
+        "Kartik Audhkhasi",
+        "Bhuvana Ramabhadran"
+      ],
+      "year": 2025,
+      "venue": "Findings of the Association for Computational Linguistics: EMNLP 2025",
+      "doi": null
+    },
+    {
+      "id": "method_legoslm",
+      "label": "LegoSLM",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "method_usm",
+      "label": "USM",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "method_gemma",
+      "label": "Gemma",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "method_usm_ctc",
+      "label": "USM-CTC",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "method_speech_prompts",
+      "label": "Speech Prompts",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "method_aec",
+      "label": "ASR Error Correction (AEC)",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "method_legotops",
+      "label": "LegoTopS",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "method_legotopp",
+      "label": "LegoTopP",
+      "node_type": "method",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "dataset_mls",
+      "label": "MLS",
+      "node_type": "dataset",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "dataset_librispeech",
+      "label": "LibriSpeech",
+      "node_type": "dataset",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "dataset_speechstew",
+      "label": "SpeechStew",
+      "node_type": "dataset",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "dataset_covost2",
+      "label": "CoVoST2",
+      "node_type": "dataset",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "gap_limited_modularity_speech_prompts",
+      "label": "Speech prompts method lacks modularity: LLM bonded with specific speech encoder, cannot switch to different encoder",
+      "node_type": "gap",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "gap_aec_limited_context",
+      "label": "AEC performance constrained by limited contextual information accessible to LLM",
+      "node_type": "gap",
+      "source_file": "LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md"
+    },
+    {
+      "id": "paper_sign2gpt",
+      "label": "Sign2GPT: Leveraging Large Language Models for Gloss-Free Sign Language Translation",
+      "node_type": "paper",
+      "source_file": "Sign2GPT_Leveraging_Large_Language_Models_for_Gloss_Free_Sign_Language_Translation.md",
+      "authors": [
+        "Ryan Wong",
+        "Necati Cihan Camgoz",
+        "Richard Bowden"
+      ],
+      "year": 2024,
+      "venue": "ICLR",
+      "doi": null
+    },
+    {
+      "id": "method_sign2gpt",
+      "label": "Sign2GPT",
+      "node_type": "method",
+      "source_file": "Sign2GPT_Leveraging_Large_Language_Models_for_Gloss_Free_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_gfslt",
+      "label": "GFSLT",
+      "node_type": "method",
+      "source_file": "Sign2GPT_Leveraging_Large_Language_Models_for_Gloss_Free_Sign_Language_Translation.md"
+    },
+    {
+      "id": "signllm_llms_are_good_sign_language_translators",
+      "label": "SignLLM: LLMs are Good Sign Language Translators",
+      "node_type": "paper",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md",
+      "authors": [
+        "Jia Gong",
+        "Lin Geng Foo",
+        "Yixuan He",
+        "Hossein Rahmani",
+        "Jun Liu"
+      ],
+      "year": 2024,
+      "venue": "CVPR 2024",
+      "doi": null
+    },
+    {
+      "id": "method_signllm",
+      "label": "SignLLM",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_nslt_bahdanau",
+      "label": "NSLT+Bahdanau",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_nslt_luong",
+      "label": "NSLT+Luong",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_sltunet",
+      "label": "SLTUNET",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_pet",
+      "label": "PET",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_bn_tin_transf_signbt",
+      "label": "BN-TIN-Transf.+SignBT",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_stn_slt",
+      "label": "STN-SLT",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "method_conslt",
+      "label": "ConSLT",
+      "node_type": "method",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "dataset_phoenix_2014t",
+      "label": "Phoenix-2014T",
+      "node_type": "dataset",
+      "source_file": "SignLLM_LLMs_are_Good_Sign_Language_Translators.md"
+    },
+    {
+      "id": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "label": "Improvement in Sign Language Translation Using Text CTC Alignment",
+      "node_type": "paper",
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md",
+      "authors": [
+        "Sihan Tan",
+        "Taro Miyazaki",
+        "Nabeela Khan",
+        "Kazuhiro Nakadai"
+      ],
+      "year": 2025,
+      "venue": "COLING 2025",
+      "doi": null
+    },
+    {
+      "id": "method_joint_ctc_attention",
+      "label": "Joint CTC/Attention",
+      "node_type": "method",
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_pure_attention_baseline",
+      "label": "Pure-attention baseline",
+      "node_type": "method",
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md"
+    },
+    {
+      "id": "method_sign_language_transformer",
+      "label": "Sign Language Transformer",
+      "node_type": "method",
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md"
+    },
+    {
+      "id": "gap_gloss_annotation_scarcity",
+      "label": "Dependence on gloss annotations limits scalability",
+      "node_type": "gap",
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md"
+    },
+    {
+      "id": "gap_gloss_information_bottleneck",
+      "label": "Gloss supervision introduces information bottleneck for SLT",
+      "node_type": "gap",
+      "source_file": "Text_CTC_Alignment_for_Continuous_Sign_Language_Translation.md"
+    },
+    {
+      "id": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "label": "Wav2Prompt: End-to-End Speech Prompt Learning and Task-based Fine-tuning for Text-based LLMs",
+      "node_type": "paper",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md",
+      "authors": [
+        "Keqi Deng",
+        "Guangzhi Sun",
+        "Philip C. Woodland"
+      ],
+      "year": 2025,
+      "venue": "Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers)",
+      "doi": null
+    },
+    {
+      "id": "method_wav2prompt",
+      "label": "Wav2Prompt",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "method_asr_llm_cascade",
+      "label": "ASR-LLM Cascade",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "method_encoder_llm",
+      "label": "Encoder-LLM",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "method_flat_start_encoder_llm",
+      "label": "Flat-start Encoder-LLM",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "method_oracle_llm",
+      "label": "Oracle-LLM",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "dataset_europarl_st",
+      "label": "Europarl-ST",
+      "node_type": "dataset",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "dataset_fluent_speech_commands",
+      "label": "Fluent Speech Commands (FSC)",
+      "node_type": "dataset",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "dataset_wikiqa_synthesised",
+      "label": "Synthesised WikiQA",
+      "node_type": "dataset",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "gap_task_overfitting",
+      "label": "Task over-fitting to training data",
+      "node_type": "gap",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "gap_limited_robustness_multilingual",
+      "label": "Wav2Prompt performance on multilingual tasks not verified",
+      "node_type": "gap",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "gap_only_7b_llms_explored",
+      "label": "Only 7B LLMs explored due to computing limitations",
+      "node_type": "gap",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "method_salmonn",
+      "label": "SALMONN",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "method_speechgpt",
+      "label": "SpeechGPT",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
+    },
+    {
+      "id": "method_qwen2_audio",
+      "label": "Qwen2-Audio",
+      "node_type": "method",
+      "source_file": "Wav2Prompt_Bridging_Speech_and_Text_LLMs.md"
     }
   ],
   "edges": [
@@ -1453,6 +2008,829 @@
       "confidence_score": 0.75,
       "metric": null,
       "metric_value": null
+    },
+    {
+      "source": "how_contextual_are_contextualized_word_representations",
+      "target": "method_elmo",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "average cosine similarity between uniformly randomly sampled words",
+      "metric_value": "varies by layer (e.g., ~0.6 for GPT-2 layers 2-8)"
+    },
+    {
+      "source": "how_contextual_are_contextualized_word_representations",
+      "target": "method_bert",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "average cosine similarity between uniformly randomly sampled words",
+      "metric_value": "varies by layer (e.g., ~0.6 for GPT-2 layers 2-8)"
+    },
+    {
+      "source": "how_contextual_are_contextualized_word_representations",
+      "target": "method_gpt2",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "average cosine similarity between uniformly randomly sampled words",
+      "metric_value": "varies by layer (e.g., ~0.6 for GPT-2 layers 2-8)"
+    },
+    {
+      "source": "how_contextual_are_contextualized_word_representations",
+      "target": "dataset_semeval_sts_2012_2016",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "how_contextual_are_contextualized_word_representations",
+      "target": "gap_anisotropy_in_contextualized_representations",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "how_contextual_are_contextualized_word_representations",
+      "target": "gap_lack_of_understanding_of_contextuality",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "how_contextual_are_contextualized_word_representations",
+      "target": "gap_high_anisotropy_in_gpt2_last_layer",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_fla_llm",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "dataset_rwth_phoenix_2014_t",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "23.09"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "dataset_csl_daily",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "14.20"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "dataset_how2sign",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "9.66"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_slrt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "21.32"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_stmc_t",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "23.65"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_signbt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "24.32"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_mmtlb",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "28.39"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_ts_slt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "28.95"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_nslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "9.58"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_slrt_gf",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "10.19"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_tk_slt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "13.25"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_tspnet",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "13.41"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_csgcr",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "15.18"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_gaslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "15.74"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_gfslt_vlp",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "21.44"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_tf_h2s",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "2.21"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_slt_iv",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "8.03"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_glofe_vn",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "2.24"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_mbart",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "23.09"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "method_mt5_base",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "19.71"
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "gap_gloss_annotation_cost",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "gap_insufficient_visual_learning_with_llm",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "gap_factorized_training_cumbersome",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_fla_llm",
+      "target": "gap_llm_scale_limited",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "method_fla_llm",
+      "target": "gap_insufficient_visual_learning_with_llm",
+      "relation": "addresses_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "method_legoslm",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "dataset_mls",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "5.6"
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "dataset_librispeech",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "4.6"
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "dataset_covost2",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU",
+      "metric_value": "25.8"
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "method_usm_ctc",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "8.9"
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "method_speech_prompts",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "5.5"
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "method_aec",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "7.8"
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "gap_limited_modularity_speech_prompts",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_legoslm",
+      "target": "gap_aec_limited_context",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "method_legoslm",
+      "target": "gap_limited_modularity_speech_prompts",
+      "relation": "addresses_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "method_legoslm",
+      "target": "gap_aec_limited_context",
+      "relation": "addresses_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "method_sign2gpt",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "dataset_phoenix14t",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "22.52"
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "dataset_csl_daily",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "15.40"
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "method_gfslt_vlp",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "21.44"
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "method_gfslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "19.66"
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "method_gaslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "15.74"
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "method_csgcr",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "15.18"
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "method_tspnet",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "13.41"
+    },
+    {
+      "source": "paper_sign2gpt",
+      "target": "method_nslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU4",
+      "metric_value": "9.00"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_signllm",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "dataset_phoenix_2014t",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "25.25"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "dataset_csl_daily",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "12.23"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_gfslt_vlp",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "22.12"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_gaslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "15.74"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_csgcr",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "15.18"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_tspnet",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "13.41"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_nslt_bahdanau",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "9.94"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_nslt_luong",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "10.00"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_nslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "9.12"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_sltunet",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "27.87"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_ts_slt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "28.66"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_mmtlb",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "27.61"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_pet",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "24.02"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_bn_tin_transf_signbt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "24.45"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_stmc_t",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "24.09"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_stn_slt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "23.23"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_conslt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "21.11"
+    },
+    {
+      "source": "signllm_llms_are_good_sign_language_translators",
+      "target": "method_slrt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "22.38"
+    },
+    {
+      "source": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "target": "method_joint_ctc_attention",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "target": "dataset_phoenix14t",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "27.93"
+    },
+    {
+      "source": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "target": "dataset_csl_daily",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "22.04"
+    },
+    {
+      "source": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "target": "method_pure_attention_baseline",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "20.96"
+    },
+    {
+      "source": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "target": "method_sign_language_transformer",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU-4",
+      "metric_value": "22.38"
+    },
+    {
+      "source": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "target": "gap_gloss_annotation_scarcity",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_improvement_in_sign_language_translation_using_text_ctc_alignment",
+      "target": "gap_gloss_information_bottleneck",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_wav2prompt",
+      "relation": "proposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "dataset_europarl_st",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU",
+      "metric_value": "25.1 (zero-shot En-Es)"
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "dataset_europarl_st",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "BLEU",
+      "metric_value": "21.7 (zero-shot En-Fr)"
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "dataset_librispeech",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "2.5 (test clean)"
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "dataset_librispeech",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "WER",
+      "metric_value": "4.4 (test other)"
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "dataset_fluent_speech_commands",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "88.24 (zero-shot)"
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "dataset_wikiqa_synthesised",
+      "relation": "evaluated_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metric": "Accuracy",
+      "metric_value": "60.21 (zero-shot)"
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_asr_llm_cascade",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_encoder_llm",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_flat_start_encoder_llm",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_oracle_llm",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_salmonn",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_speechgpt",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "method_qwen2_audio",
+      "relation": "compares_against",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "gap_task_overfitting",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "gap_limited_robustness_multilingual",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "paper_wav2prompt_bridging_speech_and_text_llms",
+      "target": "gap_only_7b_llms_explored",
+      "relation": "identifies_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "method_wav2prompt",
+      "target": "gap_task_overfitting",
+      "relation": "addresses_gap",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "method_wav2prompt",
+      "target": "method_salmonn",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    },
+    {
+      "source": "method_wav2prompt",
+      "target": "method_qwen2_audio",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
     }
   ]
 }
