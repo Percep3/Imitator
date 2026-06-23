@@ -2,24 +2,53 @@
 
 Requiere que `backfill_dataset2_metadata.py` ya corrió (lee video_id,
 source_group, frame_count, token_count, que no vienen del build original).
-El truncamiento se detecta comparando frame_count contra max_frames=250 (el
-límite duro de `build_dataset2_h5.py --max-frames`, ver memoria
-"v118 truncated video bug"): un clip truncado es uno que llegó exactamente a
-ese tope, señal de que el video original era más largo.
+El truncamiento se detecta comparando frame_count (h5) contra el frame count
+real del video fuente (`cv2.VideoCapture(...).get(cv2.CAP_PROP_FRAME_COUNT)`,
+lectura de metadata, no decodifica frames): un clip está truncado si
+frame_count_h5 / frame_count_video < TRUNCATION_RATIO_THRESHOLD. El viejo
+heurístico (frame_count >= 250, el cap de `build_dataset2_h5.py
+--max-frames` de un build anterior de 600 clips) ya no aplica: el build
+actual de 5600 clips no usó ese cap, y marcaba como truncados ~42% de los
+clips que en realidad solo eran videos largos.
 """
 import argparse
 import json
 import sys
+import warnings
 from collections import Counter
 from pathlib import Path
 
+import cv2
 import h5py
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.mslm.dataloader.integrity_filter import ClipRecord, filter_clip_records  # noqa: E402
 
-TRUNCATION_FRAME_CAP = 250
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build_dataset2_h5 import RAW  # noqa: E402
+
+TRUNCATION_RATIO_THRESHOLD = 0.9
+
+
+def _is_truncated(video_id: str, frame_count_h5: int) -> bool:
+    """True si frame_count_h5 cubre menos del THRESHOLD del video fuente.
+
+    Si el video no se puede abrir o cv2 reporta 0 frames, no se puede
+    verificar completitud -> se marca truncado (fail-safe) y se loggea.
+    """
+    video_path = RAW / "videos" / f"{video_id}.mp4"
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        warnings.warn(f"[truncation-check] no se pudo abrir video para clip video_id={video_id} ({video_path})")
+        cap.release()
+        return True
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    if total_frames <= 0:
+        warnings.warn(f"[truncation-check] cv2 reportó 0 frames para clip video_id={video_id} ({video_path})")
+        return True
+    return (frame_count_h5 / total_frames) < TRUNCATION_RATIO_THRESHOLD
 
 
 def build_records(h5_path: Path) -> list[ClipRecord]:
@@ -37,6 +66,12 @@ def build_records(h5_path: Path) -> list[ClipRecord]:
             embedding_rows = g["embeddings"][key].shape[0] if has_emb else 0
             kp_arr = g["keypoints"][key][:] if has_kp else np.array([])
             emb_arr = g["embeddings"][key][:] if has_emb else np.array([])
+            video_id = g["video_id"][key][0].decode() if "video_id" in g and key in g["video_id"] else None
+            if video_id:
+                truncated = _is_truncated(video_id, frame_count)
+            else:
+                warnings.warn(f"[truncation-check] clip {key} no tiene video_id (backfill no corrió?) -> truncated=True")
+                truncated = True
             records.append(
                 ClipRecord(
                     clip_id=key,
@@ -47,7 +82,7 @@ def build_records(h5_path: Path) -> list[ClipRecord]:
                     frame_count=frame_count,
                     token_count=token_count,
                     embedding_rows=embedding_rows,
-                    truncated=frame_count >= TRUNCATION_FRAME_CAP,
+                    truncated=truncated,
                     keypoints_have_nan_inf=bool(kp_arr.size and not np.isfinite(kp_arr).all()),
                     embeddings_have_nan_inf=bool(emb_arr.size and not np.isfinite(emb_arr).all()),
                 )
