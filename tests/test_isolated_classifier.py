@@ -47,12 +47,17 @@ sys.modules.setdefault("src", types.ModuleType("src"))
 sys.modules.setdefault("src.mslm", types.ModuleType("src.mslm"))
 sys.modules.setdefault("src.mslm.dataloader", types.ModuleType("src.mslm.dataloader"))
 _load_module("src.mslm.dataloader.data_augmentation", _ROOT / "src/mslm/dataloader/data_augmentation.py")
+_aug_mod = sys.modules["src.mslm.dataloader.data_augmentation"]
 _ds_mod = _load_module(
     "src.mslm.dataloader.isolated_keypoint_dataset", _ROOT / "src/mslm/dataloader/isolated_keypoint_dataset.py"
 )
 IsolatedKeypointDataset = _ds_mod.IsolatedKeypointDataset
 isolated_collate_fn = _ds_mod.isolated_collate_fn
 list_clips = _ds_mod.list_clips
+list_clip_records = _ds_mod.list_clip_records
+augment_isolated_keypoints = _aug_mod.augment_isolated_keypoints
+resample_temporal = _aug_mod.resample_temporal
+trim_active_interval = _aug_mod.trim_active_interval
 
 
 N = 4  # nodos de juguete
@@ -127,6 +132,43 @@ def test_pooled_features_are_not_exactly_zero_in_train_mode():
     assert feats["val"].abs().max().item() > 1e-6
 
 
+def test_groupnorm_logits_match_between_train_and_eval_without_dropout():
+    torch.manual_seed(7)
+    model = _make_model(norm_type="group", norm_groups=8, dropout=0.0)
+    x = torch.randn(1, T, N, 2)
+    model.train()
+    train_logits = model(x).detach()
+    model.eval()
+    eval_logits = model(x).detach()
+    assert torch.allclose(train_logits, eval_logits, atol=1e-6)
+
+
+def test_groupnorm_prediction_is_independent_of_other_batch_samples():
+    torch.manual_seed(8)
+    model = _make_model(norm_type="group", norm_groups=8)
+    model.eval()
+    sample = torch.randn(1, T, N, 2)
+    other = torch.randn(1, T, N, 2)
+    alone = model(sample)
+    together = model(torch.cat([sample, other], dim=0))[:1]
+    assert torch.allclose(alone, together, atol=1e-5)
+
+
+def test_temporal_motion_head_returns_class_logits_and_gradients():
+    model = _make_model(
+        norm_type="group",
+        norm_groups=8,
+        temporal_head=True,
+        use_motion_stream=True,
+        dropout=0.3,
+    )
+    logits = model(torch.randn(B, T, N, 2))
+    assert logits.shape == (B, NUM_CLASSES)
+    logits.sum().backward()
+    assert model.stgcn_motion_layers[0].gconv.weight.grad.norm().item() > 0
+    assert model.temporal_attention.weight.grad.norm().item() > 0
+
+
 # --- 2. Dataset slim ---------------------------------------------------------
 
 def _write_clip(group, clip_id, n_frames, label, n_keypoints=133, n_channels=2):
@@ -194,3 +236,75 @@ def test_collate_fn_keeps_variable_lengths_and_maps_labels(tmp_path):
     assert [kp.shape[0] for kp in keypoints] == [20, 35]
     assert all(kp.shape[1:] == (111, 2) for kp in keypoints)
     assert torch.equal(target, torch.tensor([0, 1]))
+
+
+def test_list_clip_records_reads_signer_metadata(tmp_path):
+    h5_path = _make_hdf5(tmp_path, [("0", 20, "rojo")])
+    with h5py.File(h5_path, "a") as f:
+        group = f["dataset1"]
+        group.require_group("video_id").create_dataset("0", data=np.array([b"001_007_003.mp4"]))
+        group.require_group("signer_id").create_dataset("0", data=np.array([7]))
+        group.require_group("repetition").create_dataset("0", data=np.array([3]))
+    records = list_clip_records(h5_path)
+    assert records == [
+        {
+            "clip_id": "0",
+            "label": "rojo",
+            "video_id": "001_007_003.mp4",
+            "signer_id": 7,
+            "repetition": 3,
+        }
+    ]
+
+
+def test_trim_active_interval_falls_back_for_static_clip():
+    clip = torch.zeros(24, 111, 2)
+    assert torch.equal(trim_active_interval(clip), clip)
+
+
+def test_trim_active_interval_preserves_activity_at_clip_edges():
+    clip = torch.zeros(30, 111, 2)
+    clip[:5, 71, 0] = torch.arange(5)
+    clip[-5:, 91, 1] = torch.arange(5)
+    trimmed = trim_active_interval(clip, margin=2, smooth_window=1)
+    assert trimmed.shape[0] == clip.shape[0]
+
+
+def test_trim_and_resample_handles_capped_clip():
+    clip = torch.zeros(240, 111, 2)
+    clip[80:150, 71, 0] = torch.linspace(0, 10, 70)
+    clip[80:150, 91, 1] = torch.linspace(0, 5, 70)
+    trimmed = trim_active_interval(clip)
+    resampled = resample_temporal(trimmed, 64)
+    assert trimmed.shape[0] < 240
+    assert resampled.shape == (64, 111, 2)
+
+
+def test_composed_augmentation_changes_values_but_preserves_shape():
+    torch.manual_seed(3)
+    import random
+
+    random.seed(3)
+    clip = torch.linspace(-1, 1, 32 * 111 * 2).reshape(32, 111, 2)
+    augmented = augment_isolated_keypoints(
+        clip,
+        probabilities={
+            "jitter": 1.0,
+            "rotation": 1.0,
+            "temporal_rescale": 1.0,
+            "temporal_drop": 1.0,
+            "shear": 1.0,
+        },
+    )
+    assert augmented.shape == clip.shape
+    assert not torch.allclose(augmented, clip)
+    assert torch.isfinite(augmented).all()
+
+
+def test_legacy_rotation_accepts_non_contiguous_resampled_input():
+    clip = torch.randn(64, 111, 2)
+    non_contiguous = clip[::2]
+    assert not non_contiguous.is_contiguous()
+    rotated = _aug_mod.rotation_2D(non_contiguous)
+    assert rotated.shape == non_contiguous.shape
+    assert torch.isfinite(rotated).all()

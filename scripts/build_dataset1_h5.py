@@ -83,7 +83,7 @@ def extract_keypoints(video_path, model, max_frames):
     return frames
 
 
-def phase_keypoints(f, clips, max_frames):
+def phase_keypoints(f, clips, max_frames, include_metadata=False):
     from rtmlib import Custom
     model = Custom(
         to_openpose=True,
@@ -98,11 +98,25 @@ def phase_keypoints(f, clips, max_frames):
     )
     g_kp = f["dataset1"].require_group("keypoints")
     g_lb = f["dataset1"].require_group("labels")
+    g_video = f["dataset1"].require_group("video_id") if include_metadata else None
+    g_signer = f["dataset1"].require_group("signer_id") if include_metadata else None
+    g_rep = f["dataset1"].require_group("repetition") if include_metadata else None
     dt = h5py.string_dtype(encoding="utf-8")
 
     done = skipped = 0
     for idx, (fname, label) in enumerate(clips):
         key = str(idx)
+        if key not in g_lb:
+            g_lb.create_dataset(key, data=[label], dtype=dt, compression="gzip")
+        if include_metadata:
+            stem = Path(fname).stem
+            parts = stem.split("_")
+            if key not in g_video:
+                g_video.create_dataset(key, data=[fname], dtype=dt, compression="gzip")
+            if key not in g_signer:
+                g_signer.create_dataset(key, data=[int(parts[1])], compression="gzip")
+            if key not in g_rep:
+                g_rep.create_dataset(key, data=[int(parts[2])], compression="gzip")
         if key in g_kp:
             continue
         kp = extract_keypoints(RAW / "videos" / fname, model, max_frames)
@@ -111,8 +125,6 @@ def phase_keypoints(f, clips, max_frames):
             print(f"[kp] {idx} SKIP ({fname})")
             continue
         g_kp.create_dataset(key, data=kp, compression="gzip", compression_opts=4)
-        if key not in g_lb:
-            g_lb.create_dataset(key, data=[label], dtype=dt, compression="gzip")
         done += 1
         if done % 100 == 0:
             f.flush()
@@ -127,6 +139,11 @@ if __name__ == "__main__":
     ap.add_argument("--max-frames", type=int, default=150, help="frames máx por video")
     ap.add_argument("--out", type=Path, default=Path("data/processed/dataset1_isolated.hdf5"))
     ap.add_argument("--seed", type=int, default=23)
+    ap.add_argument(
+        "--include-metadata",
+        action="store_true",
+        help="guarda video_id, signer_id y repetition por clip",
+    )
     args = ap.parse_args()
 
     out = args.out
@@ -139,6 +156,6 @@ if __name__ == "__main__":
 
     with h5py.File(out, "a") as f:
         f.require_group("dataset1")
-        phase_keypoints(f, clips, args.max_frames)
+        phase_keypoints(f, clips, args.max_frames, include_metadata=args.include_metadata)
         nk = len(f["dataset1"]["keypoints"])
         print(f"HDF5 listo: dataset1 con {nk} keypoints")

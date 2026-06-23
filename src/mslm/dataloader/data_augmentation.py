@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import torch
+import torch.nn.functional as F
 
 def scaling(keypoint):
     # Escalar los keypoints sin cambiar su cantidad
@@ -13,8 +14,10 @@ def rotation_2D(keypoint):
     angle_rad = torch.tensor(angle * np.pi / 180.0, dtype=torch.float32)  # Convertir a radianes
     rotation_matrix = torch.tensor([[torch.cos(angle_rad), -torch.sin(angle_rad)], 
                                     [torch.sin(angle_rad), torch.cos(angle_rad)]], dtype=torch.float32)
-    keypoint_rotated = torch.matmul(keypoint.view(-1, 2), rotation_matrix)
-    return keypoint_rotated.view(keypoint.shape)
+    # El recorte/downsampling/remuestreo de v122 puede producir tensores no
+    # contiguos. reshape conserva el comportamiento sin exigir strides contiguos.
+    keypoint_rotated = torch.matmul(keypoint.reshape(-1, 2), rotation_matrix)
+    return keypoint_rotated.reshape(keypoint.shape)
 
 def length_variance(keypoint, scale=0.8):
     T, J, C = keypoint.shape
@@ -146,3 +149,106 @@ def remove_keypoints(keypoint):
 
     keypoints = torch.cat([pose, face, left_h, right_h], dim=1)
     return keypoints
+
+
+def resample_temporal(keypoint, target_frames):
+    """Interpola una secuencia [T,J,2] a una longitud fija."""
+    keypoint = torch.as_tensor(keypoint, dtype=torch.float32)
+    if keypoint.shape[0] == target_frames:
+        return keypoint
+    x = keypoint.permute(1, 2, 0).reshape(1, -1, keypoint.shape[0])
+    x = F.interpolate(x, size=int(target_frames), mode="linear", align_corners=True)
+    return x.reshape(keypoint.shape[1], keypoint.shape[2], target_frames).permute(2, 0, 1)
+
+
+def trim_active_interval(keypoint, margin=8, smooth_window=5):
+    """Recorta al intervalo activo estimado por velocidad de ambas muñecas.
+
+    Espera el layout reducido de 111 puntos: pose(7), cara(64), manos(20+20).
+    Si no hay señal temporal útil, devuelve el clip completo.
+    """
+    x = torch.as_tensor(keypoint, dtype=torch.float32)
+    if x.shape[0] < 3:
+        return x
+    wrist_idx = [71, 91]
+    speed = torch.linalg.vector_norm(x[1:, wrist_idx] - x[:-1, wrist_idx], dim=-1).mean(dim=1)
+    speed = torch.cat([speed[:1], speed])
+    if smooth_window > 1 and speed.numel() >= smooth_window:
+        pad = smooth_window // 2
+        speed = F.avg_pool1d(
+            F.pad(speed[None, None], (pad, pad), mode="replicate"),
+            kernel_size=smooth_window,
+            stride=1,
+        ).flatten()[: x.shape[0]]
+    p60 = torch.quantile(speed, 0.60)
+    p95 = torch.quantile(speed, 0.95)
+    threshold = torch.maximum(p60, 0.15 * p95)
+    active = torch.where(speed > threshold)[0]
+    if active.numel() == 0 or not torch.isfinite(threshold):
+        return x
+    start = max(0, int(active[0]) - int(margin))
+    end = min(x.shape[0], int(active[-1]) + int(margin) + 1)
+    return x[start:end] if end > start else x
+
+
+def normalize_keypoints_torso(keypoint, eps=1e-6):
+    """Centra en hombros y escala por su distancia, preservando movimiento."""
+    x = torch.as_tensor(keypoint, dtype=torch.float32).clone()
+    left_shoulder, right_shoulder = x[:, 2], x[:, 5]
+    center = (left_shoulder + right_shoulder) / 2
+    scale = torch.linalg.vector_norm(left_shoulder - right_shoulder, dim=-1)
+    valid_scale = scale[torch.isfinite(scale) & (scale > eps)]
+    if valid_scale.numel():
+        denom = valid_scale.median()
+    else:
+        span = x.amax(dim=(0, 1)) - x.amin(dim=(0, 1))
+        denom = torch.linalg.vector_norm(span).clamp_min(1.0)
+    return (x - center[:, None, :]) / denom.clamp_min(eps)
+
+
+def _rotate_about_origin(keypoint, max_degrees=10.0):
+    angle = random.uniform(-max_degrees, max_degrees) * np.pi / 180.0
+    c, s = np.cos(angle), np.sin(angle)
+    matrix = torch.tensor([[c, -s], [s, c]], dtype=keypoint.dtype, device=keypoint.device)
+    return torch.matmul(keypoint, matrix)
+
+
+def _shear_squeeze(keypoint, magnitude=0.08):
+    sx = random.uniform(1.0 - magnitude, 1.0 + magnitude)
+    sy = random.uniform(1.0 - magnitude, 1.0 + magnitude)
+    shear = random.uniform(-magnitude, magnitude)
+    matrix = torch.tensor([[sx, shear], [0.0, sy]], dtype=keypoint.dtype, device=keypoint.device)
+    return torch.matmul(keypoint, matrix)
+
+
+def augment_isolated_keypoints(
+    keypoint,
+    jitter_sigma=0.01,
+    temporal_drop_prob=0.15,
+    probabilities=None,
+):
+    """Compone augmentations independientes y restaura la longitud original."""
+    probs = {
+        "jitter": 0.5,
+        "rotation": 0.3,
+        "temporal_rescale": 0.5,
+        "temporal_drop": 0.5,
+        "shear": 0.3,
+    }
+    if probabilities:
+        probs.update(probabilities)
+    x = torch.as_tensor(keypoint, dtype=torch.float32).clone()
+    original_frames = x.shape[0]
+    if random.random() < probs["jitter"]:
+        x = x + torch.randn_like(x) * float(jitter_sigma)
+    if random.random() < probs["rotation"]:
+        x = _rotate_about_origin(x)
+    if random.random() < probs["temporal_rescale"]:
+        x = resample_temporal(x, max(2, round(x.shape[0] * random.uniform(0.8, 1.2))))
+    if random.random() < probs["temporal_drop"] and x.shape[0] > 2:
+        keep = max(2, round(x.shape[0] * (1.0 - temporal_drop_prob)))
+        indices = sorted(random.sample(range(x.shape[0]), keep))
+        x = x[indices]
+    if random.random() < probs["shear"]:
+        x = _shear_squeeze(x)
+    return resample_temporal(x, original_frames)

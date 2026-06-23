@@ -2,6 +2,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from math import gcd
+
+
+def make_channel_norm_2d(channels: int, norm_type: str = "batch", norm_groups: int = 16):
+    """Construye una normalización 2D sin cambiar el layout [B,C,T,N].
+
+    BatchNorm queda como default para preservar los modelos existentes. GroupNorm
+    es la opción segura cuando el pipeline procesa cada clip con B=1.
+    """
+    if norm_type == "batch":
+        return nn.BatchNorm2d(channels)
+    if norm_type == "group":
+        groups = gcd(channels, max(1, int(norm_groups)))
+        return nn.GroupNorm(groups, channels)
+    if norm_type == "none":
+        return nn.Identity()
+    raise ValueError(f"norm_type desconocido: {norm_type!r}")
 
 def partition_adjacency(A:np.ndarray) -> np.ndarray:
     """
@@ -42,14 +59,23 @@ class STGCNBlock(nn.Module):
     Output:
         Tensor of shape (B, 3*out_channels, T_out, N)
     """
-    def __init__(self, in_channels, out_channels, A, kernel_size=3, stride=1):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        A,
+        kernel_size=3,
+        stride=1,
+        norm_type="batch",
+        norm_groups=16,
+    ):
         super().__init__()
         # Adjacency partitions: A_k for k=0..K-1
         self.register_buffer('A', torch.tensor(A, dtype=torch.float32))  # (K, N, N)
         self.K, self.N, _ = A.shape
         # 1x1 Graph conv weights: map in_channels -> out_channels * K
         self.gconv = nn.Conv2d(in_channels, out_channels * self.K, kernel_size=1)
-        self.bn1 = nn.BatchNorm2d(out_channels * self.K)
+        self.bn1 = make_channel_norm_2d(out_channels * self.K, norm_type, norm_groups)
         # Temporal conv branches (3 branches)
         pad = (kernel_size - 1) // 2
         self.tcn1 = nn.Conv2d(out_channels, out_channels, kernel_size=(kernel_size, 1),
@@ -58,7 +84,7 @@ class STGCNBlock(nn.Module):
                               padding=(pad, 0), stride=(stride, 1))
         self.tcn3 = nn.Conv2d(out_channels, out_channels, kernel_size=(kernel_size, 1),
                               padding=(pad, 0), stride=(stride, 1))
-        self.bn2 = nn.BatchNorm2d(out_channels * 3)
+        self.bn2 = make_channel_norm_2d(out_channels * 3, norm_type, norm_groups)
         self.relu = nn.ReLU()
         
     def normalize_adj(self, A_k: torch.Tensor) -> torch.Tensor:
