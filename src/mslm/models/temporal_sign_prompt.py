@@ -38,8 +38,51 @@ class CIFAggregator(nn.Module):
         return steps.unsqueeze(0) >= lengths.unsqueeze(1)
 
     def predict_alpha(self, features: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
-        alphas = torch.sigmoid(self.alpha(features)).squeeze(-1)
+        alphas = torch.sigmoid(self.predict_alpha_logits(features, lengths))
         return alphas.masked_fill(self._length_mask(lengths, features.size(1)), 0.0)
+
+    def predict_alpha_logits(self, features: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+        logits = self.alpha(features).squeeze(-1)
+        return logits.masked_fill(self._length_mask(lengths, features.size(1)), 0.0)
+
+    @staticmethod
+    def token_centers(
+        boundaries: torch.Tensor,
+        token_spans: torch.Tensor,
+    ) -> torch.Tensor:
+        """Uniformly spaced target frame positions for each target token.
+
+        A sign spanning frames ``[start, end)`` and producing tokens
+        ``token_spans[b, s] = (t0, t1)`` places its ``k = t1 - t0`` token
+        centers at ``start + (i + 0.5) * (end - start) / k`` for ``i in [0, k)``.
+        Padding entries (``boundaries`` or ``token_spans`` with a negative
+        start) are skipped. Output is padded with ``-1`` up to the maximum
+        number of tokens across the batch.
+        """
+        if boundaries.dim() == 2:
+            boundaries = boundaries.unsqueeze(0)
+            token_spans = token_spans.unsqueeze(0)
+        B, S, _ = boundaries.shape
+
+        per_sample_centers: list[list[float]] = [[] for _ in range(B)]
+        for b in range(B):
+            for s in range(S):
+                start, end = boundaries[b, s].tolist()
+                t0, t1 = token_spans[b, s].tolist()
+                if start < 0 or end <= start or t0 < 0 or t1 <= t0:
+                    continue
+                k = t1 - t0
+                span = float(end - start)
+                for i in range(k):
+                    per_sample_centers[b].append(start + (i + 0.5) * span / k)
+
+        max_tokens = max((len(c) for c in per_sample_centers), default=0)
+        max_tokens = max(max_tokens, 1)
+        out = boundaries.new_full((B, max_tokens), -1.0, dtype=torch.float32)
+        for b, centers in enumerate(per_sample_centers):
+            if centers:
+                out[b, : len(centers)] = torch.tensor(centers, dtype=torch.float32)
+        return out
 
     @staticmethod
     def boundary_targets(
@@ -261,6 +304,177 @@ class STGCNTemporalFrameEncoder(nn.Module):
             x,
             src_key_padding_mask=self._length_mask(frame_lengths, x.size(1)),
         )
+
+
+def alpha_schedule_weights(epoch: int) -> tuple[float, float]:
+    """Teacher-forcing blend ``(w_target, w_pred)`` for the learned-CIF curriculum."""
+    if epoch < 3:
+        return (0.75, 0.25)
+    if epoch < 6:
+        return (0.50, 0.50)
+    if epoch < 10:
+        return (0.25, 0.75)
+    return (0.0, 1.0)
+
+
+def _set_requires_grad(module: nn.Module, value: bool) -> None:
+    for p in module.parameters():
+        p.requires_grad = value
+
+
+def module_trainable_state(model: "TemporalSignPromptModel") -> dict[str, bool]:
+    encoder = model.frame_encoder
+    state = {
+        "frame_encoder": any(p.requires_grad for p in encoder.parameters()),
+        "cif": any(p.requires_grad for p in model.cif.parameters()),
+        "token_head": any(p.requires_grad for p in model.token_head.parameters()),
+        "embedding_head": any(p.requires_grad for p in model.embedding_head.parameters()),
+    }
+    for name in ("stgcn_layers", "linear_hidden", "tcn", "transformer"):
+        if hasattr(encoder, name):
+            module = getattr(encoder, name)
+            state[f"frame_encoder.{name}"] = any(p.requires_grad for p in module.parameters())
+    return state
+
+
+def set_cif_phase(model: "TemporalSignPromptModel", epoch: int) -> dict[str, bool]:
+    """Apply the v126b freezing schedule for the given epoch.
+
+    - epoch 0-2: only ``cif.alpha`` trains; ST-GCN, TCN/Transformer and heads frozen.
+    - epoch 3-9: ``cif``, TCN/Transformer and heads train; ST-GCN stays frozen.
+    - epoch 10+: everything trains.
+    """
+    encoder = model.frame_encoder
+    if epoch < 3:
+        _set_requires_grad(encoder, False)
+        _set_requires_grad(model.token_head, False)
+        _set_requires_grad(model.embedding_head, False)
+        _set_requires_grad(model.cif, True)
+    elif epoch < 10:
+        _set_requires_grad(encoder.stgcn_layers, False)
+        _set_requires_grad(encoder.linear_hidden, False)
+        _set_requires_grad(encoder.tcn, True)
+        _set_requires_grad(encoder.transformer, True)
+        _set_requires_grad(model.cif, True)
+        _set_requires_grad(model.token_head, True)
+        _set_requires_grad(model.embedding_head, True)
+    else:
+        _set_requires_grad(model, True)
+    return module_trainable_state(model)
+
+
+def set_cif_diagnostic_freeze(
+    model: "TemporalSignPromptModel",
+    epoch: int,
+    mode: str,
+) -> dict[str, bool]:
+    """Apply diagnostic freezing regimes without changing the default schedule."""
+    if mode == "full_current":
+        return set_cif_phase(model, epoch)
+
+    encoder = model.frame_encoder
+    _set_requires_grad(model, False)
+
+    if mode == "alpha_only":
+        _set_requires_grad(model.cif, True)
+    elif mode == "target_only_stage1":
+        if epoch < 3:
+            _set_requires_grad(model.cif, True)
+        else:
+            _set_requires_grad(encoder.tcn, True)
+            _set_requires_grad(encoder.transformer, True)
+            _set_requires_grad(model.cif, True)
+            _set_requires_grad(model.token_head, True)
+            _set_requires_grad(model.embedding_head, True)
+    elif mode == "heads_only":
+        _set_requires_grad(model.token_head, True)
+        _set_requires_grad(model.embedding_head, True)
+    elif mode == "tcn_heads":
+        _set_requires_grad(encoder.tcn, True)
+        _set_requires_grad(encoder.transformer, True)
+        _set_requires_grad(model.token_head, True)
+        _set_requires_grad(model.embedding_head, True)
+    else:
+        raise ValueError(f"unknown diagnostic freeze mode: {mode}")
+
+    return module_trainable_state(model)
+
+
+def length_mask_from_lengths(lengths: torch.Tensor, max_len: int) -> torch.Tensor:
+    steps = torch.arange(max_len, device=lengths.device)
+    return steps.unsqueeze(0) < lengths.unsqueeze(1)
+
+
+def rescale_alphas_to_target_lengths(
+    alphas: torch.Tensor,
+    target_lengths: torch.Tensor,
+) -> torch.Tensor:
+    scale = target_lengths.to(alphas).clamp(min=0) / alphas.sum(dim=1).clamp(min=1e-6)
+    return alphas * scale.unsqueeze(1)
+
+
+def alpha_diagnostics(
+    features: torch.Tensor,
+    alpha_logits: torch.Tensor,
+    alphas: torch.Tensor,
+    lengths: torch.Tensor,
+) -> dict[str, float]:
+    """Finite summary stats for CIF calibration probes."""
+    mask = length_mask_from_lengths(lengths, alphas.size(1))
+    valid_logits = alpha_logits[mask]
+    valid_alphas = alphas[mask]
+    valid_features = features[mask]
+    if valid_alphas.numel() == 0:
+        return {
+            "alpha_logit_mean": 0.0,
+            "alpha_logit_p01": 0.0,
+            "alpha_logit_p50": 0.0,
+            "alpha_logit_p99": 0.0,
+            "alpha_mean": 0.0,
+            "alpha_sum_mean": 0.0,
+            "feature_norm_mean": 0.0,
+            "feature_norm_max": 0.0,
+        }
+    feature_norm = valid_features.norm(dim=-1)
+    return {
+        "alpha_logit_mean": valid_logits.mean().item(),
+        "alpha_logit_p01": valid_logits.quantile(0.01).item(),
+        "alpha_logit_p50": valid_logits.median().item(),
+        "alpha_logit_p99": valid_logits.quantile(0.99).item(),
+        "alpha_mean": valid_alphas.mean().item(),
+        "alpha_sum_mean": alphas.sum(dim=1).mean().item(),
+        "feature_norm_mean": feature_norm.mean().item(),
+        "feature_norm_max": feature_norm.max().item(),
+    }
+
+
+def boundary_error_mae(
+    fire_positions: torch.Tensor,
+    counts: torch.Tensor,
+    centers: torch.Tensor,
+    token_lengths: torch.Tensor,
+    missing_penalty: float = 1000.0,
+) -> float:
+    """Mean absolute error between fired CIF positions and token-level centers.
+
+    Matched entries compare positions directly. Missing or extra fired tokens
+    receive a large penalty so a collapsed CIF cannot pass the boundary gate.
+    """
+    diffs = []
+    for b in range(fire_positions.size(0)):
+        count = int(counts[b].item())
+        target = int(token_lengths[b].item())
+        n = min(count, target)
+        if n > 0:
+            diffs.append((fire_positions[b, :n] - centers[b, :n]).abs())
+        missing_or_extra = abs(count - target)
+        if missing_or_extra:
+            diffs.append(
+                fire_positions.new_full((missing_or_extra,), float(missing_penalty))
+            )
+    if not diffs:
+        return float(missing_penalty)
+    return torch.cat(diffs).mean().item()
 
 
 def load_visual_low_level_weights(model: nn.Module, checkpoint_path) -> dict[str, int]:

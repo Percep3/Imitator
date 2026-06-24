@@ -1,10 +1,13 @@
 import importlib.util
+import random
 import sys
 import types
 from pathlib import Path
 
 import h5py
+import pytest
 import torch
+import torch.nn as nn
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,7 +34,15 @@ _model_mod = _load("src.mslm.models.temporal_sign_prompt", "src/mslm/models/temp
 
 SyntheticTemporalSignDataset = _data_mod.SyntheticTemporalSignDataset
 synthetic_temporal_collate = _data_mod.synthetic_temporal_collate
+permute_video_segments = _data_mod.permute_video_segments
 CIFAggregator = _model_mod.CIFAggregator
+alpha_schedule_weights = _model_mod.alpha_schedule_weights
+set_cif_phase = _model_mod.set_cif_phase
+set_cif_diagnostic_freeze = _model_mod.set_cif_diagnostic_freeze
+boundary_error_mae = _model_mod.boundary_error_mae
+TemporalSignPromptModel = _model_mod.TemporalSignPromptModel
+alpha_diagnostics = _model_mod.alpha_diagnostics
+rescale_alphas_to_target_lengths = _model_mod.rescale_alphas_to_target_lengths
 
 
 def _fixture_h5(tmp_path):
@@ -150,3 +161,238 @@ def test_cif_scales_alpha_to_target_lengths():
 
     assert out.counts.tolist() == [2]
     assert torch.allclose(out.quantity, torch.tensor([2.0]))
+
+
+def test_predict_alpha_is_zero_outside_frame_lengths():
+    cif = CIFAggregator(hidden_size=3)
+    features = torch.randn(2, 5, 3)
+    lengths = torch.tensor([3, 5])
+
+    alphas = cif.predict_alpha(features, lengths)
+
+    assert alphas.shape == (2, 5)
+    assert torch.all(alphas[0, 3:] == 0.0)
+    assert torch.all(alphas[1] >= 0.0)
+
+
+def test_token_centers_distributes_uniformly_within_boundary():
+    boundaries = torch.tensor([[[0, 4], [4, 8]]])
+    spans = torch.tensor([[[0, 2], [2, 3]]])
+
+    centers = CIFAggregator.token_centers(boundaries, spans)
+
+    assert centers.shape == (1, 3)
+    assert torch.allclose(centers[0, :2], torch.tensor([1.0, 3.0]))
+    assert torch.allclose(centers[0, 2:3], torch.tensor([6.0]))
+
+
+def test_token_centers_pads_missing_tokens_with_negative_one():
+    boundaries = torch.tensor([[[0, 2], [-1, -1]]])
+    spans = torch.tensor([[[0, 1], [-1, -1]]])
+
+    centers = CIFAggregator.token_centers(boundaries, spans)
+
+    assert centers.shape == (1, 1)
+
+
+def test_boundary_error_mae_zero_when_positions_match_centers():
+    fire_positions = torch.tensor([[1.0, 3.0]])
+    counts = torch.tensor([2])
+    centers = torch.tensor([[1.0, 3.0]])
+    token_lengths = torch.tensor([2])
+
+    mae = boundary_error_mae(fire_positions, counts, centers, token_lengths)
+
+    assert mae == 0.0
+
+
+def test_boundary_error_mae_truncates_to_min_of_count_and_token_length():
+    fire_positions = torch.tensor([[1.5, -1.0]])
+    counts = torch.tensor([1])
+    centers = torch.tensor([[1.0, 3.0]])
+    token_lengths = torch.tensor([2])
+
+    mae = boundary_error_mae(fire_positions, counts, centers, token_lengths)
+
+    assert mae == pytest.approx(500.25)
+
+
+def test_boundary_error_mae_penalizes_no_fires():
+    fire_positions = torch.tensor([[-1.0]])
+    counts = torch.tensor([0])
+    centers = torch.tensor([[1.0, 3.0]])
+    token_lengths = torch.tensor([2])
+
+    mae = boundary_error_mae(fire_positions, counts, centers, token_lengths)
+
+    assert mae == pytest.approx(1000.0)
+
+
+def test_alpha_schedule_weights_by_epoch_phase():
+    assert alpha_schedule_weights(0) == (0.75, 0.25)
+    assert alpha_schedule_weights(2) == (0.75, 0.25)
+    assert alpha_schedule_weights(3) == (0.5, 0.5)
+    assert alpha_schedule_weights(5) == (0.5, 0.5)
+    assert alpha_schedule_weights(6) == (0.25, 0.75)
+    assert alpha_schedule_weights(9) == (0.25, 0.75)
+    assert alpha_schedule_weights(10) == (0.0, 1.0)
+    assert alpha_schedule_weights(40) == (0.0, 1.0)
+
+
+def _build_tiny_model():
+    encoder = nn.Sequential()
+
+    class TinyEncoder(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.stgcn_layers = nn.ModuleList([nn.Linear(2, 2)])
+            self.linear_hidden = nn.Linear(2, 2)
+            self.tcn = nn.Linear(2, 2)
+            self.transformer = nn.Linear(2, 2)
+
+        def forward(self, keypoints, frame_lengths):
+            return keypoints
+
+    return TemporalSignPromptModel(TinyEncoder(), hidden_size=2, vocab_size=10, embedding_dim=4)
+
+
+def test_set_cif_phase_stage0_trains_only_cif():
+    model = _build_tiny_model()
+
+    set_cif_phase(model, epoch=0)
+
+    assert all(not p.requires_grad for p in model.frame_encoder.parameters())
+    assert all(not p.requires_grad for p in model.token_head.parameters())
+    assert all(not p.requires_grad for p in model.embedding_head.parameters())
+    assert all(p.requires_grad for p in model.cif.parameters())
+
+
+def test_set_cif_phase_stage1_keeps_stgcn_frozen():
+    model = _build_tiny_model()
+
+    state = set_cif_phase(model, epoch=5)
+
+    assert all(not p.requires_grad for p in model.frame_encoder.stgcn_layers.parameters())
+    assert all(not p.requires_grad for p in model.frame_encoder.linear_hidden.parameters())
+    assert all(p.requires_grad for p in model.frame_encoder.tcn.parameters())
+    assert all(p.requires_grad for p in model.frame_encoder.transformer.parameters())
+    assert all(p.requires_grad for p in model.cif.parameters())
+    assert all(p.requires_grad for p in model.token_head.parameters())
+    assert state["frame_encoder.stgcn_layers"] is False
+    assert state["frame_encoder.linear_hidden"] is False
+    assert state["frame_encoder.tcn"] is True
+    assert state["frame_encoder.transformer"] is True
+
+
+def test_set_cif_diagnostic_freeze_alpha_only_reports_granular_state():
+    model = _build_tiny_model()
+
+    state = set_cif_diagnostic_freeze(model, epoch=5, mode="alpha_only")
+
+    assert state["cif"] is True
+    assert state["token_head"] is False
+    assert state["embedding_head"] is False
+    assert state["frame_encoder.stgcn_layers"] is False
+    assert state["frame_encoder.tcn"] is False
+
+
+def test_target_only_stage1_freeze_changes_at_epoch_three():
+    model = _build_tiny_model()
+
+    stage0 = set_cif_diagnostic_freeze(model, epoch=2, mode="target_only_stage1")
+    stage1 = set_cif_diagnostic_freeze(model, epoch=3, mode="target_only_stage1")
+
+    assert stage0["cif"] is True
+    assert stage0["token_head"] is False
+    assert stage0["frame_encoder.tcn"] is False
+    assert stage1["cif"] is True
+    assert stage1["token_head"] is True
+    assert stage1["frame_encoder.tcn"] is True
+    assert stage1["frame_encoder.stgcn_layers"] is False
+
+
+def test_alpha_diagnostics_are_finite_for_masked_lengths():
+    features = torch.randn(2, 4, 3)
+    logits = torch.tensor([[0.0, -2.0, 1.0, 7.0], [-4.0, -3.0, 5.0, 6.0]])
+    lengths = torch.tensor([3, 2])
+    alphas = torch.sigmoid(logits)
+    alphas[0, 3:] = 0.0
+    alphas[1, 2:] = 0.0
+
+    stats = alpha_diagnostics(features, logits, alphas, lengths)
+
+    assert set(stats) == {
+        "alpha_logit_mean",
+        "alpha_logit_p01",
+        "alpha_logit_p50",
+        "alpha_logit_p99",
+        "alpha_mean",
+        "alpha_sum_mean",
+        "feature_norm_mean",
+        "feature_norm_max",
+    }
+    assert all(torch.isfinite(torch.tensor(value)) for value in stats.values())
+
+
+def test_rescale_alphas_to_target_lengths_preserves_requested_quantity():
+    alphas = torch.tensor([[0.25, 0.25, 0.0], [0.1, 0.2, 0.3]])
+    target_lengths = torch.tensor([2, 3])
+
+    scaled = rescale_alphas_to_target_lengths(alphas, target_lengths)
+
+    assert torch.allclose(scaled.sum(dim=1), target_lengths.float())
+
+
+def test_set_cif_phase_stage2_unfreezes_everything():
+    model = _build_tiny_model()
+    set_cif_phase(model, epoch=0)
+
+    set_cif_phase(model, epoch=10)
+
+    assert all(p.requires_grad for p in model.parameters())
+
+
+def test_permute_video_segments_preserves_length_and_content():
+    keypoints = torch.arange(10, dtype=torch.float32).view(10, 1, 1)
+    boundaries = torch.tensor([[0, 2], [4, 6], [8, 10]])
+    rng = random.Random(1)
+
+    permuted = permute_video_segments(keypoints, boundaries, 10, rng)
+
+    assert permuted.shape == keypoints.shape
+    assert sorted(permuted.flatten().tolist()) == sorted(keypoints.flatten().tolist())
+
+
+def test_permute_video_segments_changes_chunk_order():
+    keypoints = torch.arange(10, dtype=torch.float32).view(10, 1, 1)
+    boundaries = torch.tensor([[0, 2], [4, 6], [8, 10]])
+
+    found_different_order = False
+    for seed in range(20):
+        permuted = permute_video_segments(keypoints, boundaries, 10, random.Random(seed))
+        if not torch.equal(permuted, keypoints):
+            found_different_order = True
+            break
+
+    assert found_different_order
+
+
+def test_checkpoint_resume_loads_full_model_state(tmp_path):
+    model = _build_tiny_model()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    ckpt_path = tmp_path / "checkpoint_best.pt"
+    torch.save(
+        {"epoch": 3, "model": model.state_dict(), "optimizer": optimizer.state_dict(), "best_top1": 0.4},
+        ckpt_path,
+    )
+
+    fresh_model = _build_tiny_model()
+    fresh_optimizer = torch.optim.AdamW(fresh_model.parameters(), lr=1e-3)
+    state = torch.load(ckpt_path, map_location="cpu")
+    fresh_model.load_state_dict(state["model"])
+    fresh_optimizer.load_state_dict(state["optimizer"])
+
+    for key, value in model.state_dict().items():
+        assert torch.equal(value, fresh_model.state_dict()[key])
+    assert state["epoch"] == 3
+    assert state["best_top1"] == 0.4

@@ -160,6 +160,49 @@ class SyntheticTemporalSignDataset(Dataset):
         )
 
 
+def permute_video_segments(
+    keypoints: torch.Tensor,
+    boundaries: torch.Tensor,
+    length: int,
+    rng: random.Random,
+) -> torch.Tensor:
+    """Shuffle whole gloss segments (each with its leading neutral gap) in time.
+
+    Used only for the v126b diagnostic eval: targets stay in their original
+    order while the visual segments are permuted, so a drop in token accuracy
+    shows the model actually relies on temporal order rather than a bag of
+    signs.
+
+    Frames before the first boundary start and frames at/after ``length``
+    (padding) are left untouched; only the ``[prev_end, end)`` chunks for each
+    real boundary are reordered among themselves.
+    """
+    valid = [(s, e) for s, e in boundaries.tolist() if s >= 0 and e > s]
+    if len(valid) < 2:
+        return keypoints.clone()
+
+    prefix_end = valid[0][0]
+    chunks = []
+    prev_end = prefix_end
+    for start, end in valid:
+        chunks.append((prev_end, end))
+        prev_end = end
+
+    order = list(range(len(chunks)))
+    rng.shuffle(order)
+
+    pieces = [keypoints[:prefix_end]] if prefix_end > 0 else []
+    for idx in order:
+        start, end = chunks[idx]
+        pieces.append(keypoints[start:end])
+    if prev_end < length:
+        pieces.append(keypoints[prev_end:length])
+    if length < keypoints.size(0):
+        pieces.append(keypoints[length:])
+
+    return torch.cat(pieces, dim=0)
+
+
 def synthetic_temporal_collate(batch: Sequence[SyntheticTemporalSample]):
     keypoints = pad_sequence([item.keypoints for item in batch], batch_first=True)
     token_ids = pad_sequence(
