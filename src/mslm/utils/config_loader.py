@@ -43,9 +43,9 @@ class ConfigLoader:
 
 # Instancia global. El config del experimento añade las secciones [experiment], [data],
 # [diagnostics], [sigreg] y [loss]. En esta rama el experimento por defecto es ce_vocab
-# (v115); se puede cambiar con MSLM_EXPERIMENT_CONFIG=config/experiment/<otro>.toml.
+# (v115); se puede cambiar con MSLM_EXPERIMENT_CONFIG=experiments/<familia>/<otro>.toml.
 _paths = ["config/model/config.toml", "config/training/train_config.toml"]
-_experiment = os.environ.get("MSLM_EXPERIMENT_CONFIG", "config/experiment/ce_vocab.toml")
+_experiment = os.environ.get("MSLM_EXPERIMENT_CONFIG", "experiments/v115_ce_vocab/ce_vocab.toml")
 if Path(_experiment).exists():
     _paths.append(_experiment)
 

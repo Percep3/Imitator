@@ -51,7 +51,7 @@ class KeypointDataset(Dataset):
         self.min_frames = min_frames
         self.filter_invalid_labels = filter_invalid_labels
         # Experimento CE-vocab: devuelve los token IDs (grupo `token_ids` del HDF5,
-        # generado por scripts/add_token_ids_h5.py) en el tercer slot de la tupla.
+        # generado por scripts/data/add_token_ids_h5.py) en el tercer slot de la tupla.
         self.return_token_ids = return_token_ids
         # Grupo HDF5 de donde leer el "embedding" de texto en __getitem__. Por defecto
         # "embeddings" (tabla de entrada de Gemma, per-token, usado por CE-AR v116/v117).

@@ -3,7 +3,7 @@
     "allow": [
       "Bash(python3 -m py_compile src/mslm/training/trainer.py src/mslm/dataloader/keypoint_dataset.py src/mslm/utils/setup_train.py src/mslm/utils/config_loader.py)",
       "Bash(python3 -c ' *)",
-      "Bash(python3 -m py_compile scripts/train.py)",
+      "Bash(python3 -m py_compile scripts/train/train.py)",
       "Bash(command -v conda mamba micromamba)",
       "Read(//home/nakato/**)",
       "Bash(cd /shared/Code/Sign-AI/Sign-chris *)",
@@ -51,7 +51,38 @@
       "Read(//shared/Code/Sign-AI/outputs//**)",
       "Bash(conda run *)",
       "Bash(2>&1)",
-      "Bash(~/miniconda3/bin/conda run *)"
+      "Bash(~/miniconda3/bin/conda run *)",
+      "Bash(/home/nakato/miniconda3/envs/Sign-env/bin/python -c ' *)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief docs/experiments/plans/2026-06-23-v125-data-reconstruction.md 1)",
+      "Bash(PYTHONPATH=. python -m pytest tests/dataloaders/test_integrity_filter.py -v)",
+      "Bash(/home/nakato/miniconda3/envs/Sign-env/bin/python -m pytest tests/dataloaders/test_integrity_filter.py -v)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python -m pytest tests/dataloaders/test_integrity_filter.py -v)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package fc98d70092bac925c646cd0811f07a1d93c35a90 *)",
+      "Bash(PYTHONPATH=. .venv/bin/python -m pytest tests/dataloaders/test_integrity_filter.py -v)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python -m pytest tests/dataloaders/test_grouped_split.py -v)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package 857788334ba459952ae0c2c894c394bf86c762d7 HEAD)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief docs/experiments/plans/2026-06-23-v125-data-reconstruction.md 3)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python -m pytest tests/scripts/test_backfill_dataset2_metadata.py -v)",
+      "Bash(cp /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5.bak-task3 && ls -la /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5.bak-task3)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python scripts/data/backfill_dataset2_metadata.py --h5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5 --n 5600 --seed 23)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python -c ' *)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python scripts/data/add_token_ids_h5.py --phase token_ids --h5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package a73a2731a1fe8c75315232a01b239968bc6d7146 *)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief docs/experiments/plans/2026-06-23-v125-data-reconstruction.md 4)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python scripts/data/build_dataset2_manifest.py --h5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package 201c98c HEAD)",
+      "Bash(awk -F. '{print $NF}')",
+      "Bash(python -m pytest tests/dataloaders/test_integrity_filter.py tests/scripts/test_backfill_dataset2_metadata.py -v)",
+      "Bash(/home/nakato/miniconda3/envs/Sign-env/bin/python -m pytest tests/dataloaders/test_integrity_filter.py tests/scripts/test_backfill_dataset2_metadata.py -v)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief docs/experiments/plans/2026-06-23-v125-data-reconstruction.md 5)",
+      "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python scripts/data/build_dataset2_split.py)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package abd0fec *)",
+      "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief docs/experiments/plans/2026-06-23-v125-data-reconstruction.md 6)",
+      "Bash(PYTHONPATH=. python -m pytest tests/utils/test_embedding_space.py -v)"
+    ],
+    "additionalDirectories": [
+      "/shared/Code/Sign-AI/data/processed"
     ]
   }
 }

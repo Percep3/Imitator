@@ -269,7 +269,7 @@ VICReg resolvió la divergencia val/train (1.3× vs 4.2-3.9× de InfoNCE) pero n
 
 #### Bug encontrado: 38% de los clips truncados a mitad de oración
 
-`scripts/build_dataset2_h5.py` extrae keypoints en vivo desde los `.mp4` con `--max-frames 250` por defecto (≈8.3s a 30fps). Esto truncó **228 de 600 clips (38%)** a mitad de la seña, mientras el label seguía siendo la oración completa. Verificado reproduciendo `select_clips(600, seed=23)` y comparando contra el frame count real del vídeo: media real 469 frames (hasta 1312) vs cap de 250 — en el peor caso se perdía el 78% del vídeo real. Los clips truncados eran justo las oraciones más largas (25 palabras de media vs 16 del resto), así que el sesgo no era aleatorio.
+`scripts/data/build_dataset2_h5.py` extrae keypoints en vivo desde los `.mp4` con `--max-frames 250` por defecto (≈8.3s a 30fps). Esto truncó **228 de 600 clips (38%)** a mitad de la seña, mientras el label seguía siendo la oración completa. Verificado reproduciendo `select_clips(600, seed=23)` y comparando contra el frame count real del vídeo: media real 469 frames (hasta 1312) vs cap de 250 — en el peor caso se perdía el 78% del vídeo real. Los clips truncados eran justo las oraciones más largas (25 palabras de media vs 16 del resto), así que el sesgo no era aleatorio.
 
 **Fix:** se borraron las 228 entradas truncadas del HDF5 (`data/processed/dataset_v6_unsloth.hdf5`, backup en `.bak_pre250fix`) y se re-extrajeron con `--max-frames 1400` (cubre el máximo real de 1312). Resultado: 0 clips quedan truncados.
 
@@ -313,7 +313,7 @@ Con el bug de truncado corregido y tres formulaciones de pérdida (InfoNCE, Info
 
 | Archivo | Descripción |
 |---------|-------------|
-| `config/experiment/ce_ar_v117.toml` | Config completa v117 |
+| `experiments/v115_ce_vocab/ce_ar_v117.toml` | Config completa v117 |
 | `src/mslm/training/loss_infonce.py` | InfoNCE NT-Xent simétrico (v117, prefix↔texto dentro del CE-AR) |
 | `tests/test_loss_infonce.py` | 5 tests CPU (todos pasan) |
 | `../outputs/checkpoints/117/1/best_chrf/` | Checkpoint época 10, chrF=20.60 (retrieval@1=0%, no traduce) |
@@ -322,9 +322,9 @@ Con el bug de truncado corregido y tres formulaciones de pérdida (InfoNCE, Info
 | `src/mslm/models/contrastive.py` | `ContrastiveAligner`: torres vídeo/texto + flag `normalize` (VICReg) |
 | `tests/test_contrastive_aligner.py` | 4 tests CPU (todos pasan) |
 | `src/mslm/dataloader/augmentations.py` | Temporal crop + ruido gaussiano para keypoints (v118b) |
-| `scripts/train_contrastive_v118.py` | Loop de entrenamiento contrastivo (InfoNCE/VICReg, selección por R@1) |
-| `config/experiment/contrastive_v118.toml` / `v118b.toml` / `v118c.toml` | Configs de las tres variantes |
-| `scripts/build_dataset2_h5.py` | Extractor de keypoints (bug de truncado a 250 frames documentado y corregido) |
+| `scripts/train/train_contrastive_v118.py` | Loop de entrenamiento contrastivo (InfoNCE/VICReg, selección por R@1) |
+| `experiments/v118_contrastive/contrastive_v118.toml` / `v118b.toml` / `v118c.toml` | Configs de las tres variantes |
+| `scripts/data/build_dataset2_h5.py` | Extractor de keypoints (bug de truncado a 250 frames documentado y corregido) |
 | `data/processed/dataset_v6_unsloth.hdf5.bak_pre250fix` | Backup del HDF5 antes del fix de truncado |
 | `../outputs/checkpoints/118/4/best_r1/` | Mejor checkpoint v118c sobre datos corregidos (R@1=2.9%, ep24) |
 
@@ -495,7 +495,7 @@ dominantes sobre las model-oriented en el mismo dominio (LSP, dataset chico):
   en cascada, debe alcanzar para el largo del label — restricción real de
   `nn.CTCLoss`), más un piso absoluto `min_frames=16`. Sobre los 5600 clips de
   `dataset2`: **56 excluidos (1%)**. 4 tests nuevos en `tests/test_keypoint_dataset.py`.
-- **Bug adicional encontrado al activar augmentation** (`scripts/train_ctc_v119.py`):
+- **Bug adicional encontrado al activar augmentation** (`scripts/train/train_ctc_v119.py`):
   con `data_augmentation=True`, `split_dataset()` devuelve un `ConcatDataset`
   para el train set, que no tiene `.indices` -- rompía la construcción del
   vocab (`train_subset.indices`, vocab debe verse SOLO con labels de train).
@@ -521,7 +521,7 @@ dominantes sobre las model-oriented en el mismo dominio (LSP, dataset chico):
 
 ### Diagnóstico de interpretabilidad: por qué el WER no baja de ~99-100%
 
-`scripts/diagnose_ctc_posteriors.py` (nuevo): grafica P(blank) vs P(top
+`scripts/diagnostics/diagnose_ctc_posteriors.py` (nuevo): grafica P(blank) vs P(top
 no-blank) por frame post-downsampling (T', técnica estándar de debugging de
 CTC/ASR -- "espectro de posteriors") para clips individuales de val, más un
 resumen agregado. Corrido contra el checkpoint `best_wer` real (ep2, WER
@@ -566,9 +566,9 @@ El diagnóstico de posteriors (arriba) ubica la causa raíz río arriba del
 BiLSTM pero no distingue entre (a) el BiLSTM no logra propagar información
 discriminativa de frames intermedios, o (b) la señal ya viene plana por frame
 desde GCN+TCN/TLP y el BiLSTM no tiene nada que propagar. Diseño completo en
-`docs/superpowers/specs/2026-06-21-ctc-activation-probing-design.md`.
+`docs/specs/2026-06-21-ctc-activation-probing-design.md`.
 
-**Método** (`scripts/diagnose_ctc_activations.py`, nuevo): reconstrucción
+**Método** (`scripts/diagnostics/diagnose_ctc_activations.py`, nuevo): reconstrucción
 manual del forward de `CTCEncoder` (sin forward hooks, los submódulos son
 atributos públicos) capturando el tensor en 4 puntos — `gcn` (tras GCN +
 `linear_hidden` + mean-pool sobre nodos), `tcn1` (tras `tcn_conv1`+`tlp1`),
@@ -637,14 +637,14 @@ confound), queda anotado aquí para una iteración futura.
 | `src/mslm/dataloader/vocab.py` | `Vocab` word-level (blank=0, unk=1) construido solo con labels de train |
 | `src/mslm/models/components/tlp.py` | Temporal Lift Pooling (LiftSign §3.2.2), ahora parte fija de la arquitectura (ya no es flag opcional) |
 | `src/mslm/training/loss_ctc.py`, `src/mslm/utils/wer.py` | `nn.CTCLoss` wrapper + greedy decode + WER (ecuación 9 de LiftSign) |
-| `scripts/train_ctc_v119.py` | Loop de entrenamiento con pérdida CTC dual (Y_s+Y_l), decode/WER sobre Y_l, step-decay de LR en ep20/35 (portado de Min et al. §4.1), codifica cada vídeo del batch por separado (gradient checkpointing) para evitar OOM — mismo patrón que `encode_video_batch` en v118 |
-| `config/experiment/ctc_v119.toml` / `v119b.toml` | Arquitectura portada, static-only / +motion stream (único toggle restante); `ctc_v119.toml` ahora con las palancas data-oriented activas |
-| `config/experiment/ctc_v119_smoke.toml` | Smoke test de las palancas data-oriented (filtro + augmentation) sobre datos reales, 100 clips/2 épocas, throwaway |
-| `config/experiment/ctc_v119_subset1k.toml` | Histórico: diagnóstico de colapso a blank con la arquitectura ORIGINAL (ya reemplazada) |
+| `scripts/train/train_ctc_v119.py` | Loop de entrenamiento con pérdida CTC dual (Y_s+Y_l), decode/WER sobre Y_l, step-decay de LR en ep20/35 (portado de Min et al. §4.1), codifica cada vídeo del batch por separado (gradient checkpointing) para evitar OOM — mismo patrón que `encode_video_batch` en v118 |
+| `experiments/v119_ctc/ctc_v119.toml` / `v119b.toml` | Arquitectura portada, static-only / +motion stream (único toggle restante); `ctc_v119.toml` ahora con las palancas data-oriented activas |
+| `experiments/v119_ctc/ctc_v119_smoke.toml` | Smoke test de las palancas data-oriented (filtro + augmentation) sobre datos reales, 100 clips/2 épocas, throwaway |
+| `experiments/v119_ctc/ctc_v119_subset1k.toml` | Histórico: diagnóstico de colapso a blank con la arquitectura ORIGINAL (ya reemplazada) |
 | `tests/test_keypoint_dataset.py` | Bug fix de `TransformedSubset.return_label` + filtro de calidad (`min_frames`, `filter_invalid_labels`) |
-| `scripts/diagnose_ctc_posteriors.py` | Diagnóstico de interpretabilidad: posteriors de CTC por frame (P(blank) vs P(top no-blank)) + resumen agregado de colapso sobre val; `build_val()` ahora acepta `run_dir` (checkpoints fuera del esquema `{version}/{run_id}`) y `strict` (tolera mismatch de forma en capas no usadas por el caller) |
-| `docs/superpowers/specs/2026-06-21-ctc-activation-probing-design.md` | Diseño del probing de activaciones por capa (4 puntos de sondeo, métrica de actividad temporal) |
-| `scripts/diagnose_ctc_activations.py` | Probing de activaciones por capa (`gcn`/`tcn1`/`tcn2_short`/`bilstm_long`): confirma que el BiLSTM aplana la señal temporal que sobrevive hasta su entrada |
+| `scripts/diagnostics/diagnose_ctc_posteriors.py` | Diagnóstico de interpretabilidad: posteriors de CTC por frame (P(blank) vs P(top no-blank)) + resumen agregado de colapso sobre val; `build_val()` ahora acepta `run_dir` (checkpoints fuera del esquema `{version}/{run_id}`) y `strict` (tolera mismatch de forma en capas no usadas por el caller) |
+| `docs/specs/2026-06-21-ctc-activation-probing-design.md` | Diseño del probing de activaciones por capa (4 puntos de sondeo, métrica de actividad temporal) |
+| `scripts/diagnostics/diagnose_ctc_activations.py` | Probing de activaciones por capa (`gcn`/`tcn1`/`tcn2_short`/`bilstm_long`): confirma que el BiLSTM aplana la señal temporal que sobrevive hasta su entrada |
 | `../outputs/checkpoints/119/1_baseline_no_data_levers/`, `../outputs/reports/119/1_baseline_no_data_levers/` | Baseline preservado (arquitectura nueva, dataset completo, SIN palancas data-oriented) antes de relanzar A1 con ellas bajo el mismo run_id=1 |
 | `../outputs/checkpoints/119/10/best_wer/` | Checkpoint del chequeo rápido sobre subset con la arquitectura original (WER≈100%, colapso a blank documentado) |
 | `reports/cleanup_2026-06-20.md` | Limpieza de checkpoints v113-v117 (43.7G) para liberar espacio antes de este run |

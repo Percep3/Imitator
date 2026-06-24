@@ -86,7 +86,7 @@ def build_model(input_size, output_size, hidden_size=512, nhead=8, ff_dim=1024, 
                 **kwargs):
     """Construye y retorna el modelo Imitator (STGCN + Transformer + cross-attn).
 
-    La matriz de adyacencia (111x111) se genera con scripts/build_adjacency.py y se carga
+    La matriz de adyacencia (111x111) se genera con scripts/data/build_adjacency.py y se carga
     desde data/processed/ (ruta derivada de path_vars, no hardcodeada).
     """
     adj_path = path_vars.data_path / "processed" / "adjacency_matrix.npy"

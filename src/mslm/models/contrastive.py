@@ -11,7 +11,7 @@ descartó sobreajuste y señaló que el cuello de botella es la formulación de 
 tarea (comprimir la frase a un vector y rankearla), no la falta de una etapa
 generativa con el LLM. v119 pasa a ser CTC sobre secuencia (CTCEncoder en
 src/mslm/models/ctc_encoder.py, sin LLM en el loop, igual que esta etapa), ver
-report.md y scripts/train_ctc_v119.py.
+report.md y scripts/train/train_ctc_v119.py.
 """
 import math
 import torch

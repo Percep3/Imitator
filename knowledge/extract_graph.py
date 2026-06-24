@@ -4,15 +4,20 @@ los markdown en knowledge/markdown/ usando la API de DeepSeek (cliente compatibl
 Uso:
     knowledge/.venv/bin/python knowledge/extract_graph.py [--force]
 """
+from __future__ import annotations
+
 import argparse
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
-from openai import OpenAI
 
 from pipeline_status import bootstrap_if_missing, load_status, save_status
+
+if TYPE_CHECKING:
+    from openai import OpenAI
 
 load_dotenv(Path(__file__).parent / ".env")
 
@@ -117,6 +122,8 @@ def merge_graph(existing: dict, new_nodes: list[dict], new_edges: list[dict]) ->
 
 
 def main(force: bool) -> None:
+    from openai import OpenAI
+
     status = load_status()
     bootstrap_if_missing(status, PAPERS_DIR, MARKDOWN_DIR, OUTPUT_PATH)
     papers_status = status["papers"]

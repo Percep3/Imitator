@@ -1,6 +1,6 @@
 """Inicialización del entorno de ejecución del proyecto.
 
-`scripts/train.py` (y otros entrypoints) hacen `from settings import initialize; initialize()`.
+`scripts/train/train.py` (y otros entrypoints) hacen `from settings import initialize; initialize()`.
 Este archivo no estaba versionado (estaba en la máquina del dev). Aquí se centraliza:
   - semillas reproducibles,
   - variables de entorno (tokenizers, etc.),
