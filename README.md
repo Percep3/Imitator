@@ -14,7 +14,13 @@ This project is a small model, designed to extend Llama's skills, equipping him 
 Comandos canonicos:
 
 ```bash
+PYTHONPATH=. python scripts/train/train_imitator_dataset1_tokens.py
 PYTHONPATH=. python scripts/train/train_temporal_v126.py
 PYTHONPATH=. python scripts/train/train_isolated_staged.py --config experiments/v121_v124_isolated_staged/cls_v121.toml
 MSLM_EXPERIMENT_CONFIG=experiments/v119_ctc/ctc_v119.toml PYTHONPATH=. python scripts/train/train_ctc_v119.py
 ```
+
+Objetivo Imitator actual: el modelo oficial no es la clasificacion 64-way de
+glosas aisladas. El prototipo real predice **token IDs de Gemma** desde
+video/keypoints de dataset1 y exporta `predictions.jsonl` con token IDs, texto
+decodificado y prompt v125 para que Gemma corrija/formatee la salida final.

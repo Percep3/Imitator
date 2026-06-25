@@ -32,6 +32,7 @@ from src.mslm.dataloader.synthetic_temporal import (
     permute_video_segments,
     synthetic_temporal_collate,
 )
+from src.mslm.inference.imitator_tokens import make_token_predictions
 from src.mslm.models.temporal_sign_prompt import (
     CIFAggregator,
     STGCNTemporalFrameEncoder,
@@ -61,7 +62,17 @@ def parse_args():
     parser.add_argument("--grad-clip", type=float, default=1.0)
     parser.add_argument("--hidden-size", type=int, default=128)
     parser.add_argument("--embedding-dim", type=int, default=2048)
+    parser.add_argument("--min-clips", type=int, default=2)
     parser.add_argument("--max-clips", type=int, default=8)
+    parser.add_argument("--min-neutral-frames", type=int, default=0)
+    parser.add_argument("--max-neutral-frames", type=int, default=8)
+    parser.add_argument("--prediction-samples", type=int, default=8)
+    parser.add_argument(
+        "--prediction-alpha-mode",
+        choices=["teacher_alpha", "pred_raw", "pred_rescaled_to_target_len"],
+        default="teacher_alpha",
+        help="Alpha source used for predictions.jsonl reports.",
+    )
     parser.add_argument("--run-name", default=None)
     parser.add_argument("--resume", type=Path)
     parser.add_argument(
@@ -398,6 +409,75 @@ def evaluate_permuted(model, loader, device, seed: int):
     return {key: value / max(1, batches) for key, value in totals.items()}
 
 
+def write_prediction_report(
+    *,
+    model,
+    loader,
+    tokenizer,
+    device,
+    path: Path,
+    max_rows: int,
+    alpha_mode: str,
+):
+    """Write prototype rows: Gemma token IDs, decoded text, correction prompt."""
+    if max_rows <= 0:
+        return
+    rows = []
+    model.eval()
+    with torch.no_grad():
+        for batch in loader:
+            batch = move_batch(batch, device)
+            alpha_target = CIFAggregator.boundary_targets(
+                batch["boundaries"],
+                batch["keypoints"].size(1),
+                token_spans=batch["token_spans"],
+            )
+            frame_features = model.frame_encoder(batch["keypoints"], batch["frame_lengths"])
+            if alpha_mode == "teacher_alpha":
+                alphas = alpha_target
+            else:
+                alpha_pred = model.cif.predict_alpha(
+                    frame_features,
+                    batch["frame_lengths"],
+                )
+                if alpha_mode == "pred_raw":
+                    alphas = alpha_pred
+                elif alpha_mode == "pred_rescaled_to_target_len":
+                    alphas = rescale_alphas_to_target_lengths(
+                        alpha_pred,
+                        batch["token_lengths"],
+                    )
+                else:
+                    raise ValueError(f"unknown prediction alpha mode: {alpha_mode}")
+            out = forward_from_cif(
+                model,
+                frame_features,
+                batch["frame_lengths"],
+                alphas=alphas,
+            )
+            token_logits = align_time_to_targets(
+                out["token_logits"],
+                batch["token_ids"].size(1),
+            )
+            rows.extend(
+                make_token_predictions(
+                    token_logits=token_logits,
+                    token_ids=batch["token_ids"],
+                    token_lengths=batch["token_lengths"],
+                    clip_ids=batch["clip_ids"],
+                    glosses=batch["glosses"],
+                    tokenizer=tokenizer,
+                )
+            )
+            if len(rows) >= max_rows:
+                break
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        for row in rows[:max_rows]:
+            f.write(json.dumps(row.as_dict(), ensure_ascii=False) + "\n")
+
+
 def sequence_accuracy(logits, targets, lengths):
     logits = align_time_to_targets(logits, targets.size(1))
     pred = logits.argmax(dim=-1)
@@ -416,6 +496,8 @@ def move_batch(batch, device):
 
 def main():
     args = parse_args()
+    if args.min_clips < 1 or args.max_clips < args.min_clips:
+        raise ValueError("--min-clips/--max-clips must satisfy 1 <= min <= max")
     initialize(seed=args.seed)
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -452,10 +534,10 @@ def main():
             [r["clip_id"] for r in rows],
             {r["clip_id"]: r["label"] for r in rows},
             token_ids_by_label,
-            min_clips=2,
+            min_clips=args.min_clips,
             max_clips=args.max_clips,
-            min_neutral_frames=0,
-            max_neutral_frames=8,
+            min_neutral_frames=args.min_neutral_frames,
+            max_neutral_frames=args.max_neutral_frames,
             samples_per_epoch=samples,
             seed=seed,
             embedding_table=embedding_rows,
@@ -717,6 +799,16 @@ def main():
         with open(out_dir / "gates.json", "w", encoding="utf-8") as f:
             json.dump(final_gates, f, indent=2)
         print(f"[v126b] gates={final_gates}", flush=True)
+
+    write_prediction_report(
+        model=model,
+        loader=val_loader,
+        tokenizer=tokenizer,
+        device=device,
+        path=out_dir / "predictions.jsonl",
+        max_rows=args.prediction_samples,
+        alpha_mode=args.prediction_alpha_mode,
+    )
 
     print(f"[v126] done best_top1={best_top1:.3f} out={out_dir}", flush=True)
 
