@@ -55,6 +55,10 @@ def parse_args():
     parser.add_argument("--val-samples", type=int, default=512)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--alpha-loss-weight", type=float, default=5.0)
+    parser.add_argument("--qty-loss-weight", type=float, default=1.0)
+    parser.add_argument("--emb-loss-weight", type=float, default=0.05)
+    parser.add_argument("--grad-clip", type=float, default=1.0)
     parser.add_argument("--hidden-size", type=int, default=128)
     parser.add_argument("--embedding-dim", type=int, default=2048)
     parser.add_argument("--max-clips", type=int, default=8)
@@ -68,6 +72,21 @@ def parse_args():
         "learned_cif: v126b, freeze/teacher-forcing curriculum to train CIF.alpha.",
     )
     parser.add_argument("--stgcn-lr-scale", type=float, default=0.1)
+    parser.add_argument(
+        "--resume-weights-only",
+        action="store_true",
+        help="Load model weights from --resume but reset optimizer, epoch, and best metric.",
+    )
+    parser.add_argument(
+        "--alpha-schedule",
+        choices=["current", "target_only", "linear_pred_mix"],
+        default="current",
+        help="Override learned-CIF alpha blending schedule. Default preserves v126b.",
+    )
+    parser.add_argument("--mix-start-epoch", type=int, default=0)
+    parser.add_argument("--mix-ramp-epochs", type=int, default=10)
+    parser.add_argument("--mix-w-pred-start", type=float, default=0.05)
+    parser.add_argument("--mix-w-pred-end", type=float, default=0.15)
     parser.add_argument(
         "--diag-alpha-loss",
         choices=["current", "qty_only", "kl_quantity", "logit_l1"],
@@ -114,6 +133,25 @@ def parse_args():
         default=Path("../outputs/v126_temporal"),
     )
     return parser.parse_args()
+
+
+def scheduled_alpha_weights(args, epoch: int) -> tuple[float, float]:
+    """Return ``(w_target, w_pred)`` while preserving the historical default."""
+    if args.alpha_schedule == "target_only":
+        return 1.0, 0.0
+    if args.alpha_schedule == "current":
+        return alpha_schedule_weights(epoch)
+
+    if epoch < args.mix_start_epoch:
+        w_pred = 0.0
+    else:
+        ramp = max(1, args.mix_ramp_epochs)
+        progress = min(1.0, (epoch - args.mix_start_epoch) / ramp)
+        w_pred = args.mix_w_pred_start + progress * (
+            args.mix_w_pred_end - args.mix_w_pred_start
+        )
+    w_pred = float(max(0.0, min(1.0, w_pred)))
+    return 1.0 - w_pred, w_pred
 
 
 def normalize_text(text: str) -> str:
@@ -470,7 +508,7 @@ def main():
     if args.resume:
         state = torch.load(args.resume, map_location=device)
         model.load_state_dict(state["model"])
-        same_stage = state.get("phase", "teacher_forced") == args.phase
+        same_stage = state.get("phase", "teacher_forced") == args.phase and not args.resume_weights_only
         if same_stage:
             try:
                 optimizer.load_state_dict(state["optimizer"])
@@ -494,8 +532,8 @@ def main():
     for epoch in range(start_epoch, args.epochs):
         if args.phase == "learned_cif":
             phase_state = set_cif_diagnostic_freeze(model, epoch, args.diag_freeze)
-            w_target, w_pred = alpha_schedule_weights(epoch)
-            if args.diag_freeze == "target_only_stage1":
+            w_target, w_pred = scheduled_alpha_weights(args, epoch)
+            if args.diag_freeze == "target_only_stage1" and args.alpha_schedule == "current":
                 w_target, w_pred = 1.0, 0.0
         else:
             phase_state, w_target, w_pred = None, 1.0, 0.0
@@ -554,18 +592,23 @@ def main():
                 )
                 qty_loss = F.l1_loss(pred_quantity, batch["token_lengths"].float())
                 if epoch < 3 or args.diag_freeze == "alpha_only":
-                    loss = 5.0 * alpha_loss + qty_loss
+                    loss = args.alpha_loss_weight * alpha_loss + args.qty_loss_weight * qty_loss
                 else:
-                    loss = token_loss + 0.05 * emb_loss + 5.0 * alpha_loss + qty_loss
+                    loss = (
+                        token_loss
+                        + args.emb_loss_weight * emb_loss
+                        + args.alpha_loss_weight * alpha_loss
+                        + args.qty_loss_weight * qty_loss
+                    )
             else:
                 alpha_loss = token_loss.new_zeros(())
                 qty_loss = F.l1_loss(out["cif"].quantity, batch["token_lengths"].float())
-                loss = token_loss + 0.05 * emb_loss + 0.1 * qty_loss
+                loss = token_loss + args.emb_loss_weight * emb_loss + 0.1 * qty_loss
 
             optimizer.zero_grad()
             loss.backward()
             grad_norms = compute_grad_norms(model)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimizer.step()
             totals["loss"] += loss.item()
             totals["token_loss"] += token_loss.item()
