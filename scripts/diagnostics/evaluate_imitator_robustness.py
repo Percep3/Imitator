@@ -53,6 +53,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=23)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--max-samples", type=int)
+    parser.add_argument("--heldout-signer", type=int)
     parser.add_argument(
         "--temporal-scales",
         default="0.5,0.75,1.0,1.25,1.5,2.0",
@@ -88,6 +89,16 @@ def stratified_clip_split(records, seed: int, n_val_per_class: int = 10):
         rng.shuffle(rows)
         val.extend(rows[:n_val_per_class])
         train.extend(rows[n_val_per_class:])
+    return train, val
+
+
+def split_records(records, seed: int, heldout_signer: int | None = None):
+    if heldout_signer is None:
+        return stratified_clip_split(records, seed)
+    train = [record for record in records if record["signer_id"] != heldout_signer]
+    val = [record for record in records if record["signer_id"] == heldout_signer]
+    if not train or not val:
+        raise ValueError(f"--heldout-signer {heldout_signer} did not produce both train and val splits")
     return train, val
 
 
@@ -338,7 +349,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     records = list_clip_records(args.h5, "dataset1")
-    _, val_records = stratified_clip_split(records, args.seed)
+    train_records, val_records = split_records(records, args.seed, args.heldout_signer)
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, local_files_only=True)
     token_ids_by_label = make_label_tokens(records, tokenizer)
     all_token_ids = {tid for ids in token_ids_by_label.values() for tid in ids}
@@ -417,10 +428,21 @@ def main():
     result = {
         "checkpoint": str(args.checkpoint),
         "protocol": {
-            "split": "dataset1 stratified validation, seed 23",
+            "split": (
+                f"dataset1 LOSO signer {args.heldout_signer}"
+                if args.heldout_signer is not None
+                else "dataset1 stratified validation, seed 23"
+            ),
+            "heldout_signer": args.heldout_signer,
+            "train_records": len(train_records),
+            "val_records": len(val_records),
             "alpha": "teacher_alpha/oracle boundaries",
             "temporal_scale": "<1 faster-shorter, >1 slower-longer",
-            "note": "Signer rows are diagnostic slices of the standard val split, not LOSO retraining.",
+            "note": (
+                "LOSO evaluation over the held-out signer clips."
+                if args.heldout_signer is not None
+                else "Signer rows are diagnostic slices of the standard val split, not LOSO retraining."
+            ),
         },
         "temporal_scale": scale_reports,
         "spatial_noise": noise_reports,

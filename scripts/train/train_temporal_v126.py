@@ -22,6 +22,8 @@ import h5py
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
@@ -45,6 +47,8 @@ from src.mslm.models.temporal_sign_prompt import (
     rescale_alphas_to_target_lengths,
     set_cif_diagnostic_freeze,
 )
+from src.mslm.dataloader.data_augmentation import normalize_augment_data, remove_keypoints
+from src.mslm.utils.text_metrics import bleu_score, chrf_score
 
 
 def parse_args():
@@ -67,6 +71,11 @@ def parse_args():
     parser.add_argument("--min-neutral-frames", type=int, default=0)
     parser.add_argument("--max-neutral-frames", type=int, default=8)
     parser.add_argument("--prediction-samples", type=int, default=8)
+    parser.add_argument(
+        "--heldout-signer",
+        type=int,
+        help="Leave one signer out: train on signer_id != N and validate/evaluate only signer_id == N.",
+    )
     parser.add_argument(
         "--prediction-alpha-mode",
         choices=["teacher_alpha", "pred_raw", "pred_rescaled_to_target_len"],
@@ -184,6 +193,16 @@ def stratified_clip_split(records, seed: int, n_val_per_class: int = 10):
     return train, val
 
 
+def split_records(records, seed: int, heldout_signer: int | None = None):
+    if heldout_signer is None:
+        return stratified_clip_split(records, seed)
+    train = [record for record in records if record["signer_id"] != heldout_signer]
+    val = [record for record in records if record["signer_id"] == heldout_signer]
+    if not train or not val:
+        raise ValueError(f"--heldout-signer {heldout_signer} did not produce both train and val splits")
+    return train, val
+
+
 def make_label_tokens(records, tokenizer):
     labels = sorted({record["label"] for record in records})
     return {
@@ -203,6 +222,61 @@ def load_embedding_rows(table_path: Path, token_ids: set[int], embedding_dim: in
     ids = torch.tensor(sorted(token_ids), dtype=torch.long)
     rows[ids] = table[ids]
     return rows
+
+
+class IsolatedTokenEvalDataset(Dataset):
+    """Deterministic one-pass isolated clip dataset for LOSO/A1 evaluation."""
+
+    def __init__(self, h5_path: Path, records: list[dict], token_ids_by_label, embedding_table):
+        self.h5_path = h5_path
+        self.records = list(records)
+        self.token_ids_by_label = token_ids_by_label
+        self.embedding_table = embedding_table
+
+    def __len__(self):
+        return len(self.records)
+
+    def __getitem__(self, idx):
+        record = self.records[idx]
+        with h5py.File(self.h5_path, "r") as f:
+            keypoints = f["dataset1"]["keypoints"][record["clip_id"]][:]
+        keypoints = remove_keypoints(keypoints)
+        keypoints = normalize_augment_data(keypoints, "Original", 111)
+        keypoints = torch.as_tensor(keypoints, dtype=torch.float32)
+        token_ids = torch.tensor(self.token_ids_by_label[record["label"]], dtype=torch.long)
+        return {
+            "keypoints": keypoints,
+            "token_ids": token_ids,
+            "target_embeddings": self.embedding_table[token_ids],
+            "boundary": torch.tensor([[0, keypoints.size(0)]], dtype=torch.long),
+            "token_span": torch.tensor([[0, token_ids.numel()]], dtype=torch.long),
+            "clip_ids": (str(record["clip_id"]),),
+            "glosses": (record["label"],),
+            "signer_id": int(record["signer_id"]) if record["signer_id"] is not None else None,
+            "video_id": record["video_id"],
+            "repetition": record["repetition"],
+        }
+
+
+def isolated_eval_collate(batch):
+    return {
+        "keypoints": pad_sequence([item["keypoints"] for item in batch], batch_first=True),
+        "frame_lengths": torch.tensor([item["keypoints"].size(0) for item in batch], dtype=torch.long),
+        "token_ids": pad_sequence([item["token_ids"] for item in batch], batch_first=True, padding_value=-100),
+        "token_lengths": torch.tensor([item["token_ids"].numel() for item in batch], dtype=torch.long),
+        "target_embeddings": pad_sequence(
+            [item["target_embeddings"] for item in batch],
+            batch_first=True,
+            padding_value=0.0,
+        ),
+        "boundaries": torch.stack([item["boundary"] for item in batch]),
+        "token_spans": torch.stack([item["token_span"] for item in batch]),
+        "clip_ids": [item["clip_ids"] for item in batch],
+        "glosses": [item["glosses"] for item in batch],
+        "signer_ids": [item["signer_id"] for item in batch],
+        "video_ids": [item["video_id"] for item in batch],
+        "repetitions": [item["repetition"] for item in batch],
+    }
 
 
 def gather_logits(logits, targets):
@@ -373,6 +447,112 @@ def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
     return {key: value / max(1, batches) for key, value in totals.items()}
 
 
+def evaluate_loso_isolated(model, loader, tokenizer, device):
+    """Evaluate every isolated held-out clip exactly once with teacher alphas."""
+    model.eval()
+    totals = defaultdict(float)
+    by_gloss = defaultdict(lambda: defaultdict(float))
+    prediction_rows = []
+    with torch.no_grad():
+        for batch in loader:
+            batch = move_batch(batch, device)
+            alpha_target = CIFAggregator.boundary_targets(
+                batch["boundaries"],
+                batch["keypoints"].size(1),
+                token_spans=batch["token_spans"],
+            )
+            out = model(
+                batch["keypoints"],
+                batch["frame_lengths"],
+                alphas=alpha_target,
+                target_lengths=batch["token_lengths"],
+            )
+            logits = align_time_to_targets(out["token_logits"], batch["token_ids"].size(1))
+            mask = batch["token_ids"].ne(-100)
+            pred = logits.argmax(dim=-1)
+            top1 = pred[mask].eq(batch["token_ids"][mask]).float()
+            top5 = logits.topk(5, dim=-1).indices.eq(batch["token_ids"].unsqueeze(-1)).any(dim=-1)
+            top5 = top5[mask].float()
+
+            rows = make_token_predictions(
+                token_logits=logits,
+                token_ids=batch["token_ids"],
+                token_lengths=batch["token_lengths"],
+                clip_ids=batch["clip_ids"],
+                glosses=batch["glosses"],
+                tokenizer=tokenizer,
+            )
+            lengths = batch["token_lengths"].detach().cpu().tolist()
+            pred_cpu = pred.detach().cpu()
+            target_cpu = batch["token_ids"].detach().cpu()
+            for i, row in enumerate(rows):
+                length = int(lengths[i])
+                target_ids = target_cpu[i, :length].tolist()
+                pred_ids = pred_cpu[i, :length].tolist()
+                token_hits = sum(int(a == b) for a, b in zip(pred_ids, target_ids))
+                token_acc = token_hits / max(1, length)
+                exact = int(pred_ids == target_ids)
+                row_dict = row.as_dict()
+                row_dict.update(
+                    {
+                        "signer_id": batch["signer_ids"][i],
+                        "video_id": batch["video_ids"][i],
+                        "repetition": batch["repetitions"][i],
+                        "token_accuracy": token_acc,
+                        "exact": exact,
+                    }
+                )
+                prediction_rows.append(row_dict)
+
+                gloss = row.glosses[0]
+                by_gloss[gloss]["samples"] += 1
+                by_gloss[gloss]["exact"] += exact
+                by_gloss[gloss]["token_hits"] += token_hits
+                by_gloss[gloss]["token_count"] += length
+                by_gloss[gloss]["chrf"] += chrf_score(row.predicted_text, row.target_text)
+                by_gloss[gloss]["bleu"] += bleu_score(row.predicted_text, row.target_text)
+
+            totals["token_top1_sum"] += top1.sum().item()
+            totals["token_top5_sum"] += top5.sum().item()
+            totals["token_count"] += top1.numel()
+            totals["samples"] += len(rows)
+
+    sample_count = max(1, len(prediction_rows))
+    exact_sum = sum(row["exact"] for row in prediction_rows)
+    summary = {
+        "samples": len(prediction_rows),
+        "token_top1": totals["token_top1_sum"] / max(1.0, totals["token_count"]),
+        "token_top5": totals["token_top5_sum"] / max(1.0, totals["token_count"]),
+        "exact": exact_sum / sample_count,
+        "chrf": sum(chrf_score(row["predicted_text"], row["target_text"]) for row in prediction_rows) / sample_count,
+        "bleu": sum(bleu_score(row["predicted_text"], row["target_text"]) for row in prediction_rows) / sample_count,
+    }
+    gloss_rows = []
+    for gloss, values in by_gloss.items():
+        samples = max(1.0, values["samples"])
+        gloss_rows.append(
+            {
+                "gloss": gloss,
+                "samples": int(values["samples"]),
+                "exact": values["exact"] / samples,
+                "token_accuracy": values["token_hits"] / max(1.0, values["token_count"]),
+                "chrf": values["chrf"] / samples,
+                "bleu": values["bleu"] / samples,
+            }
+        )
+    gloss_rows = sorted(gloss_rows, key=lambda row: (row["exact"], row["token_accuracy"], row["gloss"]))
+    correct_examples = [row for row in prediction_rows if row["exact"]][:10]
+    incorrect_examples = [row for row in prediction_rows if not row["exact"]][:10]
+    return {
+        **summary,
+        "worst_glosses": gloss_rows[:10],
+        "examples": {
+            "correct": correct_examples,
+            "incorrect": incorrect_examples,
+        },
+    }, prediction_rows
+
+
 def evaluate_teacher(model, loader, device):
     """Forward with alpha=alpha_target (perfect injected boundaries). Comparable ceiling."""
     return evaluate_alpha_mode(model, loader, device, "teacher_alpha")
@@ -522,7 +702,7 @@ def main():
     best_path = out_dir / "checkpoint_best.pt"
 
     records = list_clip_records(args.h5, "dataset1")
-    train_records, val_records = stratified_clip_split(records, args.seed)
+    train_records, val_records = split_records(records, args.seed, args.heldout_signer)
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, local_files_only=True)
     token_ids_by_label = make_label_tokens(records, tokenizer)
     all_token_ids = {tid for ids in token_ids_by_label.values() for tid in ids}
@@ -554,14 +734,26 @@ def main():
         collate_fn=synthetic_temporal_collate,
         pin_memory=torch.cuda.is_available(),
     )
-    val_loader = DataLoader(
-        make_ds(val_records, args.val_samples, args.seed + 100_000),
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=0,
-        collate_fn=synthetic_temporal_collate,
-        pin_memory=torch.cuda.is_available(),
-    )
+    if args.heldout_signer is None:
+        val_loader = DataLoader(
+            make_ds(val_records, args.val_samples, args.seed + 100_000),
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=0,
+            collate_fn=synthetic_temporal_collate,
+            pin_memory=torch.cuda.is_available(),
+        )
+        loso_loader = None
+    else:
+        val_loader = DataLoader(
+            IsolatedTokenEvalDataset(args.h5, val_records, token_ids_by_label, embedding_rows),
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=0,
+            collate_fn=isolated_eval_collate,
+            pin_memory=torch.cuda.is_available(),
+        )
+        loso_loader = val_loader
 
     A = np.load("/shared/Code/Sign-AI/data/processed/adjacency_matrix.npy", allow_pickle=True)
     encoder = STGCNTemporalFrameEncoder(A, hidden_size=args.hidden_size)
@@ -606,9 +798,24 @@ def main():
                 flush=True,
             )
 
+    split_config = {
+        "split_protocol": "loso" if args.heldout_signer is not None else "stratified",
+        "heldout_signer": args.heldout_signer,
+        "train_records": len(train_records),
+        "val_records": len(val_records),
+    }
     with open(out_dir / "config.json", "w", encoding="utf-8") as f:
-        json.dump({**vars(args), "load_info": load_info, "device": device}, f, indent=2, default=str)
-    print(f"[v126] out={out_dir} device={device} load={load_info}", flush=True)
+        json.dump(
+            {**vars(args), **split_config, "load_info": load_info, "device": device},
+            f,
+            indent=2,
+            default=str,
+        )
+    print(
+        f"[v126] out={out_dir} device={device} load={load_info} "
+        f"split={split_config['split_protocol']} train={len(train_records)} val={len(val_records)}",
+        flush=True,
+    )
 
     final_gates = None
     for epoch in range(start_epoch, args.epochs):
@@ -809,6 +1016,32 @@ def main():
         max_rows=args.prediction_samples,
         alpha_mode=args.prediction_alpha_mode,
     )
+
+    if args.heldout_signer is not None and loso_loader is not None:
+        best_state = torch.load(best_path, map_location=device)
+        model.load_state_dict(best_state["model"])
+        loso_eval, loso_rows = evaluate_loso_isolated(model, loso_loader, tokenizer, device)
+        loso_eval.update(
+            {
+                "checkpoint": str(best_path),
+                "split_protocol": "loso",
+                "heldout_signer": args.heldout_signer,
+                "train_records": len(train_records),
+                "val_records": len(val_records),
+                "alpha": "teacher_alpha/oracle boundaries",
+            }
+        )
+        with open(out_dir / "loso_eval.json", "w", encoding="utf-8") as f:
+            json.dump(loso_eval, f, indent=2, ensure_ascii=False)
+        with open(out_dir / "loso_predictions.jsonl", "w", encoding="utf-8") as f:
+            for row in loso_rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        print(
+            f"[v126] loso signer={args.heldout_signer} samples={loso_eval['samples']} "
+            f"token_top1={loso_eval['token_top1']:.3f} token_top5={loso_eval['token_top5']:.3f} "
+            f"exact={loso_eval['exact']:.3f} chrf={loso_eval['chrf']:.2f} bleu={loso_eval['bleu']:.2f}",
+            flush=True,
+        )
 
     print(f"[v126] done best_top1={best_top1:.3f} out={out_dir}", flush=True)
 
