@@ -43,6 +43,7 @@ boundary_error_mae = _model_mod.boundary_error_mae
 TemporalSignPromptModel = _model_mod.TemporalSignPromptModel
 alpha_diagnostics = _model_mod.alpha_diagnostics
 rescale_alphas_to_target_lengths = _model_mod.rescale_alphas_to_target_lengths
+rescale_alphas_to_predicted_lengths = _model_mod.rescale_alphas_to_predicted_lengths
 
 
 def _fixture_h5(tmp_path):
@@ -341,6 +342,40 @@ def test_rescale_alphas_to_target_lengths_preserves_requested_quantity():
     scaled = rescale_alphas_to_target_lengths(alphas, target_lengths)
 
     assert torch.allclose(scaled.sum(dim=1), target_lengths.float())
+
+
+def test_length_head_produces_batch_by_class_logits():
+    model = _build_tiny_model()
+    features = torch.randn(3, 5, 2)
+    lengths = torch.tensor([5, 3, 4])
+
+    logits = model.predict_length_logits(features, lengths)
+
+    assert logits.shape == (3, model.max_len_class + 1)
+
+
+def test_predicted_lengths_are_clamped_to_valid_range():
+    model = _build_tiny_model()
+    model.max_len_class = 4
+    features = torch.randn(2, 3, 2)
+    lengths = torch.tensor([3, 3])
+    with torch.no_grad():
+        model.length_head[-1].bias.fill_(0.0)
+        model.length_head[-1].bias[0] = 10.0
+
+    pred = model.predict_lengths(features, lengths)
+
+    assert pred.tolist() == [1, 1]
+
+
+def test_rescale_alphas_to_predicted_lengths_uses_clamped_prediction():
+    alphas = torch.tensor([[0.25, 0.25, 0.0], [0.1, 0.2, 0.3]])
+    predicted = torch.tensor([2.2, 99.0])
+
+    scaled, lengths = rescale_alphas_to_predicted_lengths(alphas, predicted, max_len=4)
+
+    assert lengths.tolist() == [2, 4]
+    assert torch.allclose(scaled.sum(dim=1), torch.tensor([2.0, 4.0]))
 
 
 def test_set_cif_phase_stage2_unfreezes_everything():

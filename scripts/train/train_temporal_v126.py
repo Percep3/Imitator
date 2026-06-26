@@ -42,8 +42,10 @@ from src.mslm.models.temporal_sign_prompt import (
     alpha_diagnostics,
     alpha_schedule_weights,
     boundary_error_mae,
+    clamp_predicted_lengths,
     length_mask_from_lengths,
     load_visual_low_level_weights,
+    rescale_alphas_to_predicted_lengths,
     rescale_alphas_to_target_lengths,
     set_cif_diagnostic_freeze,
 )
@@ -63,9 +65,11 @@ def parse_args():
     parser.add_argument("--alpha-loss-weight", type=float, default=5.0)
     parser.add_argument("--qty-loss-weight", type=float, default=1.0)
     parser.add_argument("--emb-loss-weight", type=float, default=0.05)
+    parser.add_argument("--length-loss-weight", type=float, default=1.0)
     parser.add_argument("--grad-clip", type=float, default=1.0)
     parser.add_argument("--hidden-size", type=int, default=128)
     parser.add_argument("--embedding-dim", type=int, default=2048)
+    parser.add_argument("--max-len-class", type=int, default=16)
     parser.add_argument("--min-clips", type=int, default=2)
     parser.add_argument("--max-clips", type=int, default=8)
     parser.add_argument("--min-neutral-frames", type=int, default=0)
@@ -78,7 +82,12 @@ def parse_args():
     )
     parser.add_argument(
         "--prediction-alpha-mode",
-        choices=["teacher_alpha", "pred_raw", "pred_rescaled_to_target_len"],
+        choices=[
+            "teacher_alpha",
+            "pred_raw",
+            "pred_rescaled_to_target_len",
+            "pred_rescaled_to_pred_len",
+        ],
         default="teacher_alpha",
         help="Alpha source used for predictions.jsonl reports.",
     )
@@ -307,6 +316,7 @@ def forward_from_cif(model, frame_features, frame_lengths, **cif_kwargs):
         "cif": cif_out,
         "token_logits": model.token_head(cif_out.embeddings),
         "embeddings": model.embedding_head(cif_out.embeddings),
+        "length_logits": model.predict_length_logits(frame_features, frame_lengths),
     }
 
 
@@ -368,12 +378,13 @@ def compute_grad_norms(model):
         "cif": model.cif,
         "token_head": model.token_head,
         "embedding_head": model.embedding_head,
+        "length_head": model.length_head,
         "all": model,
     }
     return {name: _module_grad_norm(module) for name, module in groups.items()}
 
 
-def _classification_metrics(out, batch):
+def _classification_metrics(out, batch, centers=None):
     token_logits, token_targets = gather_logits(out["token_logits"], batch["token_ids"])
     ce = F.cross_entropy(token_logits, token_targets)
     pred = token_logits.argmax(dim=-1)
@@ -382,15 +393,42 @@ def _classification_metrics(out, batch):
     exact = sequence_accuracy(out["token_logits"], batch["token_ids"], batch["token_lengths"])
     mae = (out["cif"].quantity - batch["token_lengths"].float()).abs().mean()
     count_mae = (out["cif"].counts.float() - batch["token_lengths"].float()).abs().mean()
+    count_match = out["cif"].counts.eq(batch["token_lengths"])
+    logits_aligned = align_time_to_targets(out["token_logits"], batch["token_ids"].size(1))
+    pred_aligned = logits_aligned.argmax(dim=-1)
+    per_sample_acc = []
+    for i, length in enumerate(batch["token_lengths"].tolist()):
+        target = batch["token_ids"][i, :length]
+        per_sample_acc.append(pred_aligned[i, :length].eq(target).float().mean())
+    per_sample_acc = torch.stack(per_sample_acc) if per_sample_acc else token_logits.new_zeros(0)
+    length_targets = batch["token_lengths"].clamp(max=out["length_logits"].size(1) - 1)
+    length_loss = F.cross_entropy(out["length_logits"], length_targets)
+    pred_len = clamp_predicted_lengths(
+        out["length_logits"].argmax(dim=-1),
+        max_len=out["length_logits"].size(1) - 1,
+    )
+    pred_len_mae = (pred_len.float() - batch["token_lengths"].float()).abs().mean()
     return {
         "loss": ce.item(),
         "top1": top1.item(),
         "top5": top5.item(),
         "exact": exact,
+        "quantity_mae": mae.item(),
         "mae_len": mae.item(),
         "count_mae": count_mae.item(),
+        "count_match_rate": count_match.float().mean().item(),
+        "token_accuracy_when_count_correct": (
+            per_sample_acc[count_match].mean().item() if count_match.any() else 0.0
+        ),
+        "token_accuracy_when_count_wrong": (
+            per_sample_acc[~count_match].mean().item() if (~count_match).any() else 0.0
+        ),
+        "length_loss": length_loss.item(),
+        "pred_len_mae": pred_len_mae.item(),
+        "pred_len_match_rate": pred_len.eq(batch["token_lengths"]).float().mean().item(),
         "pred_count_mean": out["cif"].counts.float().mean().item(),
         "quantity_mean": out["cif"].quantity.float().mean().item(),
+        "pred_len_mean": pred_len.float().mean().item(),
         "target_len_mean": batch["token_lengths"].float().mean().item(),
     }
 
@@ -415,12 +453,24 @@ def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
                 0.0,
             )
             alpha_rescaled = rescale_alphas_to_target_lengths(alpha_pred, batch["token_lengths"])
+            length_logits = model.predict_length_logits(frame_features, batch["frame_lengths"])
+            pred_lengths = clamp_predicted_lengths(
+                length_logits.argmax(dim=-1),
+                max_len=model.max_len_class,
+            )
+            alpha_rescaled_pred_len, pred_lengths = rescale_alphas_to_predicted_lengths(
+                alpha_pred,
+                pred_lengths,
+                max_len=model.max_len_class,
+            )
             if mode == "teacher_alpha":
                 alphas = alpha_target
             elif mode == "pred_raw":
                 alphas = alpha_pred
             elif mode == "pred_rescaled_to_target_len":
                 alphas = alpha_rescaled
+            elif mode == "pred_rescaled_to_pred_len":
+                alphas = alpha_rescaled_pred_len
             elif mode == "blended_alpha":
                 alphas = w_target * alpha_target + w_pred * alpha_rescaled
             else:
@@ -429,6 +479,10 @@ def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
             out = forward_from_cif(model, frame_features, batch["frame_lengths"], alphas=alphas)
             for key, value in _classification_metrics(out, batch).items():
                 totals[key] += value
+            if mode == "pred_rescaled_to_pred_len":
+                totals["rescale_length_mae"] += (
+                    pred_lengths.float() - batch["token_lengths"].float()
+                ).abs().mean().item()
             totals["alpha_eval_sum_mean"] += alphas.sum(dim=1).mean().item()
             totals["target_alpha_sum_mean"] += alpha_target.sum(dim=1).mean().item()
             if mode != "teacher_alpha":
@@ -440,11 +494,32 @@ def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
                 ).items():
                     totals[key] += value
             centers = CIFAggregator.token_centers(batch["boundaries"], batch["token_spans"]).to(device)
-            totals["boundary_mae"] += boundary_error_mae(
+            boundary_mae = boundary_error_mae(
                 out["cif"].fire_positions, out["cif"].counts, centers, batch["token_lengths"]
             )
+            totals["boundary_mae"] += boundary_mae
+            count_match = out["cif"].counts.eq(batch["token_lengths"])
+            if count_match.any():
+                totals["boundary_mae_when_count_correct"] += boundary_error_mae(
+                    out["cif"].fire_positions[count_match],
+                    out["cif"].counts[count_match],
+                    centers[count_match],
+                    batch["token_lengths"][count_match],
+                    missing_penalty=0.0,
+                )
+                totals["boundary_mae_when_count_correct_batches"] += 1
             batches += 1
-    return {key: value / max(1, batches) for key, value in totals.items()}
+    result = {}
+    for key, value in totals.items():
+        denom = (
+            totals["boundary_mae_when_count_correct_batches"]
+            if key == "boundary_mae_when_count_correct"
+            else batches
+        )
+        if key == "boundary_mae_when_count_correct_batches":
+            continue
+        result[key] = value / max(1, denom)
+    return result
 
 
 def evaluate_loso_isolated(model, loader, tokenizer, device):
@@ -627,6 +702,16 @@ def write_prediction_report(
                         alpha_pred,
                         batch["token_lengths"],
                     )
+                elif alpha_mode == "pred_rescaled_to_pred_len":
+                    pred_lengths = model.predict_lengths(
+                        frame_features,
+                        batch["frame_lengths"],
+                    )
+                    alphas, _ = rescale_alphas_to_predicted_lengths(
+                        alpha_pred,
+                        pred_lengths,
+                        max_len=model.max_len_class,
+                    )
                 else:
                     raise ValueError(f"unknown prediction alpha mode: {alpha_mode}")
             out = forward_from_cif(
@@ -763,6 +848,7 @@ def main():
         hidden_size=args.hidden_size,
         vocab_size=tokenizer.vocab_size,
         embedding_dim=args.embedding_dim,
+        max_len_class=args.max_len_class,
     ).to(device)
     if args.phase == "learned_cif":
         stgcn_params = list(encoder.stgcn_layers.parameters()) + list(encoder.linear_hidden.parameters())
@@ -781,7 +867,12 @@ def main():
     best_top1 = -1.0
     if args.resume:
         state = torch.load(args.resume, map_location=device)
-        model.load_state_dict(state["model"])
+        missing, unexpected = model.load_state_dict(state["model"], strict=False)
+        if missing or unexpected:
+            print(
+                f"[v126] non-strict load missing={len(missing)} unexpected={len(unexpected)}",
+                flush=True,
+            )
         same_stage = state.get("phase", "teacher_forced") == args.phase and not args.resume_weights_only
         if same_stage:
             try:
@@ -844,6 +935,7 @@ def main():
                 alpha_logits = model.cif.predict_alpha_logits(frame_features, batch["frame_lengths"])
                 alpha_pred = torch.sigmoid(alpha_logits).masked_fill(~frame_mask, 0.0)
                 pred_quantity = alpha_pred.sum(dim=1)
+                length_logits = model.predict_length_logits(frame_features, batch["frame_lengths"])
                 pred_scale = (
                     batch["token_lengths"].float()
                     / pred_quantity.detach().clamp(min=1e-6)
@@ -863,9 +955,12 @@ def main():
                     alphas=alpha_target,
                     target_lengths=batch["token_lengths"],
                 )
+                length_logits = out["length_logits"]
 
             token_logits, token_targets = gather_logits(out["token_logits"], batch["token_ids"])
             token_loss = F.cross_entropy(token_logits, token_targets)
+            length_targets = batch["token_lengths"].clamp(max=args.max_len_class)
+            length_loss = F.cross_entropy(length_logits, length_targets)
             pred_emb, target_emb = gather_embeddings(
                 out["embeddings"], batch["token_ids"], batch["target_embeddings"]
             )
@@ -881,18 +976,28 @@ def main():
                 )
                 qty_loss = F.l1_loss(pred_quantity, batch["token_lengths"].float())
                 if epoch < 3 or args.diag_freeze == "alpha_only":
-                    loss = args.alpha_loss_weight * alpha_loss + args.qty_loss_weight * qty_loss
+                    loss = (
+                        args.alpha_loss_weight * alpha_loss
+                        + args.qty_loss_weight * qty_loss
+                        + args.length_loss_weight * length_loss
+                    )
                 else:
                     loss = (
                         token_loss
                         + args.emb_loss_weight * emb_loss
+                        + args.length_loss_weight * length_loss
                         + args.alpha_loss_weight * alpha_loss
                         + args.qty_loss_weight * qty_loss
                     )
             else:
                 alpha_loss = token_loss.new_zeros(())
                 qty_loss = F.l1_loss(out["cif"].quantity, batch["token_lengths"].float())
-                loss = token_loss + args.emb_loss_weight * emb_loss + 0.1 * qty_loss
+                loss = (
+                    token_loss
+                    + args.emb_loss_weight * emb_loss
+                    + args.length_loss_weight * length_loss
+                    + 0.1 * qty_loss
+                )
 
             optimizer.zero_grad()
             loss.backward()
@@ -902,6 +1007,7 @@ def main():
             totals["loss"] += loss.item()
             totals["token_loss"] += token_loss.item()
             totals["emb_loss"] += emb_loss.item()
+            totals["length_loss"] += length_loss.item()
             totals["qty_loss"] += qty_loss.item()
             totals["alpha_loss"] += alpha_loss.item()
             if args.phase == "learned_cif":
@@ -927,6 +1033,12 @@ def main():
                 device,
                 "pred_rescaled_to_target_len",
             )
+            val_pred_rescaled_to_pred_len = evaluate_alpha_mode(
+                model,
+                val_loader,
+                device,
+                "pred_rescaled_to_pred_len",
+            )
             val_blended = evaluate_alpha_mode(
                 model,
                 val_loader,
@@ -951,6 +1063,7 @@ def main():
                 "val_teacher": val_teacher,
                 "val_pred_raw": val_pred_raw,
                 "val_pred_rescaled_to_target_len": val_pred_rescaled,
+                "val_pred_rescaled_to_pred_len": val_pred_rescaled_to_pred_len,
                 "val_blended_alpha": val_blended,
                 "val_predicted": val_predicted,
                 "val_permuted_top1": val_permuted["top1"],
@@ -960,16 +1073,19 @@ def main():
             print(
                 f"ep{epoch:03d} loss={train_metrics['loss']:.4f} tf=({w_target:.2f},{w_pred:.2f}) "
                 f"teacher_top1={val_teacher['top1']:.3f} pred_raw_top1={val_pred_raw['top1']:.3f} "
-                f"pred_rescaled_top1={val_pred_rescaled['top1']:.3f} pred_exact={val_predicted['exact']:.3f} "
+                f"pred_rescaled_top1={val_pred_rescaled['top1']:.3f} "
+                f"pred_len_top1={val_pred_rescaled_to_pred_len['top1']:.3f} "
+                f"pred_exact={val_predicted['exact']:.3f} "
                 f"pred_mae_len={val_predicted['mae_len']:.3f} pred_boundary_mae={val_predicted['boundary_mae']:.3f} "
                 f"permuted_drop={permuted_drop:.3f}",
                 flush=True,
             )
             final_gates = {
+                "pred_len_mae<=0.5": val_pred_rescaled_to_pred_len["pred_len_mae"] <= 0.5,
                 "predicted_mae_length<=0.5": val_predicted["mae_len"] <= 0.5,
-                "predicted_token_top1>=0.75": val_predicted["top1"] >= 0.75,
-                "predicted_token_top5>=0.90": val_predicted["top5"] >= 0.90,
-                "predicted_exact_sequence_accuracy>=0.55": val_predicted["exact"] >= 0.55,
+                "pred_len_token_top1>=0.75": val_pred_rescaled_to_pred_len["top1"] >= 0.75,
+                "pred_len_token_top5>=0.90": val_pred_rescaled_to_pred_len["top5"] >= 0.90,
+                "pred_len_exact_sequence_accuracy>=0.55": val_pred_rescaled_to_pred_len["exact"] >= 0.55,
                 "predicted_boundary_error_mae<=5": val_predicted["boundary_mae"] <= 5.0,
                 "permuted_video_top1_drop>=0.30": permuted_drop >= 0.30,
             }

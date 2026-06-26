@@ -210,12 +210,42 @@ class TemporalSignPromptModel(nn.Module):
         hidden_size: int,
         vocab_size: int,
         embedding_dim: int,
+        max_len_class: int = 16,
     ):
         super().__init__()
         self.frame_encoder = frame_encoder
         self.cif = CIFAggregator(hidden_size)
         self.token_head = nn.Linear(hidden_size, vocab_size)
         self.embedding_head = nn.Linear(hidden_size, embedding_dim)
+        self.max_len_class = int(max_len_class)
+        self.length_head = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Linear(hidden_size, self.max_len_class + 1),
+        )
+
+    @staticmethod
+    def masked_mean(features: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+        mask = length_mask_from_lengths(lengths, features.size(1)).to(features.dtype)
+        pooled = (features * mask.unsqueeze(-1)).sum(dim=1)
+        return pooled / lengths.to(features).clamp(min=1).unsqueeze(1)
+
+    def predict_length_logits(
+        self,
+        frame_features: torch.Tensor,
+        frame_lengths: torch.Tensor,
+    ) -> torch.Tensor:
+        return self.length_head(self.masked_mean(frame_features, frame_lengths))
+
+    def predict_lengths(
+        self,
+        frame_features: torch.Tensor,
+        frame_lengths: torch.Tensor,
+        *,
+        min_len: int = 1,
+    ) -> torch.Tensor:
+        logits = self.predict_length_logits(frame_features, frame_lengths)
+        pred = logits.argmax(dim=-1)
+        return pred.clamp(min=min_len, max=self.max_len_class)
 
     def forward(self, keypoints: torch.Tensor, frame_lengths: torch.Tensor, **cif_kwargs):
         frame_features = self.frame_encoder(keypoints, frame_lengths)
@@ -224,6 +254,7 @@ class TemporalSignPromptModel(nn.Module):
             "cif": cif,
             "token_logits": self.token_head(cif.embeddings),
             "embeddings": self.embedding_head(cif.embeddings),
+            "length_logits": self.predict_length_logits(frame_features, frame_lengths),
         }
 
 
@@ -329,6 +360,7 @@ def module_trainable_state(model: "TemporalSignPromptModel") -> dict[str, bool]:
         "cif": any(p.requires_grad for p in model.cif.parameters()),
         "token_head": any(p.requires_grad for p in model.token_head.parameters()),
         "embedding_head": any(p.requires_grad for p in model.embedding_head.parameters()),
+        "length_head": any(p.requires_grad for p in model.length_head.parameters()),
     }
     for name in ("stgcn_layers", "linear_hidden", "tcn", "transformer"):
         if hasattr(encoder, name):
@@ -349,6 +381,7 @@ def set_cif_phase(model: "TemporalSignPromptModel", epoch: int) -> dict[str, boo
         _set_requires_grad(encoder, False)
         _set_requires_grad(model.token_head, False)
         _set_requires_grad(model.embedding_head, False)
+        _set_requires_grad(model.length_head, True)
         _set_requires_grad(model.cif, True)
     elif epoch < 10:
         _set_requires_grad(encoder.stgcn_layers, False)
@@ -358,6 +391,7 @@ def set_cif_phase(model: "TemporalSignPromptModel", epoch: int) -> dict[str, boo
         _set_requires_grad(model.cif, True)
         _set_requires_grad(model.token_head, True)
         _set_requires_grad(model.embedding_head, True)
+        _set_requires_grad(model.length_head, True)
     else:
         _set_requires_grad(model, True)
     return module_trainable_state(model)
@@ -380,20 +414,24 @@ def set_cif_diagnostic_freeze(
     elif mode == "target_only_stage1":
         if epoch < 3:
             _set_requires_grad(model.cif, True)
+            _set_requires_grad(model.length_head, True)
         else:
             _set_requires_grad(encoder.tcn, True)
             _set_requires_grad(encoder.transformer, True)
             _set_requires_grad(model.cif, True)
             _set_requires_grad(model.token_head, True)
             _set_requires_grad(model.embedding_head, True)
+            _set_requires_grad(model.length_head, True)
     elif mode == "heads_only":
         _set_requires_grad(model.token_head, True)
         _set_requires_grad(model.embedding_head, True)
+        _set_requires_grad(model.length_head, True)
     elif mode == "tcn_heads":
         _set_requires_grad(encoder.tcn, True)
         _set_requires_grad(encoder.transformer, True)
         _set_requires_grad(model.token_head, True)
         _set_requires_grad(model.embedding_head, True)
+        _set_requires_grad(model.length_head, True)
     else:
         raise ValueError(f"unknown diagnostic freeze mode: {mode}")
 
@@ -411,6 +449,27 @@ def rescale_alphas_to_target_lengths(
 ) -> torch.Tensor:
     scale = target_lengths.to(alphas).clamp(min=0) / alphas.sum(dim=1).clamp(min=1e-6)
     return alphas * scale.unsqueeze(1)
+
+
+def clamp_predicted_lengths(
+    predicted_lengths: torch.Tensor,
+    *,
+    max_len: int,
+    min_len: int = 1,
+) -> torch.Tensor:
+    return predicted_lengths.round().long().clamp(min=min_len, max=max_len)
+
+
+def rescale_alphas_to_predicted_lengths(
+    alphas: torch.Tensor,
+    predicted_lengths: torch.Tensor,
+    *,
+    max_len: int,
+    min_len: int = 1,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    lengths = clamp_predicted_lengths(predicted_lengths, max_len=max_len, min_len=min_len)
+    scale = lengths.to(alphas).clamp(min=0) / alphas.sum(dim=1).clamp(min=1e-6)
+    return alphas * scale.unsqueeze(1), lengths
 
 
 def alpha_diagnostics(
