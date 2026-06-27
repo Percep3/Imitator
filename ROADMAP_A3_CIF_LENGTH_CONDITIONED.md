@@ -1,38 +1,44 @@
 # Roadmap A3 CIF Length-Conditioned y Decisión de Arquitectura
 
 ## Estado Actual
-- **Fase actual recomendada:** Etapa 1, congelar A3 como baseline correcto.
+- **Etapa 1: CERRADA (2026-06-27).** A3 official congelado como baseline deployable.
+- **Fase actual recomendada:** Etapa 2, auditoría de errores A3 por longitud y glosa.
 - **Baseline candidato deployable actual:** `pred_rescaled_to_pred_len`.
-- **Objetivo inmediato:** cerrar A3 official con criterio de selección correcto, auditoría clara y reportes listos para comparación futura.
+- **Checkpoint oficial A3:** `../outputs/v126_temporal/diag_A3_length_head_rerun_20260627_021153/checkpoint_best.pt` (epoch 11, seleccionado por `val_pred_rescaled_to_pred_len.(exact, top1)`).
+- **Resultado oficial A3 (`val_pred_rescaled_to_pred_len`, epoch 11):** `top1=0.874`, `top5=0.967`, `exact=0.820`, `pred_len_mae=0.0547`, `count_match_rate=0.949`, `boundary_mae_when_count_correct=0.637`. Los 6 gates de Etapa 1 pasan (`gates.json` del run).
+- **Bug encontrado y corregido durante el cierre de Etapa 1:** `checkpoint_best.pt` se seleccionaba por `val_pred_raw.top1` (no por el criterio oficial), y `gates.json` solo reflejaba el último epoch en vez del epoch del checkpoint seleccionado. Ambos se corrigieron en `scripts/train/train_temporal_v126.py` (selección por tupla `(exact, top1)` de `pred_rescaled_to_pred_len`; `gates.json` se escribe junto con `checkpoint_best.pt`, no al final del loop).
+- **Objetivo inmediato:** correr la auditoría de Etapa 2 (corte por longitud `1`/`2`/`3+` y por glosa/token) sobre el checkpoint oficial.
 - **Objetivo después de eso:** validar generalización antes de decidir si CIF sigue o si conviene migrar a una arquitectura con token queries.
 
 ## Summary
-A3 demostró que el `length_head` resuelve casi todo el gap de A2: `pred_rescaled_to_pred_len` llegó a `top1=0.869`, `top5=0.966`, `exact=0.818`, `pred_len_mae=0.0625`. La siguiente línea principal debe ser **A3 length-conditioned CIF** como baseline deployable, no CIF raw puro. Solo se abandona CIF si A3/A4 falla en generalización, multi-token real, o si la calidad depende demasiado de rescale externo y no escala a secuencias más largas.
+A3 demostró que el `length_head` resuelve casi todo el gap de A2: el checkpoint oficial (epoch 11 de `diag_A3_length_head_rerun_20260627_021153`) llega a `pred_rescaled_to_pred_len.top1=0.874`, `top5=0.967`, `exact=0.820`, `pred_len_mae=0.0547`. La siguiente línea principal debe ser **A3 length-conditioned CIF** como baseline deployable, no CIF raw puro. Solo se abandona CIF si A3/A4 falla en generalización, multi-token real, o si la calidad depende demasiado de rescale externo y no escala a secuencias más largas.
 
 ## Próximos Pasos Inmediatos
-1. Reejecutar o confirmar A3 con selección de `checkpoint_best.pt` por `val_pred_rescaled_to_pred_len.exact`, desempate por `top1`.
-2. Consolidar los cuatro modos de reporte: `teacher_alpha`, `pred_rescaled_to_target_len`, `pred_rescaled_to_pred_len`, `pred_raw`.
-3. Validar que A3 official cumple los thresholds de acceptance de Etapa 1.
-4. Si A3 official pasa, abrir auditoría de errores por longitud y por glosa/token.
-5. Solo después de eso, correr A4 scheduled pred alpha suave y luego LOSO.
+1. ~~Reejecutar o confirmar A3 con selección de `checkpoint_best.pt` por `val_pred_rescaled_to_pred_len.exact`, desempate por `top1`.~~ Hecho 2026-06-27: rerun `diag_A3_length_head_rerun_20260627_021153`, checkpoint oficial en epoch 11, 6/6 gates pasan.
+2. Extender `scripts/diagnostics/analyze_imitator_a2.py` para incluir el modo `pred_rescaled_to_pred_len`:
+   - Lista de modos a iterar: línea ~220 (`for mode in ("teacher_alpha", "pred_rescaled_to_target_len", "pred_raw")`) — agregar `"pred_rescaled_to_pred_len"`.
+   - Rama de cómputo de alphas por modo en `collect_mode_rows`: línea ~117-124 — agregar el branch que predice longitud y rescala, igual a como ya lo hace `evaluate_alpha_mode` en `scripts/train/train_temporal_v126.py` para ese mismo modo (usa `model.predict_lengths` + `rescale_alphas_to_predicted_lengths`).
+   - Correrlo con `--checkpoint ../outputs/v126_temporal/diag_A3_length_head_rerun_20260627_021153/checkpoint_best.pt`.
+3. Generar los cortes de Etapa 2 (longitud `1`/`2`/`3+`, top errores por glosa/token) y validarlos contra los thresholds de Etapa 2. El script ya soporta el corte por longitud (`bucket_len`) y `worst_examples`/`quantity_close_but_count_wrong_examples` por glosa; falta solo agregar agregación de `token_accuracy`/`exact` por glosa si se quiere ese corte específico.
+4. Si Etapa 2 pasa, correr A4 scheduled pred alpha suave y luego LOSO.
 
 ## Etapas Clave
 
-### Etapa 1: Congelar A3 Como Baseline Correcto
+### Etapa 1: Congelar A3 Como Baseline Correcto — CERRADA (2026-06-27)
 - Rerun A3 con selección de `checkpoint_best.pt` por `val_pred_rescaled_to_pred_len.exact`, desempate por `top1`.
 - Mantener reportes separados para:
   - `teacher_alpha`: techo oracle.
   - `pred_rescaled_to_target_len`: oracle de longitud.
   - `pred_rescaled_to_pred_len`: deployable A3 oficial.
   - `pred_raw`: diagnóstico CIF puro, no métrica principal.
-- Acceptance:
+- Acceptance (los 6 pasan en el checkpoint oficial, ver **Estado Actual**):
   - `pred_len_mae <= 0.10`
   - `count_match_rate >= 0.93`
   - `top1 >= 0.85`
   - `top5 >= 0.94`
   - `exact >= 0.79`
   - `boundary_mae_when_count_correct <= 1.0`
-- Si falla: repetir A3 una vez con misma configuración y seed distinta; si vuelve a fallar, revisar entrenamiento del `length_head` antes de avanzar.
+- Si falla: Realizar un studio de Optuna para encontrar hiperparametros optimos. si vuelve a fallar, revisar entrenamiento del `length_head` antes de avanzar. (No fue necesario: el modelo ya cumplía el bar; el bloqueo real era un bug de selección de checkpoint, ver **Estado Actual**.)
 
 ### Etapa 2: Auditoría De Errores A3
 - Generar cortes por longitud target: `1`, `2`, `3+`.
@@ -123,7 +129,7 @@ No abandonar CIF solo porque `pred_raw` sea peor. Desde ahora `pred_raw` es diag
 - Tratar `pred_rescaled_to_pred_len` como la métrica oficial de A3.
 - Tratar `pred_raw` solo como señal diagnóstica, no como criterio para abandonar CIF.
 - No proponer cambio de arquitectura antes de cerrar:
-  - Etapa 1: A3 official.
-  - Etapa 2: auditoría multi-token.
+  - ~~Etapa 1: A3 official.~~ Cerrada 2026-06-27.
+  - Etapa 2: auditoría multi-token. **(siguiente paso)**
   - Etapa 4: LOSO o signer-independent.
 - Si se actualizan resultados, sobrescribir este documento manteniendo la sección **Estado Actual** y **Próximos Pasos Inmediatos** siempre al día.

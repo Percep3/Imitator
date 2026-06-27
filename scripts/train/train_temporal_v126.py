@@ -864,7 +864,7 @@ def main():
     else:
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     start_epoch = 0
-    best_top1 = -1.0
+    best_select_metric = (-1.0, -1.0)
     if args.resume:
         state = torch.load(args.resume, map_location=device)
         missing, unexpected = model.load_state_dict(state["model"], strict=False)
@@ -881,7 +881,7 @@ def main():
                 same_stage = False
         if same_stage:
             start_epoch = state["epoch"] + 1
-            best_top1 = state.get("best_top1", best_top1)
+            best_select_metric = tuple(state.get("best_select_metric", best_select_metric))
         else:
             print(
                 f"[v126] stage transition: checkpoint phase={state.get('phase', 'teacher_forced')!r} "
@@ -1069,7 +1069,10 @@ def main():
                 "val_permuted_top1": val_permuted["top1"],
                 "permuted_top1_drop": permuted_drop,
             }
-            select_metric = val_predicted["top1"]
+            select_metric = (
+                val_pred_rescaled_to_pred_len["exact"],
+                val_pred_rescaled_to_pred_len["top1"],
+            )
             print(
                 f"ep{epoch:03d} loss={train_metrics['loss']:.4f} tf=({w_target:.2f},{w_pred:.2f}) "
                 f"teacher_top1={val_teacher['top1']:.3f} pred_raw_top1={val_pred_raw['top1']:.3f} "
@@ -1080,19 +1083,22 @@ def main():
                 f"permuted_drop={permuted_drop:.3f}",
                 flush=True,
             )
+            # Etapa 1 acceptance gates from ROADMAP_A3_CIF_LENGTH_CONDITIONED.md,
+            # evaluated on the deployable pred_rescaled_to_pred_len mode.
             final_gates = {
-                "pred_len_mae<=0.5": val_pred_rescaled_to_pred_len["pred_len_mae"] <= 0.5,
-                "predicted_mae_length<=0.5": val_predicted["mae_len"] <= 0.5,
-                "pred_len_token_top1>=0.75": val_pred_rescaled_to_pred_len["top1"] >= 0.75,
-                "pred_len_token_top5>=0.90": val_pred_rescaled_to_pred_len["top5"] >= 0.90,
-                "pred_len_exact_sequence_accuracy>=0.55": val_pred_rescaled_to_pred_len["exact"] >= 0.55,
-                "predicted_boundary_error_mae<=5": val_predicted["boundary_mae"] <= 5.0,
-                "permuted_video_top1_drop>=0.30": permuted_drop >= 0.30,
+                "pred_len_mae<=0.10": val_pred_rescaled_to_pred_len["pred_len_mae"] <= 0.10,
+                "count_match_rate>=0.93": val_pred_rescaled_to_pred_len["count_match_rate"] >= 0.93,
+                "top1>=0.85": val_pred_rescaled_to_pred_len["top1"] >= 0.85,
+                "top5>=0.94": val_pred_rescaled_to_pred_len["top5"] >= 0.94,
+                "exact>=0.79": val_pred_rescaled_to_pred_len["exact"] >= 0.79,
+                "boundary_mae_when_count_correct<=1.0": (
+                    val_pred_rescaled_to_pred_len["boundary_mae_when_count_correct"] <= 1.0
+                ),
             }
         else:
             val_metrics = evaluate_teacher(model, val_loader, device)
             row = {"epoch": epoch, "train": train_metrics, "val": val_metrics}
-            select_metric = val_metrics["top1"]
+            select_metric = (val_metrics["top1"], val_metrics["top1"])
             print(
                 f"ep{epoch:03d} loss={train_metrics['loss']:.4f} "
                 f"val_top1={val_metrics['top1']:.3f} val_top5={val_metrics['top5']:.3f} "
@@ -1107,21 +1113,20 @@ def main():
             "epoch": epoch,
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
-            "best_top1": best_top1,
+            "best_select_metric": best_select_metric,
             "token_ids_by_label": token_ids_by_label,
             "load_info": load_info,
             "phase": args.phase,
         }
         torch.save(state, ckpt_path)
-        if select_metric > best_top1:
-            best_top1 = select_metric
-            state["best_top1"] = best_top1
+        if select_metric > best_select_metric:
+            best_select_metric = select_metric
+            state["best_select_metric"] = best_select_metric
             torch.save(state, best_path)
-
-    if final_gates is not None:
-        with open(out_dir / "gates.json", "w", encoding="utf-8") as f:
-            json.dump(final_gates, f, indent=2)
-        print(f"[v126b] gates={final_gates}", flush=True)
+            if final_gates is not None:
+                with open(out_dir / "gates.json", "w", encoding="utf-8") as f:
+                    json.dump(final_gates, f, indent=2)
+                print(f"[v126b] gates (checkpoint_best epoch={epoch})={final_gates}", flush=True)
 
     write_prediction_report(
         model=model,
@@ -1159,7 +1164,7 @@ def main():
             flush=True,
         )
 
-    print(f"[v126] done best_top1={best_top1:.3f} out={out_dir}", flush=True)
+    print(f"[v126] done best_select_metric={best_select_metric} out={out_dir}", flush=True)
 
 
 if __name__ == "__main__":

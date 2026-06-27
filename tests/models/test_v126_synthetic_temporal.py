@@ -378,6 +378,57 @@ def test_rescale_alphas_to_predicted_lengths_uses_clamped_prediction():
     assert torch.allclose(scaled.sum(dim=1), torch.tensor([2.0, 4.0]))
 
 
+def test_checkpoint_selection_prefers_pred_len_exact_over_raw_top1():
+    # Regression for ROADMAP_A3_CIF_LENGTH_CONDITIONED.md Etapa 1: checkpoint_best.pt
+    # must be picked by val_pred_rescaled_to_pred_len.(exact, top1), not by
+    # val_pred_raw.top1. Real metrics.jsonl rows from
+    # diag_A3_length_head_20260626_000239: the old rule picked epoch 26
+    # (val_pred_raw.top1=0.752 beats epoch 25's 0.674) even though epoch 25 is
+    # the better deployable checkpoint on the official mode.
+    epoch_25 = {
+        "pred_len": {"exact": 0.818359375, "top1": 0.8693229814525694},
+        "raw_top1": 0.6741624165442772,
+    }
+    epoch_26 = {
+        "pred_len": {"exact": 0.79296875, "top1": 0.8603656638879329},
+        "raw_top1": 0.7516882328782231,
+    }
+
+    def select_by(rows, metric_fn):
+        best_select_metric = (-1.0, -1.0)
+        best_epoch = None
+        for epoch, metrics in rows:
+            select_metric = metric_fn(metrics)
+            if select_metric > best_select_metric:
+                best_select_metric = select_metric
+                best_epoch = epoch
+        return best_epoch
+
+    rows = [(25, epoch_25), (26, epoch_26)]
+    old_rule = select_by(rows, lambda m: (m["raw_top1"], m["raw_top1"]))
+    new_rule = select_by(rows, lambda m: (m["pred_len"]["exact"], m["pred_len"]["top1"]))
+
+    assert old_rule == 26
+    assert new_rule == 25
+
+
+def test_checkpoint_selection_tiebreaks_on_top1_when_exact_is_equal():
+    candidates = [
+        ("a", {"exact": 0.80, "top1": 0.85}),
+        ("b", {"exact": 0.80, "top1": 0.90}),
+    ]
+
+    best_select_metric = (-1.0, -1.0)
+    best_name = None
+    for name, metrics in candidates:
+        select_metric = (metrics["exact"], metrics["top1"])
+        if select_metric > best_select_metric:
+            best_select_metric = select_metric
+            best_name = name
+
+    assert best_name == "b"
+
+
 def test_set_cif_phase_stage2_unfreezes_everything():
     model = _build_tiny_model()
     set_cif_phase(model, epoch=0)
