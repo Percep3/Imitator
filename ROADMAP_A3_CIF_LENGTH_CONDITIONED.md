@@ -3,13 +3,15 @@
 ## Estado Actual
 - **Etapa 1: CERRADA (2026-06-27).** A3 official congelado como baseline deployable.
 - **Etapa 2: CERRADA (2026-06-27, iteración 2).** Ver `reports/report_2026-06-27_etapa2_a3_audit_iter2.md` y `outputs/v126_temporal/diag_A3_etapa2_audit_iter2_20260627_203817.json`. Cambio aplicado: `token_head` pasó de clasificar cada slot de `cif.embeddings` de forma independiente a incluir position embedding + 1 `nn.TransformerEncoderLayer` (contexto entre posiciones); `length_head` pasó de mean-pooling a 1-query attention pooling sobre frame features; + `label_smoothing=0.1` en la CE de tokens (ver `src/mslm/models/temporal_sign_prompt.py`, clases `_TokenHead`/`_LengthHead`). Warm-start desde el checkpoint de Etapa 1, 15 epochs, mismos hiperparámetros. Resultado por longitud (`pred_rescaled_to_pred_len`, mismo split/seed 23, 640 muestras): longitud `1` exact=0.900 (gate >=0.85 PASA), longitud `2` exact=0.898 (gate >=0.80 PASA), longitud `3+` exact=0.860 (gate >=0.65 **PASA**, antes 0.613), `token_accuracy_when_count_correct` global=0.960, bucket `3+`=0.997 (gate >=0.88 **PASA**, antes 0.879). Los 6 gates de Etapa 1 siguen pasando en este mismo checkpoint (sin regresión). Diagnóstico confirmado: el cuello de botella era acumulación de error por posición (no longitud mal calibrada); dar contexto entre posiciones lo resolvió con margen amplio.
-- **Fase actual recomendada:** avanzar a Etapa 3 (A4 scheduled pred alpha suave). No se ha iniciado todavía.
+- **Etapa 3: CERRADA (2026-06-27) con resultado NEGATIVO para la hipótesis de scheduled pred-alpha mixing.** Ver `reports/report_2026-06-27_etapa3_a4_scheduled_alpha.md`. Se corrió dos veces: un primer intento (`--mix-start-epoch 0`) quedó invalidado porque para `epoch<3` el loss excluye `token_loss`/`emb_loss` (`train_temporal_v126.py:978-983`), los únicos términos que dependen de `w_pred` — así que la mezcla no tuvo efecto ahí. Un re-run corregido (`--mix-start-epoch 5`, después de estabilizado el shock de desbloqueo de epoch 3) confirmó el diagnóstico: epochs 0-4 dieron números idénticos al intento 1, y ningún epoch de la ventana 5-14 (donde `w_pred` sí afecta el gradiente) superó al checkpoint pre-mezcla en la métrica oficial. Con `w_pred=0.10` sostenido (epoch 14) el oficial queda igual a A3 (`exact=0.8891` vs `0.889`) pero `count_match_rate` cae a `0.9141`, rompiendo el gate de Etapa 1 (`>=0.93`). Conclusión: **la mezcla no mejora el modo deployable** en este rango de `w_pred`; sí mejora mucho `pred_raw` (diagnóstico, `count_match_rate` 0.458→0.722, `top1` 0.735→0.857) — queda anotado como pista no bloqueante para una futura iteración si se necesita depender menos del rescale a `pred_len`, pero no es prioridad ahora.
+- **Checkpoint promovido a oficial (no por el mecanismo de Etapa 3, ver nota abajo):** el checkpoint pre-mezcla (epoch 0 de ambos runs, idénticos) es equivalente a 1 epoch extra de fine-tuning de `cif.alpha`/`length_head` sobre Etapa 2 con el mismo régimen `--alpha-schedule target_only` — una mejora real y reproducible, no atribuible a `w_pred`.
+- **Fase actual recomendada:** avanzar a Etapa 4 (LOSO/generalización). No se ha iniciado todavía.
 - **Baseline candidato deployable actual:** `pred_rescaled_to_pred_len`.
-- **Checkpoint oficial A3 (Etapa 2 cerrada):** `../outputs/v126_temporal/diag_A3_etapa2_decoder_v1_20260627_194451/checkpoint_best.pt` (epoch 14, seleccionado por `val_pred_rescaled_to_pred_len.(exact, top1)`).
-- **Resultado oficial A3 actualizado (`val_pred_rescaled_to_pred_len`, re-audit standalone, 640 muestras):** `top1=0.909`, `top5=0.976`, `exact=0.889`, `pred_len_mae=0.072`, `count_match_rate=0.936`, `token_accuracy_when_count_correct=0.960`, `boundary_mae_when_count_correct=0.570`. Checkpoint anterior (epoch 11, `diag_A3_length_head_rerun_20260627_021153`) queda como referencia histórica de Etapa 1.
+- **Checkpoint oficial:** `../outputs/v126_temporal/diag_A3_etapa3_scheduled_pred_alpha_suave_v2_20260627_223500/checkpoint_best.pt` (epoch 0).
+- **Resultado oficial actualizado (`val_pred_rescaled_to_pred_len`, re-audit standalone, 640 muestras):** `top1=0.9165`, `top5=0.9782`, `exact=0.9000`, `pred_len_mae=0.0641`, `count_match_rate=0.9422`, `token_accuracy_when_count_correct=0.9601`, `boundary_mae_when_count_correct=0.5742`. Checkpoint anterior (epoch 14, `diag_A3_etapa2_decoder_v1_20260627_194451`) queda como referencia histórica de Etapa 2.
 - **Bug encontrado y corregido durante el cierre de Etapa 1:** `checkpoint_best.pt` se seleccionaba por `val_pred_raw.top1` (no por el criterio oficial), y `gates.json` solo reflejaba el último epoch en vez del epoch del checkpoint seleccionado. Ambos se corrigieron en `scripts/train/train_temporal_v126.py` (selección por tupla `(exact, top1)` de `pred_rescaled_to_pred_len`; `gates.json` se escribe junto con `checkpoint_best.pt`, no al final del loop).
-- **Objetivo inmediato:** iniciar Etapa 3 (A4 scheduled pred alpha suave) partiendo del nuevo checkpoint A3.
-- **Objetivo después de eso:** Etapa 4 (LOSO/generalización) antes de decidir si CIF sigue o si conviene migrar a una arquitectura con token queries.
+- **Objetivo inmediato:** iniciar Etapa 4 (LOSO/generalización) partiendo del checkpoint promovido.
+- **Objetivo después de eso:** decidir si CIF sigue o si conviene migrar a una arquitectura con token queries, según resultado de LOSO.
 
 ## Summary
 A3 demostró que el `length_head` resuelve casi todo el gap de A2: el checkpoint oficial (epoch 11 de `diag_A3_length_head_rerun_20260627_021153`) llega a `pred_rescaled_to_pred_len.top1=0.874`, `top5=0.967`, `exact=0.820`, `pred_len_mae=0.0547`. La siguiente línea principal debe ser **A3 length-conditioned CIF** como baseline deployable, no CIF raw puro. Solo se abandona CIF si A3/A4 falla en generalización, multi-token real, o si la calidad depende demasiado de rescale externo y no escala a secuencias más largas.
@@ -19,7 +21,9 @@ A3 demostró que el `length_head` resuelve casi todo el gap de A2: el checkpoint
 2. ~~Extender `scripts/diagnostics/analyze_imitator_a2.py` para incluir el modo `pred_rescaled_to_pred_len` (+ corte `by_gloss` + `token_accuracy_when_count_correct/wrong` por bucket).~~ Hecho 2026-06-27.
 3. ~~Generar los cortes de Etapa 2 (longitud `1`/`2`/`3+`, top errores por glosa/token) y validarlos contra los thresholds de Etapa 2.~~ Hecho 2026-06-27: ver `reports/report_2026-06-27_etapa2_a3_audit.md`. Resultado iteración 1: **3 de 4 gates pasan, falla `longitud 3+ exact (0.613 < 0.65)`** y marginalmente `token_accuracy_when_count_correct` en bucket `3+` (0.879 < 0.88). No se cumple criterio de abandono de CIF.
 4. ~~Mejorar decoder/token modeling para secuencias `3+` (positional context en `token_head` + attention pooling en `length_head`) y re-correr el audit de Etapa 2.~~ Hecho 2026-06-27: ver `reports/report_2026-06-27_etapa2_a3_audit_iter2.md`. Resultado: **4/4 gates pasan** (`longitud 3+ exact=0.860`, `token_accuracy_when_count_correct` en `3+`=0.997). Etapa 2 CERRADA.
-5. **Siguiente paso real:** correr A4 scheduled pred alpha suave (Etapa 3) partiendo del nuevo checkpoint A3 (`diag_A3_etapa2_decoder_v1_20260627_194451/checkpoint_best.pt`), luego LOSO (Etapa 4).
+5. Correr A4 scheduled pred alpha suave (Etapa 3) partiendo del checkpoint A3 — **primer intento (2026-06-27, `--mix-start-epoch 0`) INVALIDADO**: ver `reports/report_2026-06-27_etapa3_a4_scheduled_alpha.md`, confound donde `w_pred` no afecta el gradiente en epochs 0-2 (`token_loss`/`emb_loss` excluidos del loss ahí). Re-run corregido con `--mix-start-epoch 5` en curso.
+6. ~~Re-run corregido de Etapa 3 (`--mix-start-epoch 5`) y auditoría.~~ Hecho 2026-06-27: ver `reports/report_2026-06-27_etapa3_a4_scheduled_alpha.md`. Confirmó el confound del intento 1 (epochs 0-4 idénticos) y que ningún epoch con `w_pred` activo supera al checkpoint pre-mezcla en el oficial; `w_pred=0.10` sostenido rompe el gate `count_match_rate>=0.93` de Etapa 1. **Etapa 3 CERRADA con resultado negativo para el mecanismo**, pero se promueve el checkpoint pre-mezcla (mejora real por entrenamiento adicional, no por la mezcla).
+7. **Siguiente paso real:** LOSO/generalización (Etapa 4) partiendo del checkpoint promovido (`diag_A3_etapa3_scheduled_pred_alpha_suave_v2_20260627_223500/checkpoint_best.pt`).
 
 ## Etapas Clave
 
@@ -55,7 +59,7 @@ A3 demostró que el `length_head` resuelve casi todo el gap de A2: el checkpoint
   - Cuando `count_match=true`, `token_accuracy >= 0.88`
 - Si `3+` queda bajo pero longitud está bien: mejorar decoder/token modeling, no abandonar CIF todavía.
 
-### Etapa 3: A4 Scheduled Pred Alpha Suave
+### Etapa 3: A4 Scheduled Pred Alpha Suave — CERRADA (2026-06-27, resultado negativo para el mecanismo)
 - Partir del mejor A3.
 - Entrenar con exposición gradual a alpha predicho:
   - `w_pred=0.02 -> 0.10`
@@ -130,6 +134,6 @@ No abandonar CIF solo porque `pred_raw` sea peor. Desde ahora `pred_raw` es diag
 - No proponer cambio de arquitectura antes de cerrar:
   - ~~Etapa 1: A3 official.~~ Cerrada 2026-06-27.
   - ~~Etapa 2: auditoría multi-token.~~ Cerrada 2026-06-27 (iteración 2, 4/4 gates pasan tras agregar contexto posicional a `token_head` y attention pooling a `length_head`).
-  - Etapa 3: A4 scheduled pred alpha suave. **Siguiente paso, no iniciada.**
-  - Etapa 4: LOSO o signer-independent.
+  - ~~Etapa 3: A4 scheduled pred alpha suave.~~ Cerrada 2026-06-27 con resultado negativo para el mecanismo de mezcla (no mejora el oficial, rompe un gate de Etapa 1 a `w_pred` alto); checkpoint promovido por una mejora no relacionada (1 epoch extra de entrenamiento).
+  - Etapa 4: LOSO o signer-independent. **Siguiente paso, no iniciada.**
 - Si se actualizan resultados, sobrescribir este documento manteniendo la sección **Estado Actual** y **Próximos Pasos Inmediatos** siempre al día.
