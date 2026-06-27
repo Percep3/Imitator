@@ -360,12 +360,25 @@ def test_predicted_lengths_are_clamped_to_valid_range():
     features = torch.randn(2, 3, 2)
     lengths = torch.tensor([3, 3])
     with torch.no_grad():
-        model.length_head[-1].bias.fill_(0.0)
-        model.length_head[-1].bias[0] = 10.0
+        model.length_head.classifier[-1].bias.fill_(0.0)
+        model.length_head.classifier[-1].bias[0] = 10.0
 
     pred = model.predict_lengths(features, lengths)
 
     assert pred.tolist() == [1, 1]
+
+
+def test_token_head_with_padding_mask_produces_finite_vocab_logits():
+    model = _build_tiny_model()
+    embeddings = torch.randn(2, 4, 2)
+    # second row is fully padded (count=0 sample) to exercise the
+    # all-masked-row guard in _TokenHead.
+    padding_mask = torch.tensor([[False, False, True, True], [True, True, True, True]])
+
+    logits = model.token_head(embeddings, padding_mask)
+
+    assert logits.shape == (2, 4, 10)
+    assert torch.isfinite(logits).all()
 
 
 def test_rescale_alphas_to_predicted_lengths_uses_clamped_prediction():

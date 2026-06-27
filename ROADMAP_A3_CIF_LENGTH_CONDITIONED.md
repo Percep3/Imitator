@@ -2,14 +2,14 @@
 
 ## Estado Actual
 - **Etapa 1: CERRADA (2026-06-27).** A3 official congelado como baseline deployable.
-- **Etapa 2: EN PROGRESO, NO CIERRA (auditoría 2026-06-27).** Ver `reports/report_2026-06-27_etapa2_a3_audit.md` y `outputs/v126_temporal/diag_A3_etapa2_audit_20260627_175042.json`. Resultado por longitud (`pred_rescaled_to_pred_len`, re-eval standalone, 640 muestras): longitud `1` exact=0.886 (gate >=0.85 PASA), longitud `2` exact=0.843 (gate >=0.80 PASA), longitud `3+` exact=0.613 (gate >=0.65 **NO PASA**), `token_accuracy_when_count_correct` global=0.900 pero en bucket `3+`=0.879 (gate >=0.88 **NO PASA**, marginal). No se cumple el criterio de abandono de CIF (`3+` exact 0.613 > 0.60). Diagnóstico: el `length_head` predice bien el conteo en `3+` (`count_match_rate=0.873`), el fallo de `exact` es por acumulación de error de token-accuracy por posición (~0.88³≈0.68 ≈ exact observado), no por longitud mal calibrada. Casos peores: frases de 4+ tokens donde `length_head` subestima a la mitad (ej. "Darse cuenta de", "Goma de mascar").
-- **Fase actual recomendada:** seguir en Etapa 2 — mejorar decoder/token modeling para `3+` (revisar longitudes >=4 dentro del bucket) antes de reintentar el audit. No avanzar a Etapa 3 (A4) todavía.
+- **Etapa 2: CERRADA (2026-06-27, iteración 2).** Ver `reports/report_2026-06-27_etapa2_a3_audit_iter2.md` y `outputs/v126_temporal/diag_A3_etapa2_audit_iter2_20260627_203817.json`. Cambio aplicado: `token_head` pasó de clasificar cada slot de `cif.embeddings` de forma independiente a incluir position embedding + 1 `nn.TransformerEncoderLayer` (contexto entre posiciones); `length_head` pasó de mean-pooling a 1-query attention pooling sobre frame features; + `label_smoothing=0.1` en la CE de tokens (ver `src/mslm/models/temporal_sign_prompt.py`, clases `_TokenHead`/`_LengthHead`). Warm-start desde el checkpoint de Etapa 1, 15 epochs, mismos hiperparámetros. Resultado por longitud (`pred_rescaled_to_pred_len`, mismo split/seed 23, 640 muestras): longitud `1` exact=0.900 (gate >=0.85 PASA), longitud `2` exact=0.898 (gate >=0.80 PASA), longitud `3+` exact=0.860 (gate >=0.65 **PASA**, antes 0.613), `token_accuracy_when_count_correct` global=0.960, bucket `3+`=0.997 (gate >=0.88 **PASA**, antes 0.879). Los 6 gates de Etapa 1 siguen pasando en este mismo checkpoint (sin regresión). Diagnóstico confirmado: el cuello de botella era acumulación de error por posición (no longitud mal calibrada); dar contexto entre posiciones lo resolvió con margen amplio.
+- **Fase actual recomendada:** avanzar a Etapa 3 (A4 scheduled pred alpha suave). No se ha iniciado todavía.
 - **Baseline candidato deployable actual:** `pred_rescaled_to_pred_len`.
-- **Checkpoint oficial A3:** `../outputs/v126_temporal/diag_A3_length_head_rerun_20260627_021153/checkpoint_best.pt` (epoch 11, seleccionado por `val_pred_rescaled_to_pred_len.(exact, top1)`).
-- **Resultado oficial A3 (`val_pred_rescaled_to_pred_len`, epoch 11, métricas in-training):** `top1=0.874`, `top5=0.967`, `exact=0.820`, `pred_len_mae=0.0547`, `count_match_rate=0.949`, `boundary_mae_when_count_correct=0.637`. Los 6 gates de Etapa 1 pasan (`gates.json` del run). Nota: la re-evaluación standalone de Etapa 2 (mismo checkpoint, mismo split) da números ~1.5-2 puntos más bajos incluso en `teacher_alpha` — diferencia preexistente in-training vs. standalone, no invalida el cierre de Etapa 1 (certificado por `gates.json` del propio entrenamiento).
+- **Checkpoint oficial A3 (Etapa 2 cerrada):** `../outputs/v126_temporal/diag_A3_etapa2_decoder_v1_20260627_194451/checkpoint_best.pt` (epoch 14, seleccionado por `val_pred_rescaled_to_pred_len.(exact, top1)`).
+- **Resultado oficial A3 actualizado (`val_pred_rescaled_to_pred_len`, re-audit standalone, 640 muestras):** `top1=0.909`, `top5=0.976`, `exact=0.889`, `pred_len_mae=0.072`, `count_match_rate=0.936`, `token_accuracy_when_count_correct=0.960`, `boundary_mae_when_count_correct=0.570`. Checkpoint anterior (epoch 11, `diag_A3_length_head_rerun_20260627_021153`) queda como referencia histórica de Etapa 1.
 - **Bug encontrado y corregido durante el cierre de Etapa 1:** `checkpoint_best.pt` se seleccionaba por `val_pred_raw.top1` (no por el criterio oficial), y `gates.json` solo reflejaba el último epoch en vez del epoch del checkpoint seleccionado. Ambos se corrigieron en `scripts/train/train_temporal_v126.py` (selección por tupla `(exact, top1)` de `pred_rescaled_to_pred_len`; `gates.json` se escribe junto con `checkpoint_best.pt`, no al final del loop).
-- **Objetivo inmediato:** mejorar decoder/token modeling para multi-token (`3+`, especialmente longitudes >=4) y re-correr la auditoría de Etapa 2 hasta que los 4 gates pasen.
-- **Objetivo después de eso:** validar generalización antes de decidir si CIF sigue o si conviene migrar a una arquitectura con token queries.
+- **Objetivo inmediato:** iniciar Etapa 3 (A4 scheduled pred alpha suave) partiendo del nuevo checkpoint A3.
+- **Objetivo después de eso:** Etapa 4 (LOSO/generalización) antes de decidir si CIF sigue o si conviene migrar a una arquitectura con token queries.
 
 ## Summary
 A3 demostró que el `length_head` resuelve casi todo el gap de A2: el checkpoint oficial (epoch 11 de `diag_A3_length_head_rerun_20260627_021153`) llega a `pred_rescaled_to_pred_len.top1=0.874`, `top5=0.967`, `exact=0.820`, `pred_len_mae=0.0547`. La siguiente línea principal debe ser **A3 length-conditioned CIF** como baseline deployable, no CIF raw puro. Solo se abandona CIF si A3/A4 falla en generalización, multi-token real, o si la calidad depende demasiado de rescale externo y no escala a secuencias más largas.
@@ -17,8 +17,9 @@ A3 demostró que el `length_head` resuelve casi todo el gap de A2: el checkpoint
 ## Próximos Pasos Inmediatos
 1. ~~Reejecutar o confirmar A3 con selección de `checkpoint_best.pt` por `val_pred_rescaled_to_pred_len.exact`, desempate por `top1`.~~ Hecho 2026-06-27: rerun `diag_A3_length_head_rerun_20260627_021153`, checkpoint oficial en epoch 11, 6/6 gates pasan.
 2. ~~Extender `scripts/diagnostics/analyze_imitator_a2.py` para incluir el modo `pred_rescaled_to_pred_len` (+ corte `by_gloss` + `token_accuracy_when_count_correct/wrong` por bucket).~~ Hecho 2026-06-27.
-3. ~~Generar los cortes de Etapa 2 (longitud `1`/`2`/`3+`, top errores por glosa/token) y validarlos contra los thresholds de Etapa 2.~~ Hecho 2026-06-27: ver `reports/report_2026-06-27_etapa2_a3_audit.md`. Resultado: **3 de 4 gates pasan, falla `longitud 3+ exact (0.613 < 0.65)`** y marginalmente `token_accuracy_when_count_correct` en bucket `3+` (0.879 < 0.88). No se cumple criterio de abandono de CIF.
-4. **Siguiente paso real:** mejorar decoder/token modeling para secuencias `3+` (priorizar longitudes >=4, donde `length_head` colapsa el conteo a la mitad en los peores casos) y re-correr el audit de Etapa 2. Solo si esos 4 gates pasan, correr A4 scheduled pred alpha suave y luego LOSO (Etapa 3 y 4 siguen bloqueadas hasta entonces).
+3. ~~Generar los cortes de Etapa 2 (longitud `1`/`2`/`3+`, top errores por glosa/token) y validarlos contra los thresholds de Etapa 2.~~ Hecho 2026-06-27: ver `reports/report_2026-06-27_etapa2_a3_audit.md`. Resultado iteración 1: **3 de 4 gates pasan, falla `longitud 3+ exact (0.613 < 0.65)`** y marginalmente `token_accuracy_when_count_correct` en bucket `3+` (0.879 < 0.88). No se cumple criterio de abandono de CIF.
+4. ~~Mejorar decoder/token modeling para secuencias `3+` (positional context en `token_head` + attention pooling en `length_head`) y re-correr el audit de Etapa 2.~~ Hecho 2026-06-27: ver `reports/report_2026-06-27_etapa2_a3_audit_iter2.md`. Resultado: **4/4 gates pasan** (`longitud 3+ exact=0.860`, `token_accuracy_when_count_correct` en `3+`=0.997). Etapa 2 CERRADA.
+5. **Siguiente paso real:** correr A4 scheduled pred alpha suave (Etapa 3) partiendo del nuevo checkpoint A3 (`diag_A3_etapa2_decoder_v1_20260627_194451/checkpoint_best.pt`), luego LOSO (Etapa 4).
 
 ## Etapas Clave
 
@@ -38,7 +39,7 @@ A3 demostró que el `length_head` resuelve casi todo el gap de A2: el checkpoint
   - `boundary_mae_when_count_correct <= 1.0`
 - Si falla: Realizar un studio de Optuna para encontrar hiperparametros optimos. si vuelve a fallar, revisar entrenamiento del `length_head` antes de avanzar. (No fue necesario: el modelo ya cumplía el bar; el bloqueo real era un bug de selección de checkpoint, ver **Estado Actual**.)
 
-### Etapa 2: Auditoría De Errores A3
+### Etapa 2: Auditoría De Errores A3 — CERRADA (2026-06-27, iteración 2)
 - Generar cortes por longitud target: `1`, `2`, `3+`.
 - Generar top errores por glosa/token, con foco en multi-token: `víveres`, `aceptar`, plurales, tokens repetidos y palabras que comparten prefijo/subtoken.
 - Reportar para cada corte:
@@ -128,6 +129,7 @@ No abandonar CIF solo porque `pred_raw` sea peor. Desde ahora `pred_raw` es diag
 - Tratar `pred_raw` solo como señal diagnóstica, no como criterio para abandonar CIF.
 - No proponer cambio de arquitectura antes de cerrar:
   - ~~Etapa 1: A3 official.~~ Cerrada 2026-06-27.
-  - Etapa 2: auditoría multi-token. **EN PROGRESO, no cierra (audit 2026-06-27, falla bucket `3+`). (siguiente paso: mejorar decoder/token modeling para 3+)**
+  - ~~Etapa 2: auditoría multi-token.~~ Cerrada 2026-06-27 (iteración 2, 4/4 gates pasan tras agregar contexto posicional a `token_head` y attention pooling a `length_head`).
+  - Etapa 3: A4 scheduled pred alpha suave. **Siguiente paso, no iniciada.**
   - Etapa 4: LOSO o signer-independent.
 - Si se actualizan resultados, sobrescribir este documento manteniendo la sección **Estado Actual** y **Próximos Pasos Inmediatos** siempre al día.

@@ -197,6 +197,73 @@ class CIFAggregator(nn.Module):
         return features.new_zeros((0, features.size(-1))), features.new_zeros((0,))
 
 
+class _TokenHead(nn.Module):
+    """Classifies each CIF-fired slot with positional + cross-slot context.
+
+    Plain per-slot Linear classification (the v126 baseline) has no way to
+    tell slot 2 of 4 apart from slot 2 of 2, and tokens are scored fully
+    independently of their neighbors. A position embedding plus one
+    self-attention layer over the fired slots gives each position both an
+    identity and visibility of its siblings before classification.
+    """
+
+    def __init__(self, hidden_size: int, vocab_size: int, max_slots: int):
+        super().__init__()
+        self.max_slots = max_slots
+        self.position_embedding = nn.Embedding(max_slots, hidden_size)
+        nhead = next((h for h in (4, 2, 1) if hidden_size % h == 0), 1)
+        self.encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_size,
+            nhead=nhead,
+            dim_feedforward=hidden_size * 2,
+            batch_first=True,
+            norm_first=True,
+        )
+        self.classifier = nn.Linear(hidden_size, vocab_size)
+
+    def forward(self, embeddings: torch.Tensor, padding_mask: torch.Tensor) -> torch.Tensor:
+        positions = torch.arange(embeddings.size(1), device=embeddings.device)
+        positions = positions.clamp(max=self.max_slots - 1)
+        x = embeddings + self.position_embedding(positions).unsqueeze(0)
+        # ponytail: unmask slot 0 so fully-padded rows (count=0 samples) don't
+        # produce NaN from an all-masked attention row; that slot's output is
+        # discarded downstream anyway since padding_mask gates the token loss.
+        safe_mask = padding_mask.clone()
+        safe_mask[:, 0] = False
+        x = self.encoder_layer(x, src_key_padding_mask=safe_mask)
+        return self.classifier(x)
+
+
+class _LengthHead(nn.Module):
+    """Predicts sequence length from an attention-pooled frame summary.
+
+    Mean-pooling every frame into one vector (the v126 baseline) blurs
+    distinct sub-sign boundaries together, which is why long compound
+    phrases (4+ tokens) get undercounted. A single learned query attending
+    over frames can instead pick out boundary-like frames.
+    """
+
+    def __init__(self, hidden_size: int, num_classes: int):
+        super().__init__()
+        self.query = nn.Parameter(torch.randn(1, 1, hidden_size) * 0.02)
+        self.attn = nn.MultiheadAttention(hidden_size, num_heads=1, batch_first=True)
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Linear(hidden_size, num_classes),
+        )
+
+    def forward(self, frame_features: torch.Tensor, frame_lengths: torch.Tensor) -> torch.Tensor:
+        batch_size = frame_features.size(0)
+        key_padding_mask = ~length_mask_from_lengths(frame_lengths, frame_features.size(1))
+        pooled, _ = self.attn(
+            self.query.expand(batch_size, -1, -1),
+            frame_features,
+            frame_features,
+            key_padding_mask=key_padding_mask,
+        )
+        return self.classifier(pooled.squeeze(1))
+
+
 class TemporalSignPromptModel(nn.Module):
     """Thin v126 scaffold: frame encoder -> CIF -> token/embedding heads.
 
@@ -215,26 +282,17 @@ class TemporalSignPromptModel(nn.Module):
         super().__init__()
         self.frame_encoder = frame_encoder
         self.cif = CIFAggregator(hidden_size)
-        self.token_head = nn.Linear(hidden_size, vocab_size)
-        self.embedding_head = nn.Linear(hidden_size, embedding_dim)
         self.max_len_class = int(max_len_class)
-        self.length_head = nn.Sequential(
-            nn.LayerNorm(hidden_size),
-            nn.Linear(hidden_size, self.max_len_class + 1),
-        )
-
-    @staticmethod
-    def masked_mean(features: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
-        mask = length_mask_from_lengths(lengths, features.size(1)).to(features.dtype)
-        pooled = (features * mask.unsqueeze(-1)).sum(dim=1)
-        return pooled / lengths.to(features).clamp(min=1).unsqueeze(1)
+        self.token_head = _TokenHead(hidden_size, vocab_size, max_slots=self.max_len_class)
+        self.embedding_head = nn.Linear(hidden_size, embedding_dim)
+        self.length_head = _LengthHead(hidden_size, self.max_len_class + 1)
 
     def predict_length_logits(
         self,
         frame_features: torch.Tensor,
         frame_lengths: torch.Tensor,
     ) -> torch.Tensor:
-        return self.length_head(self.masked_mean(frame_features, frame_lengths))
+        return self.length_head(frame_features, frame_lengths)
 
     def predict_lengths(
         self,
@@ -252,7 +310,7 @@ class TemporalSignPromptModel(nn.Module):
         cif = self.cif(frame_features, frame_lengths, **cif_kwargs)
         return {
             "cif": cif,
-            "token_logits": self.token_head(cif.embeddings),
+            "token_logits": self.token_head(cif.embeddings, cif.padding_mask),
             "embeddings": self.embedding_head(cif.embeddings),
             "length_logits": self.predict_length_logits(frame_features, frame_lengths),
         }

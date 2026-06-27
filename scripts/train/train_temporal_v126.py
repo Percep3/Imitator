@@ -314,7 +314,7 @@ def forward_from_cif(model, frame_features, frame_lengths, **cif_kwargs):
     cif_out = model.cif(frame_features, frame_lengths, **cif_kwargs)
     return {
         "cif": cif_out,
-        "token_logits": model.token_head(cif_out.embeddings),
+        "token_logits": model.token_head(cif_out.embeddings, cif_out.padding_mask),
         "embeddings": model.embedding_head(cif_out.embeddings),
         "length_logits": model.predict_length_logits(frame_features, frame_lengths),
     }
@@ -958,7 +958,7 @@ def main():
                 length_logits = out["length_logits"]
 
             token_logits, token_targets = gather_logits(out["token_logits"], batch["token_ids"])
-            token_loss = F.cross_entropy(token_logits, token_targets)
+            token_loss = F.cross_entropy(token_logits, token_targets, label_smoothing=0.1)
             length_targets = batch["token_lengths"].clamp(max=args.max_len_class)
             length_loss = F.cross_entropy(length_logits, length_targets)
             pred_emb, target_emb = gather_embeddings(
