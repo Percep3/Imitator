@@ -42,6 +42,7 @@ from src.mslm.models.temporal_sign_prompt import (
     TemporalSignPromptModel,
     length_mask_from_lengths,
     load_visual_low_level_weights,
+    rescale_alphas_to_predicted_lengths,
     rescale_alphas_to_target_lengths,
 )
 
@@ -98,6 +99,7 @@ def collect_mode_rows(model, loader, device, mode):
     hist_quantity = Counter()
     hist_count = Counter()
     by_len = defaultdict(lambda: defaultdict(float))
+    by_gloss = defaultdict(lambda: defaultdict(float))
     quantity_close_count_wrong = []
     model.eval()
     with torch.no_grad():
@@ -118,6 +120,13 @@ def collect_mode_rows(model, loader, device, mode):
                 alphas = alpha_target
             elif mode == "pred_rescaled_to_target_len":
                 alphas = rescale_alphas_to_target_lengths(alpha_pred, batch["token_lengths"])
+            elif mode == "pred_rescaled_to_pred_len":
+                pred_lengths = model.predict_length_logits(
+                    frame_features, batch["frame_lengths"]
+                ).argmax(dim=-1)
+                alphas, _ = rescale_alphas_to_predicted_lengths(
+                    alpha_pred, pred_lengths, max_len=model.max_len_class
+                )
             elif mode == "pred_raw":
                 alphas = alpha_pred
             else:
@@ -144,6 +153,16 @@ def collect_mode_rows(model, loader, device, mode):
                 add_bucket(by_len[label], "quantity_abs_error", abs(quantity_delta))
                 add_bucket(by_len[label], "count_abs_error", abs(count_delta))
                 add_bucket(by_len[label], "count_match", int(count_delta == 0))
+                if count_delta == 0:
+                    add_bucket(by_len[label], "token_accuracy_when_count_correct", token_acc)
+                else:
+                    add_bucket(by_len[label], "token_accuracy_when_count_wrong", token_acc)
+
+                gloss = batch["glosses"][i][0]
+                by_gloss[gloss]["samples"] += 1
+                add_bucket(by_gloss[gloss], "exact", exact)
+                add_bucket(by_gloss[gloss], "token_accuracy", token_acc)
+                add_bucket(by_gloss[gloss], "count_match", int(count_delta == 0))
 
                 row = {
                     "clip_id": batch["clip_ids"][i][0],
@@ -163,6 +182,9 @@ def collect_mode_rows(model, loader, device, mode):
     return {
         "by_target_length": {
             key: finalize_bucket(value) for key, value in sorted(by_len.items())
+        },
+        "by_gloss": {
+            key: finalize_bucket(value) for key, value in sorted(by_gloss.items())
         },
         "hist_quantity_minus_target_len": dict(sorted(hist_quantity.items())),
         "hist_pred_count_minus_target_len": dict(sorted(hist_count.items())),
@@ -217,7 +239,12 @@ def main():
 
     summaries = {}
     cuts = {}
-    for mode in ("teacher_alpha", "pred_rescaled_to_target_len", "pred_raw"):
+    for mode in (
+        "teacher_alpha",
+        "pred_rescaled_to_target_len",
+        "pred_rescaled_to_pred_len",
+        "pred_raw",
+    ):
         summaries[mode] = evaluate_alpha_mode(model, loader, device, mode)
         cuts[mode] = collect_mode_rows(model, loader, device, mode)
 
