@@ -68,6 +68,11 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=23)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--max-samples", type=int)
+    parser.add_argument(
+        "--heldout-signer",
+        type=int,
+        help="Score only this signer_id (must match the value the checkpoint was trained with via --heldout-signer).",
+    )
     return parser.parse_args()
 
 
@@ -209,7 +214,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     records = list_clip_records(args.h5, "dataset1")
-    _, val_records = split_records(records, args.seed)
+    _, val_records = split_records(records, args.seed, args.heldout_signer)
     if args.max_samples:
         val_records = val_records[: args.max_samples]
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, local_files_only=True)
@@ -250,6 +255,7 @@ def main():
 
     result = {
         "checkpoint": str(args.checkpoint),
+        "heldout_signer": args.heldout_signer,
         "samples": len(val_records),
         "device": device,
         "load_info": load_info,
