@@ -67,7 +67,13 @@ def run_name_for(variant: dict, run_tag: str) -> str:
     )
 
 
-def train_command_for(variant: dict, run_name: str, resume_ckpt: Path, python_bin: str = DEFAULT_PYTHON_BIN) -> list[str]:
+def train_command_for(
+    variant: dict,
+    run_name: str,
+    resume_ckpt: Path,
+    python_bin: str = DEFAULT_PYTHON_BIN,
+    out_root: Path = DEFAULT_OUT_ROOT,
+) -> list[str]:
     return [
         python_bin, "scripts/train/train_temporal_v126.py",
         *FIXED_TRAIN_FLAGS,
@@ -78,6 +84,7 @@ def train_command_for(variant: dict, run_name: str, resume_ckpt: Path, python_bi
         "--split-seed", str(variant["split_seed"]),
         "--seed", str(variant["seed"]),
         "--run-name", run_name,
+        "--output-root", str(out_root),
     ]
 
 
@@ -133,7 +140,7 @@ def main(
             print(f"[ablation] registry stale/mismatched for run={run_name}, re-running")
 
         print(f"[ablation] run start {run_name}")
-        runner(train_command_for(variant, run_name, resume_ckpt, python_bin), check=True)
+        runner(train_command_for(variant, run_name, resume_ckpt, python_bin, out_root), check=True)
         runner(audit_command_for(variant, run_name, out_root, python_bin), check=True)
 
         if not checkpoint_path.is_file():

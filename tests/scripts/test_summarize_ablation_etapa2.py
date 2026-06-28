@@ -7,6 +7,7 @@ from scripts.diagnostics.summarize_ablation_etapa2 import (
     classify_causal_support,
     full_model_effect,
     load_runs,
+    main,
     marginal_effect,
 )
 
@@ -104,6 +105,58 @@ def test_validate_complete_rejects_anything_other_than_24_runs(tmp_path):
     rows = load_runs(pairs)
     with pytest.raises(ValueError, match="incomplete"):
         validate_complete(rows)
+
+
+def _write_operational_layout(base_dir, token_head, length_head, smoothing, seed):
+    """Lay out registry + audit files like the real operational step does:
+    <base_dir>/registry/{run_name}.json and <base_dir>/diag_{run_name}_audit.json
+    (audit as a SIBLING of registry/, not two levels up from it)."""
+    metrics = METRICS_OK
+    variant = {
+        "token_head": token_head, "length_head": length_head,
+        "token_label_smoothing": smoothing, "seed": seed, "split_seed": 23,
+    }
+    run_name = f"A3_etapa2_ablation_{token_head}_{length_head}_ls{smoothing}_seed{seed}"
+    registry_dir = base_dir / "registry"
+    registry_dir.mkdir(parents=True, exist_ok=True)
+    (registry_dir / f"{run_name}.json").write_text(
+        json.dumps({"variant": variant, "run_name": run_name}), encoding="utf-8"
+    )
+    (base_dir / f"diag_{run_name}_audit.json").write_text(
+        json.dumps(
+            {
+                "samples": 640,
+                "mode_summaries": {"pred_rescaled_to_pred_len": metrics},
+                "mode_cuts": {
+                    "pred_rescaled_to_pred_len": {
+                        "by_target_length": {"3+": {"exact": 0.5, "samples": 200}},
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_main_finds_audits_via_registry_parent_path_join(tmp_path):
+    """Integration test for main()'s own path-joining logic (the bug Fix 3
+    addresses): registries live in ablation_etapa2/registry/, audits are
+    siblings of registry/ inside ablation_etapa2/ — not two levels up."""
+    from scripts.diagnostics.summarize_ablation_etapa2 import FACTOR_LEVELS
+
+    base_dir = tmp_path / "ablation_etapa2"
+    for token_head in FACTOR_LEVELS["token_head"]:
+        for length_head in FACTOR_LEVELS["length_head"]:
+            for smoothing in FACTOR_LEVELS["token_label_smoothing"]:
+                for seed in (23, 42, 101):
+                    _write_operational_layout(base_dir, token_head, length_head, smoothing, seed)
+
+    output = tmp_path / "out.json"
+    main(base_dir / "registry", output)
+
+    assert output.is_file()
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert result["n_runs"] == 24
 
 
 def test_validate_complete_passes_for_full_24_run_matrix(tmp_path):

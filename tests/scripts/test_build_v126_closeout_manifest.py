@@ -99,6 +99,38 @@ def test_check_manifest_fails_on_hash_mismatch(tmp_path):
     assert any("hash mismatch" in p for p in problems)
 
 
+def test_build_manifest_and_check_manifest_handle_paths_outside_root(tmp_path):
+    # Checkpoints/external inputs live in a sibling dir of the repo root in
+    # production (../outputs/..., /shared/Code/Sign-AI/data/...), not nested
+    # under it. relative_to() would raise ValueError for these; build_manifest
+    # must not crash, and check_manifest must still detect OK vs hash-mismatch.
+    root = tmp_path / "repo"
+    artifact_dir = root / "artifacts" / "v126_closeout"
+    artifact_dir.mkdir(parents=True)
+    (artifact_dir / "config.json").write_text(json.dumps({"seeds": [23]}), encoding="utf-8")
+
+    sibling_dir = tmp_path / "outside_root" / "checkpoints"  # NOT under root
+    sibling_dir.mkdir(parents=True)
+    out_of_root_ckpt = sibling_dir / "checkpoint_best.pt"
+    out_of_root_ckpt.write_bytes(b"weights-out-of-root")
+
+    manifest = MODULE.build_manifest(
+        root, artifact_dir, checkpoint_paths=[out_of_root_ckpt],
+        external_inputs={}, commit_hash="abc123",
+    )
+    # Out-of-root path is recorded as an absolute string, not relative_to'd.
+    assert manifest["checkpoints"][0]["path"] == str(out_of_root_ckpt)
+    assert manifest["checkpoints"][0]["path"].startswith("/")
+
+    # OK case: nothing changed.
+    assert MODULE.check_manifest(manifest, root) == []
+
+    # Hash-mismatch case: tamper with the out-of-root checkpoint.
+    out_of_root_ckpt.write_bytes(b"weights-out-of-root-TAMPERED")
+    problems = MODULE.check_manifest(manifest, root)
+    assert any("hash mismatch" in p for p in problems)
+
+
 def test_build_manifest_raises_when_artifact_dir_empty(tmp_path):
     artifact_dir = tmp_path / "artifacts" / "v126_closeout"
     artifact_dir.mkdir(parents=True)

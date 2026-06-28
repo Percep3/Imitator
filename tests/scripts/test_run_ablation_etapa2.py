@@ -48,6 +48,20 @@ def test_train_command_includes_all_ablation_flags():
     assert "--split-seed 23" in cmd_str
     assert "--resume-weights-only" in cmd_str
     assert "--epochs 15" in cmd_str
+    assert f"--output-root {MODULE.DEFAULT_OUT_ROOT}" in cmd_str
+
+
+def test_train_command_forwards_custom_out_root():
+    variant = {
+        "token_head": "linear", "length_head": "mean",
+        "token_label_smoothing": 0.0, "seed": 42, "split_seed": 23,
+    }
+    custom_root = Path("/tmp/custom_out_root")
+    cmd = MODULE.train_command_for(
+        variant, run_name="run1", resume_ckpt=Path("ckpt.pt"), out_root=custom_root
+    )
+    assert "--output-root" in cmd
+    assert cmd[cmd.index("--output-root") + 1] == str(custom_root)
 
 
 def test_is_valid_reuse_requires_matching_config_and_checkpoint_hash(tmp_path):

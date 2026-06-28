@@ -149,7 +149,7 @@ def main(registry_dir: Path, output: Path) -> None:
     pairs = []
     for registry_path in registries:
         run_name = json.loads(registry_path.read_text(encoding="utf-8"))["run_name"]
-        audit_path = registry_path.parents[2] / f"diag_{run_name}_audit.json"
+        audit_path = registry_path.parents[1] / f"diag_{run_name}_audit.json"
         pairs.append((registry_path, audit_path))
     rows = load_runs(pairs)
     validate_complete(rows)

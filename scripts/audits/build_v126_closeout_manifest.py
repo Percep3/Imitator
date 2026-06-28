@@ -23,8 +23,16 @@ def git_commit_hash(root: Path) -> str:
 
 
 def _hash_entry(path: Path, root: Path) -> dict:
+    try:
+        path_str = str(path.relative_to(root))
+    except ValueError:
+        # Checkpoints and external inputs live in a sibling directory of the repo
+        # root (e.g. ../outputs/...), not nested under it — record the absolute
+        # path instead. `root / entry["path"]` still resolves correctly later
+        # because pathlib's `/` discards the left side for an absolute RHS.
+        path_str = str(path)
     return {
-        "path": str(path.relative_to(root)),
+        "path": path_str,
         "bytes": path.stat().st_size,
         "sha256": sha256_of(path),
     }
@@ -85,9 +93,11 @@ def default_checkpoint_paths(registry_dir: Path, out_root: Path) -> list[Path]:
     return paths
 
 
+# Matches the --h5/--embedding-table argparse defaults in scripts/train/train_temporal_v126.py
+# so the manifest hashes the actual files the training script reads from.
 DEFAULT_EXTERNAL_INPUTS = {
-    "dataset_h5": Path("data/processed/dataset1_isolated_v122.hdf5"),
-    "embedding_table": Path("data/processed/gemma3n_embed_table.pt"),
+    "dataset_h5": Path("/shared/Code/Sign-AI/data/processed/dataset1_isolated_v122.hdf5"),
+    "embedding_table": Path("/shared/Code/Sign-AI/data/processed/gemma3n_embed_table.pt"),
 }
 
 
