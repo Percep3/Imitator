@@ -73,6 +73,9 @@ def parse_args():
         type=int,
         help="Score only this signer_id (must match the value the checkpoint was trained with via --heldout-signer).",
     )
+    parser.add_argument("--split-seed", type=int, default=None)
+    parser.add_argument("--token-head", choices=["linear", "contextual"], default=None)
+    parser.add_argument("--length-head", choices=["mean", "attention"], default=None)
     return parser.parse_args()
 
 
@@ -82,6 +85,23 @@ def bucket_len(length: int) -> str:
     if length == 2:
         return "2"
     return "3+"
+
+
+LEGACY_ARCH_CONFIG = {"token_head": "contextual", "length_head": "attention"}
+
+
+def resolve_arch_config(checkpoint_state: dict, cli_token_head, cli_length_head) -> dict:
+    """Pick token_head/length_head: explicit CLI > checkpoint metadata > legacy default."""
+    base = dict(checkpoint_state.get("arch_config", LEGACY_ARCH_CONFIG))
+    if cli_token_head is not None:
+        base["token_head"] = cli_token_head
+    if cli_length_head is not None:
+        base["length_head"] = cli_length_head
+    return base
+
+
+def effective_split_seed(seed: int, split_seed) -> int:
+    return split_seed if split_seed is not None else seed
 
 
 def add_bucket(row, key, value):
@@ -214,7 +234,8 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     records = list_clip_records(args.h5, "dataset1")
-    _, val_records = split_records(records, args.seed, args.heldout_signer)
+    split_seed = effective_split_seed(args.seed, args.split_seed)
+    _, val_records = split_records(records, split_seed, args.heldout_signer)
     if args.max_samples:
         val_records = val_records[: args.max_samples]
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, local_files_only=True)
@@ -230,6 +251,8 @@ def main():
         pin_memory=torch.cuda.is_available(),
     )
 
+    state = torch.load(args.checkpoint, map_location=device)
+    arch_config = resolve_arch_config(state, args.token_head, args.length_head)
     A = np.load("/shared/Code/Sign-AI/data/processed/adjacency_matrix.npy", allow_pickle=True)
     encoder = STGCNTemporalFrameEncoder(A, hidden_size=128)
     load_info = load_visual_low_level_weights(encoder, args.checkpoint_v121)
@@ -238,8 +261,9 @@ def main():
         hidden_size=128,
         vocab_size=tokenizer.vocab_size,
         embedding_dim=2048,
+        token_head_variant=arch_config["token_head"],
+        length_head_variant=arch_config["length_head"],
     ).to(device)
-    state = torch.load(args.checkpoint, map_location=device)
     missing, unexpected = model.load_state_dict(state["model"], strict=False)
 
     summaries = {}
@@ -259,6 +283,7 @@ def main():
         "samples": len(val_records),
         "device": device,
         "load_info": load_info,
+        "arch_config": arch_config,
         "state_load": {"missing": missing, "unexpected": unexpected},
         "mode_summaries": summaries,
         "mode_cuts": cuts,
