@@ -1,0 +1,3267 @@
+{
+  "checkpoint": "../outputs/v126_temporal/diag_A3_etapa2_ablation_linear_attention_ls0.0_seed42_20260628_062014/checkpoint_best.pt",
+  "heldout_signer": null,
+  "samples": 640,
+  "device": "cuda",
+  "load_info": {
+    "loaded": 43,
+    "skipped": 2,
+    "missing": 20,
+    "unexpected": 0
+  },
+  "arch_config": {
+    "token_head": "linear",
+    "length_head": "attention"
+  },
+  "state_load": {
+    "missing": [],
+    "unexpected": []
+  },
+  "mode_summaries": {
+    "teacher_alpha": {
+      "loss": 0.5646776307374239,
+      "top1": 0.8600716069340706,
+      "top5": 0.9750972017645836,
+      "exact": 0.7953125,
+      "quantity_mae": 3.4365803003311156e-08,
+      "mae_len": 3.4365803003311156e-08,
+      "count_mae": 0.0,
+      "count_match_rate": 1.0,
+      "token_accuracy_when_count_correct": 0.8675781309604644,
+      "token_accuracy_when_count_wrong": 0.0,
+      "length_loss": 0.2710321004091384,
+      "pred_len_mae": 0.075,
+      "pred_len_match_rate": 0.93125,
+      "pred_count_mean": 2.1875,
+      "quantity_mean": 2.1875,
+      "pred_len_mean": 2.146875,
+      "target_len_mean": 2.1875,
+      "alpha_eval_sum_mean": 2.1875,
+      "target_alpha_sum_mean": 2.1875,
+      "boundary_mae": 0.49999499022960664,
+      "boundary_mae_when_count_correct": 0.49999499022960664
+    },
+    "pred_rescaled_to_target_len": {
+      "loss": 0.563909480907023,
+      "top1": 0.8595910057425499,
+      "top5": 0.9750972017645836,
+      "exact": 0.79375,
+      "quantity_mae": 7.366761565208435e-08,
+      "mae_len": 7.366761565208435e-08,
+      "count_mae": 0.0,
+      "count_match_rate": 1.0,
+      "token_accuracy_when_count_correct": 0.8673177137970924,
+      "token_accuracy_when_count_wrong": 0.0,
+      "length_loss": 0.2710321004091384,
+      "pred_len_mae": 0.075,
+      "pred_len_match_rate": 0.93125,
+      "pred_count_mean": 2.1875,
+      "quantity_mean": 2.1875,
+      "pred_len_mean": 2.146875,
+      "target_len_mean": 2.1875,
+      "alpha_eval_sum_mean": 2.1875,
+      "target_alpha_sum_mean": 2.1875,
+      "alpha_logit_mean": -3.946834409236908,
+      "alpha_logit_p01": -4.350617408752441,
+      "alpha_logit_p50": -3.9722026765346525,
+      "alpha_logit_p99": -3.4712739527225493,
+      "alpha_mean": 0.020000764215365053,
+      "alpha_sum_mean": 2.5411351144313814,
+      "feature_norm_mean": 37.218284034729,
+      "feature_norm_max": 64.23391733169555,
+      "boundary_mae": 0.6447866998612881,
+      "boundary_mae_when_count_correct": 0.6447866998612881
+    },
+    "pred_rescaled_to_pred_len": {
+      "loss": 0.8633196206763387,
+      "top1": 0.840867318212986,
+      "top5": 0.9546253010630608,
+      "exact": 0.775,
+      "quantity_mae": 0.07500006463378668,
+      "mae_len": 0.07500006463378668,
+      "count_mae": 0.075,
+      "count_match_rate": 0.93125,
+      "token_accuracy_when_count_correct": 0.894423033297062,
+      "token_accuracy_when_count_wrong": 0.12812500335276128,
+      "length_loss": 0.2710321004091384,
+      "pred_len_mae": 0.075,
+      "pred_len_match_rate": 0.93125,
+      "pred_count_mean": 2.146875,
+      "quantity_mean": 2.146875,
+      "pred_len_mean": 2.146875,
+      "target_len_mean": 2.1875,
+      "rescale_length_mae": 0.075,
+      "alpha_eval_sum_mean": 2.146875,
+      "target_alpha_sum_mean": 2.1875,
+      "alpha_logit_mean": -3.946834409236908,
+      "alpha_logit_p01": -4.350617408752441,
+      "alpha_logit_p50": -3.9722026765346525,
+      "alpha_logit_p99": -3.4712739527225493,
+      "alpha_mean": 0.020000764215365053,
+      "alpha_sum_mean": 2.5411351144313814,
+      "feature_norm_mean": 37.218284034729,
+      "feature_norm_max": 64.23391733169555,
+      "boundary_mae": 35.76510946601629,
+      "boundary_mae_when_count_correct": 0.6451073475182056
+    },
+    "pred_raw": {
+      "loss": 1.6260034410282969,
+      "top1": 0.7470638886094093,
+      "top5": 0.9037703841924667,
+      "exact": 0.5921875,
+      "quantity_mae": 0.4283672161400318,
+      "mae_len": 0.4283672161400318,
+      "count_mae": 0.2078125,
+      "count_match_rate": 0.796875,
+      "token_accuracy_when_count_correct": 0.8412765711545944,
+      "token_accuracy_when_count_wrong": 0.364548621699214,
+      "length_loss": 0.2710321004091384,
+      "pred_len_mae": 0.075,
+      "pred_len_match_rate": 0.93125,
+      "pred_count_mean": 2.0734375,
+      "quantity_mean": 2.5411351144313814,
+      "pred_len_mean": 2.146875,
+      "target_len_mean": 2.1875,
+      "alpha_eval_sum_mean": 2.5411351144313814,
+      "target_alpha_sum_mean": 2.1875,
+      "alpha_logit_mean": -3.946834409236908,
+      "alpha_logit_p01": -4.350617408752441,
+      "alpha_logit_p50": -3.9722026765346525,
+      "alpha_logit_p99": -3.4712739527225493,
+      "alpha_mean": 0.020000764215365053,
+      "alpha_sum_mean": 2.5411351144313814,
+      "feature_norm_mean": 37.218284034729,
+      "feature_norm_max": 64.23391733169555,
+      "boundary_mae": 101.33040814399719,
+      "boundary_mae_when_count_correct": 10.956029200553894
+    }
+  },
+  "mode_cuts": {
+    "teacher_alpha": {
+      "by_target_length": {
+        "1": {
+          "samples": 70,
+          "count_abs_error": 0.0,
+          "count_match": 1.0,
+          "exact": 0.9285714285714286,
+          "quantity_abs_error": 1.7881393432617187e-08,
+          "token_accuracy_when_count_correct": 0.9285714285714286,
+          "token_top1": 0.9285714285714286
+        },
+        "2": {
+          "samples": 420,
+          "count_abs_error": 0.0,
+          "count_match": 1.0,
+          "exact": 0.830952380952381,
+          "quantity_abs_error": 3.916876656668527e-08,
+          "token_accuracy_when_count_correct": 0.8690476190476191,
+          "token_top1": 0.8690476190476191
+        },
+        "3+": {
+          "samples": 150,
+          "count_abs_error": 0.0,
+          "count_match": 1.0,
+          "exact": 0.6333333333333333,
+          "quantity_abs_error": 2.86102294921875e-08,
+          "token_accuracy_when_count_correct": 0.8350000037749609,
+          "token_top1": 0.8350000037749609
+        }
+      },
+      "by_gloss": {
+        "A tierra": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Aceptar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Agua": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Amargo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Amarillo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Apaga": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Apellido": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Aprender": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Argentina": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Arroz": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.85
+        },
+        "Atrapar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Ayuda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Azul claro": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.8
+        },
+        "Bailar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.75
+        },
+        "Barbacoa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.975
+        },
+        "Bañar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Brillante": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.6
+        },
+        "Burlarse": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.0,
+          "token_accuracy": 0.6000000178813935
+        },
+        "Cajón": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Caramelo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.9000000059604645
+        },
+        "Colores": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Comprar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Copiar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Correr": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Cumpleaños": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Dar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Darse cuenta de": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.2,
+          "token_accuracy": 0.7
+        },
+        "Desayuno": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.8666666686534882
+        },
+        "Dónde": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Encontrar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Enemigo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.55
+        },
+        "Espaguetis": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.8333333373069763
+        },
+        "Espumadera": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.8000000059604645
+        },
+        "Foto": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Goma de mascar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.825
+        },
+        "Gracias": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Hambriento": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.3,
+          "token_accuracy": 0.725
+        },
+        "Hijo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Hombre": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Leche": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.75
+        },
+        "Leche dulce": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.8333333373069763
+        },
+        "Lejos": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.6
+        },
+        "Llamar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.75
+        },
+        "Mapa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Moneda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Mujeres": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.8
+        },
+        "Música": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Nacer": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Navío": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Ninguno": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Nombre": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Opaco": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Paciencia": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.7333333402872085
+        },
+        "Parecer": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "País": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Perfume": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Rojo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Rosado": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Sordo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Trampa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Uruguay": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9666666686534882
+        },
+        "Verde": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Víveres": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.8666666746139526
+        },
+        "Yogur": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        }
+      },
+      "hist_quantity_minus_target_len": {
+        "0.0": 640
+      },
+      "hist_pred_count_minus_target_len": {
+        "0": 640
+      },
+      "quantity_close_but_count_wrong_examples": [],
+      "worst_examples": [
+        {
+          "clip_id": "715",
+          "gloss": "A tierra",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "985",
+          "gloss": "Amargo",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3024",
+          "gloss": "Apaga",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1831",
+          "gloss": "Apellido",
+          "target_len": 1,
+          "quantity": 0.9999999403953552,
+          "pred_count": 1,
+          "quantity_delta": -5.960464477539063e-08,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2048",
+          "gloss": "Apellido",
+          "target_len": 1,
+          "quantity": 1.0,
+          "pred_count": 1,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "707",
+          "gloss": "Aprender",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1633",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1274",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1873",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3086",
+          "gloss": "Bailar",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2491",
+          "gloss": "Bailar",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "148",
+          "gloss": "Bañar",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3093",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1546",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "129",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1837",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2064",
+          "gloss": "Burlarse",
+          "target_len": 3,
+          "quantity": 3.0,
+          "pred_count": 3,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "977",
+          "gloss": "Cajón",
+          "target_len": 3,
+          "quantity": 3.0,
+          "pred_count": 3,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3015",
+          "gloss": "Colores",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2801",
+          "gloss": "Comprar",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2356",
+          "gloss": "Comprar",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "104",
+          "gloss": "Copiar",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "153",
+          "gloss": "Darse cuenta de",
+          "target_len": 4,
+          "quantity": 3.999999761581421,
+          "pred_count": 4,
+          "quantity_delta": -2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "489",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 3.0,
+          "pred_count": 3,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1820",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        }
+      ]
+    },
+    "pred_rescaled_to_target_len": {
+      "by_target_length": {
+        "1": {
+          "samples": 70,
+          "count_abs_error": 0.0,
+          "count_match": 1.0,
+          "exact": 0.9428571428571428,
+          "quantity_abs_error": 4.6832220894949776e-08,
+          "token_accuracy_when_count_correct": 0.9428571428571428,
+          "token_top1": 0.9428571428571428
+        },
+        "2": {
+          "samples": 420,
+          "count_abs_error": 0.0,
+          "count_match": 1.0,
+          "exact": 0.8238095238095238,
+          "quantity_abs_error": 6.528127761114212e-08,
+          "token_accuracy_when_count_correct": 0.8654761904761905,
+          "token_top1": 0.8654761904761905
+        },
+        "3+": {
+          "samples": 150,
+          "count_abs_error": 0.0,
+          "count_match": 1.0,
+          "exact": 0.64,
+          "quantity_abs_error": 1.0967254638671875e-07,
+          "token_accuracy_when_count_correct": 0.8372222258647283,
+          "token_top1": 0.8372222258647283
+        }
+      },
+      "by_gloss": {
+        "A tierra": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Aceptar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Agua": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Amargo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Amarillo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Apaga": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Apellido": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Aprender": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Argentina": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Arroz": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.85
+        },
+        "Atrapar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Ayuda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Azul claro": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.8
+        },
+        "Bailar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Barbacoa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.975
+        },
+        "Bañar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Brillante": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.6
+        },
+        "Burlarse": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.0,
+          "token_accuracy": 0.6000000178813935
+        },
+        "Cajón": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Caramelo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.9000000059604645
+        },
+        "Colores": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Comprar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Copiar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Correr": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Cumpleaños": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Dar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Darse cuenta de": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.2,
+          "token_accuracy": 0.7
+        },
+        "Desayuno": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Dónde": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Encontrar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Enemigo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.55
+        },
+        "Espaguetis": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.8333333373069763
+        },
+        "Espumadera": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.8000000059604645
+        },
+        "Foto": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Goma de mascar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.825
+        },
+        "Gracias": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Hambriento": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.3,
+          "token_accuracy": 0.725
+        },
+        "Hijo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Hombre": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Leche": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.75
+        },
+        "Leche dulce": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.8333333373069763
+        },
+        "Lejos": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.6
+        },
+        "Llamar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.75
+        },
+        "Mapa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Moneda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Mujeres": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.8
+        },
+        "Música": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Nacer": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Navío": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Ninguno": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Nombre": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Opaco": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Paciencia": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.7333333402872085
+        },
+        "Parecer": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "País": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Perfume": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Rojo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.65
+        },
+        "Rosado": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Sordo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Trampa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Uruguay": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9666666686534882
+        },
+        "Verde": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Víveres": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.8666666746139526
+        },
+        "Yogur": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        }
+      },
+      "hist_quantity_minus_target_len": {
+        "0.0": 640
+      },
+      "hist_pred_count_minus_target_len": {
+        "0": 640
+      },
+      "quantity_close_but_count_wrong_examples": [],
+      "worst_examples": [
+        {
+          "clip_id": "715",
+          "gloss": "A tierra",
+          "target_len": 2,
+          "quantity": 1.999999761581421,
+          "pred_count": 2,
+          "quantity_delta": -2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "985",
+          "gloss": "Amargo",
+          "target_len": 2,
+          "quantity": 2.000000238418579,
+          "pred_count": 2,
+          "quantity_delta": 2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3024",
+          "gloss": "Apaga",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2048",
+          "gloss": "Apellido",
+          "target_len": 1,
+          "quantity": 0.9999998807907104,
+          "pred_count": 1,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "707",
+          "gloss": "Aprender",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1633",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1274",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1873",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 2.000000238418579,
+          "pred_count": 2,
+          "quantity_delta": 2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3086",
+          "gloss": "Bailar",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2491",
+          "gloss": "Bailar",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "148",
+          "gloss": "Bañar",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3093",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1546",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "129",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1837",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2064",
+          "gloss": "Burlarse",
+          "target_len": 3,
+          "quantity": 3.0,
+          "pred_count": 3,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "977",
+          "gloss": "Cajón",
+          "target_len": 3,
+          "quantity": 3.000000476837158,
+          "pred_count": 3,
+          "quantity_delta": 4.76837158203125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3015",
+          "gloss": "Colores",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2801",
+          "gloss": "Comprar",
+          "target_len": 2,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.1920928955078125e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2356",
+          "gloss": "Comprar",
+          "target_len": 2,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "104",
+          "gloss": "Copiar",
+          "target_len": 2,
+          "quantity": 1.999999761581421,
+          "pred_count": 2,
+          "quantity_delta": -2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "153",
+          "gloss": "Darse cuenta de",
+          "target_len": 4,
+          "quantity": 4.0,
+          "pred_count": 4,
+          "quantity_delta": 0.0,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "489",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 2.999999761581421,
+          "pred_count": 3,
+          "quantity_delta": -2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1820",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 2.000000238418579,
+          "pred_count": 2,
+          "quantity_delta": 2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "671",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 1.999999761581421,
+          "pred_count": 2,
+          "quantity_delta": -2.384185791015625e-07,
+          "count_delta": 0,
+          "token_accuracy": 0.0,
+          "exact": 0
+        }
+      ]
+    },
+    "pred_rescaled_to_pred_len": {
+      "by_target_length": {
+        "1": {
+          "samples": 70,
+          "count_abs_error": 0.1,
+          "count_match": 0.9,
+          "exact": 0.9142857142857143,
+          "quantity_abs_error": 0.10000003576278686,
+          "token_accuracy_when_count_correct": 1.0,
+          "token_accuracy_when_count_wrong": 0.14285714285714285,
+          "token_top1": 0.9142857142857143
+        },
+        "2": {
+          "samples": 420,
+          "count_abs_error": 0.02857142857142857,
+          "count_match": 0.9714285714285714,
+          "exact": 0.819047619047619,
+          "quantity_abs_error": 0.028571493001211257,
+          "token_accuracy_when_count_correct": 0.883578431372549,
+          "token_accuracy_when_count_wrong": 0.041666666666666664,
+          "token_top1": 0.8595238095238096
+        },
+        "3+": {
+          "samples": 150,
+          "count_abs_error": 0.19333333333333333,
+          "count_match": 0.8333333333333334,
+          "exact": 0.5866666666666667,
+          "quantity_abs_error": 0.19333341995875042,
+          "token_accuracy_when_count_correct": 0.882000002861023,
+          "token_accuracy_when_count_wrong": 0.36000000953674316,
+          "token_top1": 0.795000003973643
+        }
+      },
+      "by_gloss": {
+        "A tierra": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Aceptar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Agua": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Amargo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Amarillo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Apaga": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Apellido": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Aprender": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Argentina": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.7,
+          "token_accuracy": 0.75
+        },
+        "Arroz": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.85
+        },
+        "Atrapar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Ayuda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Azul claro": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.8
+        },
+        "Bailar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Barbacoa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.975
+        },
+        "Bañar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Brillante": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.6,
+          "token_accuracy": 0.6
+        },
+        "Burlarse": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.0,
+          "token_accuracy": 0.6000000178813935
+        },
+        "Cajón": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Caramelo": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.7,
+          "token_accuracy": 0.9000000059604645
+        },
+        "Colores": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Comprar": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Copiar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Correr": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Cumpleaños": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Dar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Darse cuenta de": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.1,
+          "token_accuracy": 0.625
+        },
+        "Desayuno": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.6,
+          "token_accuracy": 0.7666666716337204
+        },
+        "Dónde": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Encontrar": {
+          "samples": 10,
+          "count_match": 0.5,
+          "exact": 0.4,
+          "token_accuracy": 0.45
+        },
+        "Enemigo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.55
+        },
+        "Espaguetis": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.5,
+          "token_accuracy": 0.7000000059604645
+        },
+        "Espumadera": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.5,
+          "token_accuracy": 0.7000000059604645
+        },
+        "Foto": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Goma de mascar": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.7,
+          "token_accuracy": 0.8
+        },
+        "Gracias": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Hambriento": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.3,
+          "token_accuracy": 0.725
+        },
+        "Hijo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Hombre": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Leche": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.75
+        },
+        "Leche dulce": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.7,
+          "token_accuracy": 0.8000000029802322
+        },
+        "Lejos": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.6
+        },
+        "Llamar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.75
+        },
+        "Mapa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Moneda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Mujeres": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.8
+        },
+        "Música": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Nacer": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Navío": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Ninguno": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Nombre": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Opaco": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Paciencia": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.5,
+          "token_accuracy": 0.6666666716337204
+        },
+        "Parecer": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "País": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Perfume": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Rojo": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.5,
+          "token_accuracy": 0.6
+        },
+        "Rosado": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Sordo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Trampa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Uruguay": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.9666666686534882
+        },
+        "Verde": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Víveres": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.5,
+          "token_accuracy": 0.8000000089406967
+        },
+        "Yogur": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        }
+      },
+      "hist_quantity_minus_target_len": {
+        "-2.0": 4,
+        "-1.0": 29,
+        "0.0": 596,
+        "1.0": 11
+      },
+      "hist_pred_count_minus_target_len": {
+        "-2": 4,
+        "-1": 29,
+        "0": 596,
+        "1": 11
+      },
+      "quantity_close_but_count_wrong_examples": [],
+      "worst_examples": [
+        {
+          "clip_id": "153",
+          "gloss": "Darse cuenta de",
+          "target_len": 4,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": -2.0,
+          "count_delta": -2,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "578",
+          "gloss": "Goma de mascar",
+          "target_len": 4,
+          "quantity": 1.999999761581421,
+          "pred_count": 2,
+          "quantity_delta": -2.000000238418579,
+          "count_delta": -2,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "134",
+          "gloss": "Paciencia",
+          "target_len": 3,
+          "quantity": 1.0000001192092896,
+          "pred_count": 1,
+          "quantity_delta": -1.9999998807907104,
+          "count_delta": -2,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1019",
+          "gloss": "Darse cuenta de",
+          "target_len": 4,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": -2.0,
+          "count_delta": -2,
+          "token_accuracy": 0.25,
+          "exact": 0
+        },
+        {
+          "clip_id": "766",
+          "gloss": "Apellido",
+          "target_len": 1,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 1.0,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1831",
+          "gloss": "Apellido",
+          "target_len": 1,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 1.0,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2048",
+          "gloss": "Apellido",
+          "target_len": 1,
+          "quantity": 1.999999761581421,
+          "pred_count": 2,
+          "quantity_delta": 0.9999997615814209,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3093",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 3.0,
+          "pred_count": 3,
+          "quantity_delta": 1.0,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1546",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 3.0,
+          "pred_count": 3,
+          "quantity_delta": 1.0,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "129",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 3.000000238418579,
+          "pred_count": 3,
+          "quantity_delta": 1.000000238418579,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2064",
+          "gloss": "Burlarse",
+          "target_len": 3,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": -1.0,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2356",
+          "gloss": "Comprar",
+          "target_len": 2,
+          "quantity": 1.0,
+          "pred_count": 1,
+          "quantity_delta": -1.0,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "546",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 0.9999999403953552,
+          "pred_count": 1,
+          "quantity_delta": -1.0000000596046448,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1820",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 3.0,
+          "pred_count": 3,
+          "quantity_delta": 1.0,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "298",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 0.9999999403953552,
+          "pred_count": 1,
+          "quantity_delta": -1.0000000596046448,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "671",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 0.9999998807907104,
+          "pred_count": 1,
+          "quantity_delta": -1.0000001192092896,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2837",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 1.0,
+          "pred_count": 1,
+          "quantity_delta": -1.0,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "534",
+          "gloss": "Espumadera",
+          "target_len": 3,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": -1.0,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3037",
+          "gloss": "Leche dulce",
+          "target_len": 3,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": -1.0000001192092896,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1367",
+          "gloss": "Nombre",
+          "target_len": 1,
+          "quantity": 1.999999761581421,
+          "pred_count": 2,
+          "quantity_delta": 0.9999997615814209,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "944",
+          "gloss": "Rojo",
+          "target_len": 2,
+          "quantity": 1.0,
+          "pred_count": 1,
+          "quantity_delta": -1.0,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2260",
+          "gloss": "Rojo",
+          "target_len": 2,
+          "quantity": 1.0,
+          "pred_count": 1,
+          "quantity_delta": -1.0,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "744",
+          "gloss": "Verde",
+          "target_len": 1,
+          "quantity": 1.9999998807907104,
+          "pred_count": 2,
+          "quantity_delta": 0.9999998807907104,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "121",
+          "gloss": "Verde",
+          "target_len": 1,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": 1.0,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2386",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 2.0,
+          "pred_count": 2,
+          "quantity_delta": -1.0,
+          "count_delta": -1,
+          "token_accuracy": 0.3333333432674408,
+          "exact": 0
+        }
+      ]
+    },
+    "pred_raw": {
+      "by_target_length": {
+        "1": {
+          "samples": 70,
+          "count_abs_error": 0.04285714285714286,
+          "count_match": 0.9571428571428572,
+          "exact": 0.8714285714285714,
+          "quantity_abs_error": 0.367819002696446,
+          "token_accuracy_when_count_correct": 0.8955223880597015,
+          "token_accuracy_when_count_wrong": 0.3333333333333333,
+          "token_top1": 0.8714285714285714
+        },
+        "2": {
+          "samples": 420,
+          "count_abs_error": 0.14285714285714285,
+          "count_match": 0.8571428571428571,
+          "exact": 0.6595238095238095,
+          "quantity_abs_error": 0.4324709790093558,
+          "token_accuracy_when_count_correct": 0.8541666666666666,
+          "token_accuracy_when_count_wrong": 0.35833333333333334,
+          "token_top1": 0.7833333333333333
+        },
+        "3+": {
+          "samples": 150,
+          "count_abs_error": 0.4666666666666667,
+          "count_match": 0.5533333333333333,
+          "exact": 0.2733333333333333,
+          "quantity_abs_error": 0.4451325337092082,
+          "token_accuracy_when_count_correct": 0.7751004067530115,
+          "token_accuracy_when_count_wrong": 0.5199005096705992,
+          "token_top1": 0.661111119389534
+        }
+      },
+      "by_gloss": {
+        "A tierra": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.9,
+          "token_accuracy": 0.9
+        },
+        "Aceptar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Agua": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Amargo": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Amarillo": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Apaga": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.8,
+          "token_accuracy": 0.85
+        },
+        "Apellido": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.6,
+          "token_accuracy": 0.6
+        },
+        "Aprender": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Argentina": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Arroz": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Atrapar": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.2,
+          "token_accuracy": 0.6
+        },
+        "Ayuda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.85
+        },
+        "Azul claro": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Bailar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.7,
+          "token_accuracy": 0.75
+        },
+        "Barbacoa": {
+          "samples": 10,
+          "count_match": 0.2,
+          "exact": 0.0,
+          "token_accuracy": 0.475
+        },
+        "Bañar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Brillante": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.4,
+          "token_accuracy": 0.5
+        },
+        "Burlarse": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.0,
+          "token_accuracy": 0.5666666835546493
+        },
+        "Cajón": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.2,
+          "token_accuracy": 0.600000011920929
+        },
+        "Caramelo": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.4,
+          "token_accuracy": 0.7333333432674408
+        },
+        "Colores": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.6,
+          "token_accuracy": 0.75
+        },
+        "Comprar": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.5,
+          "token_accuracy": 0.65
+        },
+        "Copiar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Correr": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Cumpleaños": {
+          "samples": 10,
+          "count_match": 0.3,
+          "exact": 0.3,
+          "token_accuracy": 0.7666666805744171
+        },
+        "Dar": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Darse cuenta de": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.2,
+          "token_accuracy": 0.625
+        },
+        "Desayuno": {
+          "samples": 10,
+          "count_match": 0.5,
+          "exact": 0.4,
+          "token_accuracy": 0.7000000089406967
+        },
+        "Dónde": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Encontrar": {
+          "samples": 10,
+          "count_match": 0.4,
+          "exact": 0.2,
+          "token_accuracy": 0.4
+        },
+        "Enemigo": {
+          "samples": 10,
+          "count_match": 0.5,
+          "exact": 0.2,
+          "token_accuracy": 0.35
+        },
+        "Espaguetis": {
+          "samples": 10,
+          "count_match": 0.1,
+          "exact": 0.0,
+          "token_accuracy": 0.6000000178813935
+        },
+        "Espumadera": {
+          "samples": 10,
+          "count_match": 0.4,
+          "exact": 0.3,
+          "token_accuracy": 0.6666666775941849
+        },
+        "Foto": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Goma de mascar": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.3,
+          "token_accuracy": 0.675
+        },
+        "Gracias": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.2,
+          "token_accuracy": 0.6
+        },
+        "Hambriento": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.1,
+          "token_accuracy": 0.475
+        },
+        "Hijo": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.6,
+          "token_accuracy": 0.8
+        },
+        "Hombre": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Leche": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.2,
+          "token_accuracy": 0.6
+        },
+        "Leche dulce": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.5,
+          "token_accuracy": 0.7333333402872085
+        },
+        "Lejos": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.2,
+          "token_accuracy": 0.35
+        },
+        "Llamar": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.5,
+          "token_accuracy": 0.65
+        },
+        "Mapa": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Moneda": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Mujeres": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Música": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Nacer": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.4,
+          "token_accuracy": 0.7
+        },
+        "Navío": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.8,
+          "token_accuracy": 0.9
+        },
+        "Ninguno": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.3,
+          "token_accuracy": 0.6
+        },
+        "Nombre": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.8,
+          "token_accuracy": 0.8
+        },
+        "Opaco": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.6,
+          "token_accuracy": 0.7
+        },
+        "Paciencia": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.4,
+          "token_accuracy": 0.7000000089406967
+        },
+        "Parecer": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "País": {
+          "samples": 10,
+          "count_match": 0.8,
+          "exact": 0.5,
+          "token_accuracy": 0.75
+        },
+        "Perfume": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 1.0,
+          "token_accuracy": 1.0
+        },
+        "Rojo": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Rosado": {
+          "samples": 10,
+          "count_match": 0.7,
+          "exact": 0.6,
+          "token_accuracy": 0.75
+        },
+        "Sordo": {
+          "samples": 10,
+          "count_match": 0.6,
+          "exact": 0.5,
+          "token_accuracy": 0.7
+        },
+        "Trampa": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.9,
+          "token_accuracy": 0.95
+        },
+        "Uruguay": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.6,
+          "token_accuracy": 0.8333333402872085
+        },
+        "Verde": {
+          "samples": 10,
+          "count_match": 0.9,
+          "exact": 0.7,
+          "token_accuracy": 0.7
+        },
+        "Víveres": {
+          "samples": 10,
+          "count_match": 0.5,
+          "exact": 0.4,
+          "token_accuracy": 0.7666666775941848
+        },
+        "Yogur": {
+          "samples": 10,
+          "count_match": 1.0,
+          "exact": 0.5,
+          "token_accuracy": 0.75
+        }
+      },
+      "hist_quantity_minus_target_len": {
+        "-1.1": 1,
+        "-1.0": 1,
+        "-0.8": 2,
+        "-0.6": 7,
+        "-0.5": 5,
+        "-0.4": 12,
+        "-0.3": 9,
+        "-0.2": 13,
+        "-0.1": 28,
+        "-0.0": 34,
+        "0.1": 46,
+        "0.2": 78,
+        "0.3": 101,
+        "0.4": 69,
+        "0.5": 71,
+        "0.6": 51,
+        "0.7": 36,
+        "0.8": 21,
+        "0.9": 19,
+        "1.0": 10,
+        "1.1": 6,
+        "1.2": 3,
+        "1.3": 6,
+        "1.4": 2,
+        "1.5": 3,
+        "1.6": 2,
+        "1.7": 1,
+        "2.0": 1,
+        "2.1": 1,
+        "2.3": 1
+      },
+      "hist_pred_count_minus_target_len": {
+        "-2": 1,
+        "-1": 101,
+        "0": 510,
+        "1": 26,
+        "2": 2
+      },
+      "quantity_close_but_count_wrong_examples": [
+        {
+          "clip_id": "2986",
+          "gloss": "Paciencia",
+          "target_len": 3,
+          "quantity": 2.819746971130371,
+          "pred_count": 2,
+          "quantity_delta": -0.1802530288696289,
+          "count_delta": -1,
+          "token_accuracy": 0.3333333432674408,
+          "exact": 0
+        },
+        {
+          "clip_id": "613",
+          "gloss": "Gracias",
+          "target_len": 2,
+          "quantity": 1.9975095987319946,
+          "pred_count": 1,
+          "quantity_delta": -0.002490401268005371,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        },
+        {
+          "clip_id": "1466",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 2.9933600425720215,
+          "pred_count": 2,
+          "quantity_delta": -0.006639957427978516,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "2543",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 2.973900318145752,
+          "pred_count": 2,
+          "quantity_delta": -0.026099681854248047,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "2173",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 2.8532848358154297,
+          "pred_count": 2,
+          "quantity_delta": -0.1467151641845703,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "2386",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 2.9456305503845215,
+          "pred_count": 2,
+          "quantity_delta": -0.054369449615478516,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "844",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 1.8555445671081543,
+          "pred_count": 1,
+          "quantity_delta": -0.1444554328918457,
+          "count_delta": -1,
+          "token_accuracy": 1.0,
+          "exact": 1
+        },
+        {
+          "clip_id": "770",
+          "gloss": "Llamar",
+          "target_len": 2,
+          "quantity": 1.966139793395996,
+          "pred_count": 1,
+          "quantity_delta": -0.033860206604003906,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "793",
+          "gloss": "Llamar",
+          "target_len": 2,
+          "quantity": 1.908860683441162,
+          "pred_count": 1,
+          "quantity_delta": -0.09113931655883789,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        },
+        {
+          "clip_id": "46",
+          "gloss": "Burlarse",
+          "target_len": 3,
+          "quantity": 2.7793338298797607,
+          "pred_count": 2,
+          "quantity_delta": -0.22066617012023926,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "604",
+          "gloss": "Burlarse",
+          "target_len": 3,
+          "quantity": 2.7608420848846436,
+          "pred_count": 2,
+          "quantity_delta": -0.23915791511535645,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "1158",
+          "gloss": "Víveres",
+          "target_len": 3,
+          "quantity": 2.9628336429595947,
+          "pred_count": 2,
+          "quantity_delta": -0.03716635704040527,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "2935",
+          "gloss": "Víveres",
+          "target_len": 3,
+          "quantity": 2.958279848098755,
+          "pred_count": 2,
+          "quantity_delta": -0.04172015190124512,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "2278",
+          "gloss": "Víveres",
+          "target_len": 3,
+          "quantity": 2.8632705211639404,
+          "pred_count": 2,
+          "quantity_delta": -0.13672947883605957,
+          "count_delta": -1,
+          "token_accuracy": 0.6666666865348816,
+          "exact": 0
+        },
+        {
+          "clip_id": "2636",
+          "gloss": "Verde",
+          "target_len": 1,
+          "quantity": 0.9315793514251709,
+          "pred_count": 0,
+          "quantity_delta": -0.0684206485748291,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2751",
+          "gloss": "Enemigo",
+          "target_len": 2,
+          "quantity": 1.9564342498779297,
+          "pred_count": 1,
+          "quantity_delta": -0.04356575012207031,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "436",
+          "gloss": "Enemigo",
+          "target_len": 2,
+          "quantity": 1.999890685081482,
+          "pred_count": 1,
+          "quantity_delta": -0.0001093149185180664,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        },
+        {
+          "clip_id": "2939",
+          "gloss": "Enemigo",
+          "target_len": 2,
+          "quantity": 1.7813016176223755,
+          "pred_count": 1,
+          "quantity_delta": -0.2186983823776245,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "509",
+          "gloss": "Enemigo",
+          "target_len": 2,
+          "quantity": 1.832619071006775,
+          "pred_count": 1,
+          "quantity_delta": -0.1673809289932251,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        },
+        {
+          "clip_id": "2165",
+          "gloss": "Trampa",
+          "target_len": 2,
+          "quantity": 1.973130226135254,
+          "pred_count": 1,
+          "quantity_delta": -0.026869773864746094,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        },
+        {
+          "clip_id": "1906",
+          "gloss": "Colores",
+          "target_len": 2,
+          "quantity": 1.9944509267807007,
+          "pred_count": 1,
+          "quantity_delta": -0.005549073219299316,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        },
+        {
+          "clip_id": "1166",
+          "gloss": "Colores",
+          "target_len": 2,
+          "quantity": 1.9533900022506714,
+          "pred_count": 1,
+          "quantity_delta": -0.04660999774932861,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        },
+        {
+          "clip_id": "715",
+          "gloss": "A tierra",
+          "target_len": 2,
+          "quantity": 1.8479297161102295,
+          "pred_count": 1,
+          "quantity_delta": -0.1520702838897705,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2918",
+          "gloss": "Goma de mascar",
+          "target_len": 4,
+          "quantity": 3.9024415016174316,
+          "pred_count": 3,
+          "quantity_delta": -0.09755849838256836,
+          "count_delta": -1,
+          "token_accuracy": 0.75,
+          "exact": 0
+        },
+        {
+          "clip_id": "88",
+          "gloss": "Hambriento",
+          "target_len": 4,
+          "quantity": 3.844855785369873,
+          "pred_count": 3,
+          "quantity_delta": -0.15514421463012695,
+          "count_delta": -1,
+          "token_accuracy": 0.5,
+          "exact": 0
+        }
+      ],
+      "worst_examples": [
+        {
+          "clip_id": "153",
+          "gloss": "Darse cuenta de",
+          "target_len": 4,
+          "quantity": 2.9208412170410156,
+          "pred_count": 2,
+          "quantity_delta": -1.0791587829589844,
+          "count_delta": -2,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1600",
+          "gloss": "Barbacoa",
+          "target_len": 4,
+          "quantity": 6.31062126159668,
+          "pred_count": 6,
+          "quantity_delta": 2.3106212615966797,
+          "count_delta": 2,
+          "token_accuracy": 0.25,
+          "exact": 0
+        },
+        {
+          "clip_id": "835",
+          "gloss": "Darse cuenta de",
+          "target_len": 4,
+          "quantity": 6.054573059082031,
+          "pred_count": 6,
+          "quantity_delta": 2.0545730590820312,
+          "count_delta": 2,
+          "token_accuracy": 0.25,
+          "exact": 0
+        },
+        {
+          "clip_id": "715",
+          "gloss": "A tierra",
+          "target_len": 2,
+          "quantity": 1.8479297161102295,
+          "pred_count": 1,
+          "quantity_delta": -0.1520702838897705,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1746",
+          "gloss": "Amargo",
+          "target_len": 2,
+          "quantity": 1.9038639068603516,
+          "pred_count": 1,
+          "quantity_delta": -0.09613609313964844,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3024",
+          "gloss": "Apaga",
+          "target_len": 2,
+          "quantity": 1.9689198732376099,
+          "pred_count": 1,
+          "quantity_delta": -0.031080126762390137,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1274",
+          "gloss": "Argentina",
+          "target_len": 2,
+          "quantity": 3.1662745475769043,
+          "pred_count": 3,
+          "quantity_delta": 1.1662745475769043,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3093",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 3.567620277404785,
+          "pred_count": 3,
+          "quantity_delta": 1.5676202774047852,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1546",
+          "gloss": "Brillante",
+          "target_len": 2,
+          "quantity": 3.5997891426086426,
+          "pred_count": 3,
+          "quantity_delta": 1.5997891426086426,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2064",
+          "gloss": "Burlarse",
+          "target_len": 3,
+          "quantity": 2.3790414333343506,
+          "pred_count": 2,
+          "quantity_delta": -0.6209585666656494,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "977",
+          "gloss": "Cajón",
+          "target_len": 3,
+          "quantity": 2.9315543174743652,
+          "pred_count": 2,
+          "quantity_delta": -0.06844568252563477,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2801",
+          "gloss": "Comprar",
+          "target_len": 2,
+          "quantity": 1.8522467613220215,
+          "pred_count": 1,
+          "quantity_delta": -0.14775323867797852,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2356",
+          "gloss": "Comprar",
+          "target_len": 2,
+          "quantity": 1.3507848978042603,
+          "pred_count": 1,
+          "quantity_delta": -0.6492151021957397,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "489",
+          "gloss": "Desayuno",
+          "target_len": 3,
+          "quantity": 2.352072238922119,
+          "pred_count": 2,
+          "quantity_delta": -0.6479277610778809,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "546",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 1.9039748907089233,
+          "pred_count": 1,
+          "quantity_delta": -0.09602510929107666,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "570",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 1.7742857933044434,
+          "pred_count": 1,
+          "quantity_delta": -0.22571420669555664,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "671",
+          "gloss": "Encontrar",
+          "target_len": 2,
+          "quantity": 1.7197232246398926,
+          "pred_count": 1,
+          "quantity_delta": -0.2802767753601074,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2751",
+          "gloss": "Enemigo",
+          "target_len": 2,
+          "quantity": 1.9564342498779297,
+          "pred_count": 1,
+          "quantity_delta": -0.04356575012207031,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2939",
+          "gloss": "Enemigo",
+          "target_len": 2,
+          "quantity": 1.7813016176223755,
+          "pred_count": 1,
+          "quantity_delta": -0.2186983823776245,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "2376",
+          "gloss": "Enemigo",
+          "target_len": 2,
+          "quantity": 3.026212215423584,
+          "pred_count": 3,
+          "quantity_delta": 1.026212215423584,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "534",
+          "gloss": "Espumadera",
+          "target_len": 3,
+          "quantity": 2.2126669883728027,
+          "pred_count": 2,
+          "quantity_delta": -0.7873330116271973,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "3037",
+          "gloss": "Leche dulce",
+          "target_len": 3,
+          "quantity": 2.413580894470215,
+          "pred_count": 2,
+          "quantity_delta": -0.5864191055297852,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "6",
+          "gloss": "Lejos",
+          "target_len": 2,
+          "quantity": 3.3125922679901123,
+          "pred_count": 3,
+          "quantity_delta": 1.3125922679901123,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "770",
+          "gloss": "Llamar",
+          "target_len": 2,
+          "quantity": 1.966139793395996,
+          "pred_count": 1,
+          "quantity_delta": -0.033860206604003906,
+          "count_delta": -1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        },
+        {
+          "clip_id": "1444",
+          "gloss": "Nombre",
+          "target_len": 1,
+          "quantity": 2.4083096981048584,
+          "pred_count": 2,
+          "quantity_delta": 1.4083096981048584,
+          "count_delta": 1,
+          "token_accuracy": 0.0,
+          "exact": 0
+        }
+      ]
+    }
+  },
+  "interpretation": "If pred_rescaled_to_target_len stays near teacher_alpha while pred_raw drops, the deployable bottleneck is length/count calibration or CIF discretization."
+}

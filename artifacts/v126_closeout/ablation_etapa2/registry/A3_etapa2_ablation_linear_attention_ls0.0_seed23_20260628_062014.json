@@ -1,0 +1,11 @@
+{
+  "variant": {
+    "token_head": "linear",
+    "length_head": "attention",
+    "token_label_smoothing": 0.0,
+    "seed": 23,
+    "split_seed": 23
+  },
+  "run_name": "A3_etapa2_ablation_linear_attention_ls0.0_seed23_20260628_062014",
+  "checkpoint_sha256": "c98c5238e04d9e626ec5f3793418781fb8185b6ed35d1c801f660b4eed96487e"
+}

@@ -1,0 +1,8 @@
+{
+  "pred_len_mae<=0.10": true,
+  "count_match_rate>=0.93": false,
+  "top1>=0.85": true,
+  "top5>=0.94": true,
+  "exact>=0.79": true,
+  "boundary_mae_when_count_correct<=1.0": true
+}

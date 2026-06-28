@@ -1,0 +1,11 @@
+{
+  "variant": {
+    "token_head": "contextual",
+    "length_head": "attention",
+    "token_label_smoothing": 0.1,
+    "seed": 42,
+    "split_seed": 23
+  },
+  "run_name": "A3_etapa2_ablation_contextual_attention_ls0.1_seed42_20260628_062014",
+  "checkpoint_sha256": "65f5dc7acc4d26ce7c50cb01d03a1a8d50e0348ffd46b3a3deb808d0b7aa2087"
+}

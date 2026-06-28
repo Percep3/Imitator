@@ -1,0 +1,11 @@
+{
+  "variant": {
+    "token_head": "linear",
+    "length_head": "mean",
+    "token_label_smoothing": 0.0,
+    "seed": 101,
+    "split_seed": 23
+  },
+  "run_name": "A3_etapa2_ablation_linear_mean_ls0.0_seed101_20260628_062014",
+  "checkpoint_sha256": "67d7ca5e59a2c06792eaa9b6403bde2cd11a7b0ea3f01547900da719d2444807"
+}

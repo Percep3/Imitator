@@ -1,0 +1,11 @@
+{
+  "variant": {
+    "token_head": "contextual",
+    "length_head": "mean",
+    "token_label_smoothing": 0.0,
+    "seed": 101,
+    "split_seed": 23
+  },
+  "run_name": "A3_etapa2_ablation_contextual_mean_ls0.0_seed101_20260628_062014",
+  "checkpoint_sha256": "c30dd4ebdaf8948bc4d0d0e0cbbf872a2c103b2e03f21363a2821da6aef9c8d9"
+}
