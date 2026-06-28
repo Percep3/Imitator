@@ -32,6 +32,19 @@ def worst_glosses(data: dict, top_n: int = 5) -> list[dict]:
     return rows[:top_n]
 
 
+def validate_rows(rows: list[dict], id_key: str = "signer_id") -> None:
+    if not rows:
+        raise ValueError("aggregator received an empty row list")
+    seen_ids = set()
+    for row in rows:
+        row_id = row[id_key]
+        if row_id in seen_ids:
+            raise ValueError(f"duplicate {id_key}={row_id} in aggregator input")
+        seen_ids.add(row_id)
+        if row.get("samples", 0) <= 0:
+            raise ValueError(f"empty entry ({id_key}={row_id} has samples<=0)")
+
+
 def load_per_signer(audit_paths: list[Path]) -> list[dict]:
     rows = []
     for path in audit_paths:
@@ -45,11 +58,16 @@ def load_per_signer(audit_paths: list[Path]) -> list[dict]:
                 **{key: summary[key] for key in METRICS},
             }
         )
+    validate_rows(rows)
     return rows
 
 
-def average(rows: list[dict]) -> dict:
-    return {key: sum(row[key] for row in rows) / len(rows) for key in METRICS}
+def average(rows: list[dict], weight_key: str = "samples") -> dict:
+    total_weight = sum(row[weight_key] for row in rows)
+    return {
+        key: sum(row[key] * row[weight_key] for row in rows) / total_weight
+        for key in METRICS
+    }
 
 
 def gate_report(avg: dict) -> dict:
