@@ -81,6 +81,33 @@ def parse_args():
         help="Leave one signer out: train on signer_id != N and validate/evaluate only signer_id == N.",
     )
     parser.add_argument(
+        "--token-head",
+        choices=["linear", "contextual"],
+        default="contextual",
+        help="linear: pre-Etapa-2 per-slot Linear (no cross-slot context). "
+        "contextual: position embedding + TransformerEncoderLayer (current default).",
+    )
+    parser.add_argument(
+        "--length-head",
+        choices=["mean", "attention"],
+        default="attention",
+        help="mean: pre-Etapa-2 mean-pooled frame summary. "
+        "attention: 1-query attention pooling (current default).",
+    )
+    parser.add_argument(
+        "--token-label-smoothing",
+        type=float,
+        default=0.1,
+        help="label_smoothing for the token cross-entropy loss (current default preserves v126b).",
+    )
+    parser.add_argument(
+        "--split-seed",
+        type=int,
+        default=None,
+        help="Seed for train/val split, independent of --seed (init/sampling). "
+        "Defaults to --seed when omitted, preserving existing run reproducibility.",
+    )
+    parser.add_argument(
         "--prediction-alpha-mode",
         choices=[
             "teacher_alpha",
@@ -210,6 +237,10 @@ def split_records(records, seed: int, heldout_signer: int | None = None):
     if not train or not val:
         raise ValueError(f"--heldout-signer {heldout_signer} did not produce both train and val splits")
     return train, val
+
+
+def effective_split_seed(args) -> int:
+    return args.split_seed if args.split_seed is not None else args.seed
 
 
 def make_label_tokens(records, tokenizer):
@@ -787,7 +818,9 @@ def main():
     best_path = out_dir / "checkpoint_best.pt"
 
     records = list_clip_records(args.h5, "dataset1")
-    train_records, val_records = split_records(records, args.seed, args.heldout_signer)
+    train_records, val_records = split_records(
+        records, effective_split_seed(args), args.heldout_signer
+    )
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, local_files_only=True)
     token_ids_by_label = make_label_tokens(records, tokenizer)
     all_token_ids = {tid for ids in token_ids_by_label.values() for tid in ids}
@@ -849,6 +882,8 @@ def main():
         vocab_size=tokenizer.vocab_size,
         embedding_dim=args.embedding_dim,
         max_len_class=args.max_len_class,
+        token_head_variant=args.token_head,
+        length_head_variant=args.length_head,
     ).to(device)
     if args.phase == "learned_cif":
         stgcn_params = list(encoder.stgcn_layers.parameters()) + list(encoder.linear_hidden.parameters())
@@ -958,7 +993,9 @@ def main():
                 length_logits = out["length_logits"]
 
             token_logits, token_targets = gather_logits(out["token_logits"], batch["token_ids"])
-            token_loss = F.cross_entropy(token_logits, token_targets, label_smoothing=0.1)
+            token_loss = F.cross_entropy(
+                token_logits, token_targets, label_smoothing=args.token_label_smoothing
+            )
             length_targets = batch["token_lengths"].clamp(max=args.max_len_class)
             length_loss = F.cross_entropy(length_logits, length_targets)
             pred_emb, target_emb = gather_embeddings(
@@ -1117,6 +1154,7 @@ def main():
             "token_ids_by_label": token_ids_by_label,
             "load_info": load_info,
             "phase": args.phase,
+            "arch_config": {"token_head": args.token_head, "length_head": args.length_head},
         }
         torch.save(state, ckpt_path)
         if select_metric > best_select_metric:
