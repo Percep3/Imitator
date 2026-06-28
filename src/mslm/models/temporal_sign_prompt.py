@@ -234,6 +234,18 @@ class _TokenHead(nn.Module):
         return self.classifier(x)
 
 
+class _TokenHeadLinear(nn.Module):
+    """Per-slot Linear classification, no cross-slot context (pre-Etapa-2 baseline)."""
+
+    def __init__(self, hidden_size: int, vocab_size: int, max_slots: int):
+        super().__init__()
+        self.max_slots = max_slots
+        self.classifier = nn.Linear(hidden_size, vocab_size)
+
+    def forward(self, embeddings: torch.Tensor, padding_mask: torch.Tensor) -> torch.Tensor:
+        return self.classifier(embeddings)
+
+
 class _LengthHead(nn.Module):
     """Predicts sequence length from an attention-pooled frame summary.
 
@@ -264,6 +276,23 @@ class _LengthHead(nn.Module):
         return self.classifier(pooled.squeeze(1))
 
 
+class _LengthHeadMean(nn.Module):
+    """Mean-pooled frame summary (pre-Etapa-2 baseline)."""
+
+    def __init__(self, hidden_size: int, num_classes: int):
+        super().__init__()
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Linear(hidden_size, num_classes),
+        )
+
+    def forward(self, frame_features: torch.Tensor, frame_lengths: torch.Tensor) -> torch.Tensor:
+        mask = length_mask_from_lengths(frame_lengths, frame_features.size(1)).unsqueeze(-1)
+        summed = (frame_features * mask).sum(dim=1)
+        counts = mask.sum(dim=1).clamp(min=1)
+        return self.classifier(summed / counts)
+
+
 class TemporalSignPromptModel(nn.Module):
     """Thin v126 scaffold: frame encoder -> CIF -> token/embedding heads.
 
@@ -278,14 +307,28 @@ class TemporalSignPromptModel(nn.Module):
         vocab_size: int,
         embedding_dim: int,
         max_len_class: int = 16,
+        token_head_variant: str = "contextual",
+        length_head_variant: str = "attention",
     ):
         super().__init__()
         self.frame_encoder = frame_encoder
         self.cif = CIFAggregator(hidden_size)
         self.max_len_class = int(max_len_class)
-        self.token_head = _TokenHead(hidden_size, vocab_size, max_slots=self.max_len_class)
+        self.token_head_variant = token_head_variant
+        self.length_head_variant = length_head_variant
+        if token_head_variant == "contextual":
+            self.token_head = _TokenHead(hidden_size, vocab_size, max_slots=self.max_len_class)
+        elif token_head_variant == "linear":
+            self.token_head = _TokenHeadLinear(hidden_size, vocab_size, max_slots=self.max_len_class)
+        else:
+            raise ValueError(f"unknown token_head_variant: {token_head_variant!r}")
         self.embedding_head = nn.Linear(hidden_size, embedding_dim)
-        self.length_head = _LengthHead(hidden_size, self.max_len_class + 1)
+        if length_head_variant == "attention":
+            self.length_head = _LengthHead(hidden_size, self.max_len_class + 1)
+        elif length_head_variant == "mean":
+            self.length_head = _LengthHeadMean(hidden_size, self.max_len_class + 1)
+        else:
+            raise ValueError(f"unknown length_head_variant: {length_head_variant!r}")
 
     def predict_length_logits(
         self,

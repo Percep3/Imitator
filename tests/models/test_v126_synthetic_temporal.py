@@ -476,6 +476,62 @@ def test_permute_video_segments_changes_chunk_order():
     assert found_different_order
 
 
+def test_token_head_linear_variant_ignores_cross_slot_context():
+    model = TemporalSignPromptModel(
+        _build_tiny_model().frame_encoder,
+        hidden_size=2,
+        vocab_size=10,
+        embedding_dim=4,
+        token_head_variant="linear",
+    )
+    embeddings = torch.randn(2, 4, 2)
+    padding_mask = torch.tensor([[False, False, True, True], [False, True, True, True]])
+
+    logits = model.token_head(embeddings, padding_mask)
+
+    assert logits.shape == (2, 4, 10)
+    assert torch.isfinite(logits).all()
+    assert not hasattr(model.token_head, "position_embedding")
+
+
+def test_length_head_mean_variant_pools_uniformly_over_valid_frames():
+    model = TemporalSignPromptModel(
+        _build_tiny_model().frame_encoder,
+        hidden_size=2,
+        vocab_size=10,
+        embedding_dim=4,
+        length_head_variant="mean",
+    )
+    features = torch.randn(3, 5, 2)
+    lengths = torch.tensor([5, 3, 4])
+
+    logits = model.length_head(features, lengths)
+
+    assert logits.shape == (3, model.max_len_class + 1)
+    assert not hasattr(model.length_head, "attn")
+
+
+def test_invalid_head_variant_raises():
+    with pytest.raises(ValueError):
+        TemporalSignPromptModel(
+            _build_tiny_model().frame_encoder,
+            hidden_size=2,
+            vocab_size=10,
+            embedding_dim=4,
+            token_head_variant="not-a-real-variant",
+        )
+
+
+def test_default_head_variants_match_current_behavior():
+    model = TemporalSignPromptModel(
+        _build_tiny_model().frame_encoder, hidden_size=2, vocab_size=10, embedding_dim=4
+    )
+    assert model.token_head_variant == "contextual"
+    assert model.length_head_variant == "attention"
+    assert hasattr(model.token_head, "position_embedding")
+    assert hasattr(model.length_head, "attn")
+
+
 def test_checkpoint_resume_loads_full_model_state(tmp_path):
     model = _build_tiny_model()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
