@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import random
+import subprocess
 import sys
 import tomllib
 from collections import defaultdict
@@ -23,7 +24,20 @@ def _parse_args():
     parser.add_argument("--weight-decay", type=float)
     parser.add_argument("--run-id", type=int)
     parser.add_argument("--heldout-signer", type=int)
+    parser.add_argument(
+        "--exclude-signer",
+        type=int,
+        default=None,
+        help="Outer-test signer for clean LOSO: excluded from both train and val/--heldout-signer.",
+    )
     parser.add_argument("--summary-path", type=Path)
+    parser.add_argument(
+        "--h5-filename",
+        default=None,
+        help="Override data.h5_filename from the TOML. Needed for clean LOSO: cls_v121.toml's "
+        "original h5 has no signer_id metadata, so the orchestrator points this at "
+        "dataset1_isolated_v122.hdf5 (the same file train_temporal_v126.py uses by default).",
+    )
     return parser.parse_args()
 
 
@@ -69,6 +83,13 @@ def _forward_batch(model, keypoints, device):
     return torch.cat([model(kp.unsqueeze(0).to(device)) for kp in keypoints], dim=0)
 
 
+def _git_commit_hash() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return "unknown"
+
+
 def stratified_split(labels, n_val_per_class, seed):
     by_label = defaultdict(list)
     for i, label in enumerate(labels):
@@ -83,10 +104,15 @@ def stratified_split(labels, n_val_per_class, seed):
     return train_idx, val_idx
 
 
-def split_records(records, seed, n_val_per_class, heldout_signer=None):
+def split_records(records, seed, n_val_per_class, heldout_signer=None, exclude_signer=None):
+    if exclude_signer is not None and heldout_signer is None:
+        raise ValueError("exclude_signer requiere heldout_signer")
+    if exclude_signer is not None and exclude_signer == heldout_signer:
+        raise ValueError("exclude_signer debe ser distinto de heldout_signer")
     if heldout_signer is None:
         return stratified_split([r["label"] for r in records], n_val_per_class, seed)
-    train_idx = [i for i, r in enumerate(records) if r["signer_id"] != heldout_signer]
+    excluded = {heldout_signer, exclude_signer} - {None}
+    train_idx = [i for i, r in enumerate(records) if r["signer_id"] not in excluded]
     val_idx = [i for i, r in enumerate(records) if r["signer_id"] == heldout_signer]
     if not train_idx or not val_idx:
         raise ValueError(f"heldout_signer={heldout_signer} no produce ambos splits")
@@ -139,9 +165,8 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-    h5_file = path_vars.data_path / "processed" / _cfg(
-        "data", "h5_filename", "dataset1_isolated.hdf5"
-    )
+    h5_filename = ARGS.h5_filename or _cfg("data", "h5_filename", "dataset1_isolated.hdf5")
+    h5_file = path_vars.data_path / "processed" / h5_filename
     records = list_clip_records(h5_file, _cfg("data", "dataset_name", "dataset1"))
     max_samples = _cfg("data", "max_samples", None)
     if max_samples and int(max_samples) < len(records):
@@ -159,7 +184,15 @@ def main():
         seed,
         int(_cfg("data", "n_val_per_class", 10)),
         int(heldout_signer) if heldout_signer is not None else None,
+        int(ARGS.exclude_signer) if ARGS.exclude_signer is not None else None,
     )
+    if ARGS.exclude_signer is not None:
+        train_signers = {records[i]["signer_id"] for i in train_idx}
+        val_signers = {records[i]["signer_id"] for i in val_idx}
+        if ARGS.exclude_signer in train_signers or ARGS.exclude_signer in val_signers:
+            raise RuntimeError(
+                f"contamination guard: exclude_signer={ARGS.exclude_signer} leaked into split"
+            )
     train_labels = sorted({records[i]["label"] for i in train_idx})
     label_to_idx = {label: i for i, label in enumerate(train_labels)}
     val_idx = [i for i in val_idx if records[i]["label"] in label_to_idx]
@@ -236,6 +269,15 @@ def main():
     with open(checkpoint_dir / "label_to_idx.json", "w", encoding="utf-8") as f:
         json.dump(label_to_idx, f, indent=2, ensure_ascii=False)
 
+    lineage = {
+        "fold_outer_test_signer": ARGS.exclude_signer,
+        "fold_inner_val_signer": heldout_signer,
+        "train_signers": sorted({records[i]["signer_id"] for i in train_idx}),
+        "val_signers": sorted({records[i]["signer_id"] for i in val_idx}),
+        "git_commit": _git_commit_hash(),
+        "argv": sys.argv[1:],
+    }
+
     stopper = EarlyStopping(
         patience=int(_cfg("training", "early_stopping_patience", 20)),
         threshold=1e-4,
@@ -289,9 +331,9 @@ def main():
 
         if val_metrics["top1"] > best_top1:
             best_top1 = val_metrics["top1"]
-            checkpoint.save_checkpoint(model, epoch, optimizer, None, tag="best_top1")
+            checkpoint.save_checkpoint(model, epoch, optimizer, None, tag="best_top1", metadata=lineage)
         if (epoch + 1) % checkpoint_interval == 0:
-            checkpoint.save_checkpoint(model, epoch, optimizer, None)
+            checkpoint.save_checkpoint(model, epoch, optimizer, None, metadata=lineage)
         stopper(-val_metrics["top1"], epoch)
         if stopper.stop:
             break

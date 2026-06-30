@@ -35,17 +35,20 @@ class CheckpointManager:
             scheduler.load_state_dict(state["sched_state"])
         return model, optimizer, scheduler
 
-    def save_checkpoint(self, model, epoch, optimizer, scheduler, tag: str | None = None):
+    def save_checkpoint(self, model, epoch, optimizer, scheduler, tag: str | None = None, metadata: dict | None = None):
         subdir = tag if tag is not None else str(epoch)
         path = self._path(subdir)
         raw = getattr(model, "module", model)
         raw = getattr(raw, "_orig_mod", raw)
-        torch.save({
+        state = {
             "epoch": epoch,
             "model_state": raw.state_dict(),
             "optim_state": optimizer.state_dict(),
             "sched_state": scheduler.state_dict() if scheduler else None,
-        }, os.path.join(path, "checkpoint.pth"))
+        }
+        if metadata is not None:
+            state["lineage"] = metadata
+        torch.save(state, os.path.join(path, "checkpoint.pth"))
 
     def save_params(self, params):
         p = self._path()

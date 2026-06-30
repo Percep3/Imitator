@@ -1,0 +1,168 @@
+{
+  "seed": 23,
+  "signers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "folds": [
+    {
+      "fold": 1,
+      "outer_test_signer": 1,
+      "inner_val_signer": 2,
+      "train_signers": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "fold": 2,
+      "outer_test_signer": 2,
+      "inner_val_signer": 3,
+      "train_signers": [
+        1,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "fold": 3,
+      "outer_test_signer": 3,
+      "inner_val_signer": 4,
+      "train_signers": [
+        1,
+        2,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "fold": 4,
+      "outer_test_signer": 4,
+      "inner_val_signer": 5,
+      "train_signers": [
+        1,
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "fold": 5,
+      "outer_test_signer": 5,
+      "inner_val_signer": 6,
+      "train_signers": [
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "fold": 6,
+      "outer_test_signer": 6,
+      "inner_val_signer": 7,
+      "train_signers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "fold": 7,
+      "outer_test_signer": 7,
+      "inner_val_signer": 8,
+      "train_signers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        9,
+        10
+      ]
+    },
+    {
+      "fold": 8,
+      "outer_test_signer": 8,
+      "inner_val_signer": 9,
+      "train_signers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "fold": 9,
+      "outer_test_signer": 9,
+      "inner_val_signer": 10,
+      "train_signers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "fold": 10,
+      "outer_test_signer": 10,
+      "inner_val_signer": 1,
+      "train_signers": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    }
+  ],
+  "manifest_sha256": "dd231ef579c41162ce22e22c7a213ee1e12a78d5761b4acd2e2a9d95bddcad8d"
+}

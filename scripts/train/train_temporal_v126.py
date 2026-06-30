@@ -1,8 +1,10 @@
 """Train v126 synthetic temporal pretraining model."""
 import argparse
+import hashlib
 import json
 import os
 import random
+import subprocess
 import sys
 import unicodedata
 from collections import defaultdict
@@ -51,6 +53,12 @@ from src.mslm.models.temporal_sign_prompt import (
 )
 from src.mslm.dataloader.data_augmentation import normalize_augment_data, remove_keypoints
 from src.mslm.utils.text_metrics import bleu_score, chrf_score
+from src.mslm.utils.sequence_metrics import (
+    legacy_prefix_exact,
+    strict_exact,
+    token_edit_similarity,
+    token_error_rate,
+)
 
 
 def parse_args():
@@ -79,6 +87,13 @@ def parse_args():
         "--heldout-signer",
         type=int,
         help="Leave one signer out: train on signer_id != N and validate/evaluate only signer_id == N.",
+    )
+    parser.add_argument(
+        "--exclude-signer",
+        type=int,
+        default=None,
+        help="Outer-test signer for clean LOSO: excluded from both train and val/--heldout-signer "
+        "(never loaded by this process). Requires --heldout-signer.",
     )
     parser.add_argument(
         "--token-head",
@@ -229,10 +244,20 @@ def stratified_clip_split(records, seed: int, n_val_per_class: int = 10):
     return train, val
 
 
-def split_records(records, seed: int, heldout_signer: int | None = None):
+def split_records(
+    records,
+    seed: int,
+    heldout_signer: int | None = None,
+    exclude_signer: int | None = None,
+):
+    if exclude_signer is not None and heldout_signer is None:
+        raise ValueError("--exclude-signer requires --heldout-signer")
+    if exclude_signer is not None and exclude_signer == heldout_signer:
+        raise ValueError("--exclude-signer must differ from --heldout-signer")
     if heldout_signer is None:
         return stratified_clip_split(records, seed)
-    train = [record for record in records if record["signer_id"] != heldout_signer]
+    excluded = {heldout_signer, exclude_signer} - {None}
+    train = [record for record in records if record["signer_id"] not in excluded]
     val = [record for record in records if record["signer_id"] == heldout_signer]
     if not train or not val:
         raise ValueError(f"--heldout-signer {heldout_signer} did not produce both train and val splits")
@@ -241,6 +266,54 @@ def split_records(records, seed: int, heldout_signer: int | None = None):
 
 def effective_split_seed(args) -> int:
     return args.split_seed if args.split_seed is not None else args.seed
+
+
+def sha256_of(path: Path, chunk_size: int = 1 << 20) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def git_commit_hash() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return "unknown"
+
+
+def assert_resume_lineage_clean(checkpoint_state: dict, exclude_signer: int | None) -> None:
+    """Refuse to resume from a checkpoint whose lineage trained/validated on exclude_signer."""
+    if exclude_signer is None:
+        return
+    lineage = checkpoint_state.get("lineage")
+    if not lineage:
+        return
+    contaminated = set(lineage.get("train_signers", [])) | set(lineage.get("val_signers", []))
+    if exclude_signer in contaminated:
+        raise RuntimeError(
+            f"refusing to resume: parent checkpoint lineage trained/validated on "
+            f"exclude_signer={exclude_signer} (contaminated_signers={sorted(contaminated)})"
+        )
+
+
+def build_lineage(args, train_records, val_records) -> dict:
+    """Per-checkpoint provenance: signers in each role, parent hash, commit, args."""
+    train_signers = sorted({r["signer_id"] for r in train_records})
+    val_signers = sorted({r["signer_id"] for r in val_records})
+    return {
+        "fold_outer_test_signer": args.exclude_signer,
+        "fold_inner_val_signer": args.heldout_signer,
+        "train_signers": train_signers,
+        "val_signers": val_signers,
+        "parent_checkpoint": str(args.resume) if args.resume else None,
+        "parent_checkpoint_sha256": sha256_of(args.resume) if args.resume else None,
+        "git_commit": git_commit_hash(),
+        "argv": sys.argv[1:],
+    }
 
 
 def make_label_tokens(records, tokenizer):
@@ -421,7 +494,12 @@ def _classification_metrics(out, batch, centers=None):
     pred = token_logits.argmax(dim=-1)
     top1 = pred.eq(token_targets).float().mean()
     top5 = token_logits.topk(5, dim=-1).indices.eq(token_targets.unsqueeze(1)).any(dim=1).float().mean()
-    exact = sequence_accuracy(out["token_logits"], batch["token_ids"], batch["token_lengths"])
+    legacy_prefix_exact_value = sequence_accuracy(
+        out["token_logits"], batch["token_ids"], batch["token_lengths"]
+    )
+    strict_metrics = strict_sequence_metrics(
+        out["token_logits"], out["cif"].counts, batch["token_ids"], batch["token_lengths"]
+    )
     mae = (out["cif"].quantity - batch["token_lengths"].float()).abs().mean()
     count_mae = (out["cif"].counts.float() - batch["token_lengths"].float()).abs().mean()
     count_match = out["cif"].counts.eq(batch["token_lengths"])
@@ -443,7 +521,10 @@ def _classification_metrics(out, batch, centers=None):
         "loss": ce.item(),
         "top1": top1.item(),
         "top5": top5.item(),
-        "exact": exact,
+        "exact": strict_metrics["exact"],
+        "legacy_prefix_exact": legacy_prefix_exact_value,
+        "token_error_rate": strict_metrics["token_error_rate"],
+        "token_edit_similarity": strict_metrics["token_edit_similarity"],
         "quantity_mae": mae.item(),
         "mae_len": mae.item(),
         "count_mae": count_mae.item(),
@@ -550,6 +631,10 @@ def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
         if key == "boundary_mae_when_count_correct_batches":
             continue
         result[key] = value / max(1, denom)
+    if "boundary_mae_when_count_correct" not in result:
+        # No batch had even one sample with a correct fired count this pass: undefined,
+        # not zero. Same sentinel boundary_error_mae() itself uses when nothing fires.
+        result["boundary_mae_when_count_correct"] = 1000.0
     return result
 
 
@@ -597,7 +682,11 @@ def evaluate_loso_isolated(model, loader, tokenizer, device):
                 pred_ids = pred_cpu[i, :length].tolist()
                 token_hits = sum(int(a == b) for a, b in zip(pred_ids, target_ids))
                 token_acc = token_hits / max(1, length)
-                exact = int(pred_ids == target_ids)
+                # teacher_alpha rescales alpha mass to target_lengths exactly, so the
+                # fired count matches target length here; prefix and strict coincide.
+                legacy_prefix_exact_value = int(legacy_prefix_exact(pred_ids, target_ids))
+                exact = int(strict_exact(pred_ids, target_ids))
+                ter = token_error_rate(pred_ids, target_ids)
                 row_dict = row.as_dict()
                 row_dict.update(
                     {
@@ -606,6 +695,9 @@ def evaluate_loso_isolated(model, loader, tokenizer, device):
                         "repetition": batch["repetitions"][i],
                         "token_accuracy": token_acc,
                         "exact": exact,
+                        "legacy_prefix_exact": legacy_prefix_exact_value,
+                        "token_error_rate": ter,
+                        "token_edit_similarity": token_edit_similarity(ter),
                     }
                 )
                 prediction_rows.append(row_dict)
@@ -775,12 +867,42 @@ def write_prediction_report(
 
 
 def sequence_accuracy(logits, targets, lengths):
+    """Historical metric: prefix-of-target-length match, ignoring predicted count."""
     logits = align_time_to_targets(logits, targets.size(1))
     pred = logits.argmax(dim=-1)
     hits = 0
     for i, length in enumerate(lengths.tolist()):
         hits += bool(torch.equal(pred[i, :length].cpu(), targets[i, :length].cpu()))
     return hits / max(1, targets.size(0))
+
+
+def strict_sequence_metrics(token_logits, pred_counts, targets, lengths):
+    """Etapa 4 correction: strict_exact requires pred_count == target_len, plus TER.
+
+    ``token_logits`` are the raw per-fired-slot logits (one row per CIF slot,
+    not padded/truncated to the target length), so the predicted sequence used
+    for TER/strict-exact is exactly what the model fired, of length
+    ``pred_counts[i]`` -- not the prefix-aligned view ``sequence_accuracy`` uses.
+    """
+    pred_ids_full = token_logits.argmax(dim=-1)
+    batch_size = targets.size(0)
+    strict_hits = 0
+    ter_sum = 0.0
+    sim_sum = 0.0
+    for i in range(batch_size):
+        p_len = int(pred_counts[i].item())
+        t_len = int(lengths[i].item())
+        pred_seq = pred_ids_full[i, :p_len].tolist()
+        target_seq = targets[i, :t_len].tolist()
+        strict_hits += int(strict_exact(pred_seq, target_seq))
+        ter = token_error_rate(pred_seq, target_seq)
+        ter_sum += ter
+        sim_sum += token_edit_similarity(ter)
+    return {
+        "exact": strict_hits / max(1, batch_size),
+        "token_error_rate": ter_sum / max(1, batch_size),
+        "token_edit_similarity": sim_sum / max(1, batch_size),
+    }
 
 
 def move_batch(batch, device):
@@ -819,7 +941,7 @@ def main():
 
     records = list_clip_records(args.h5, "dataset1")
     train_records, val_records = split_records(
-        records, effective_split_seed(args), args.heldout_signer
+        records, effective_split_seed(args), args.heldout_signer, args.exclude_signer
     )
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, local_files_only=True)
     token_ids_by_label = make_label_tokens(records, tokenizer)
@@ -902,6 +1024,7 @@ def main():
     best_select_metric = (-1.0, -1.0)
     if args.resume:
         state = torch.load(args.resume, map_location=device)
+        assert_resume_lineage_clean(state, args.exclude_signer)
         missing, unexpected = model.load_state_dict(state["model"], strict=False)
         if missing or unexpected:
             print(
@@ -930,9 +1053,14 @@ def main():
         "train_records": len(train_records),
         "val_records": len(val_records),
     }
+    lineage = build_lineage(args, train_records, val_records)
+    if args.exclude_signer is not None and args.exclude_signer in lineage["train_signers"]:
+        raise RuntimeError(
+            f"contamination guard: exclude_signer={args.exclude_signer} leaked into train_signers"
+        )
     with open(out_dir / "config.json", "w", encoding="utf-8") as f:
         json.dump(
-            {**vars(args), **split_config, "load_info": load_info, "device": device},
+            {**vars(args), **split_config, "lineage": lineage, "load_info": load_info, "device": device},
             f,
             indent=2,
             default=str,
@@ -1155,6 +1283,7 @@ def main():
             "load_info": load_info,
             "phase": args.phase,
             "arch_config": {"token_head": args.token_head, "length_head": args.length_head},
+            "lineage": lineage,
         }
         torch.save(state, ckpt_path)
         if select_metric > best_select_metric:
