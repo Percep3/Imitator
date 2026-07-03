@@ -43,6 +43,7 @@ from src.mslm.models.temporal_sign_prompt import (
     length_mask_from_lengths,
     load_visual_low_level_weights,
     rescale_alphas_to_predicted_lengths,
+    rescale_alphas_to_rounded_count,
     rescale_alphas_to_target_lengths,
 )
 
@@ -76,6 +77,15 @@ def parse_args():
     parser.add_argument("--split-seed", type=int, default=None)
     parser.add_argument("--token-head", choices=["linear", "contextual"], default=None)
     parser.add_argument("--length-head", choices=["mean", "attention"], default=None)
+    parser.add_argument(
+        "--rounded-count-bias",
+        type=float,
+        default=0.0,
+        help=(
+            "Additive bias for the pred_rescaled_to_rounded_count mode "
+            "(count = round(alpha.sum() + bias)). Fit on train signers only."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -119,7 +129,7 @@ def finalize_bucket(row):
     return out
 
 
-def collect_mode_rows(model, loader, device, mode):
+def collect_mode_rows(model, loader, device, mode, rounded_count_bias=0.0):
     rows = []
     hist_quantity = Counter()
     hist_count = Counter()
@@ -151,6 +161,12 @@ def collect_mode_rows(model, loader, device, mode):
                 ).argmax(dim=-1)
                 alphas, _ = rescale_alphas_to_predicted_lengths(
                     alpha_pred, pred_lengths, max_len=model.max_len_class
+                )
+            elif mode == "pred_rescaled_to_rounded_count":
+                alphas, _ = rescale_alphas_to_rounded_count(
+                    alpha_pred,
+                    max_len=model.max_len_class,
+                    bias=rounded_count_bias,
                 )
             elif mode == "pred_raw":
                 alphas = alpha_pred
@@ -272,10 +288,15 @@ def main():
         "teacher_alpha",
         "pred_rescaled_to_target_len",
         "pred_rescaled_to_pred_len",
+        "pred_rescaled_to_rounded_count",
         "pred_raw",
     ):
-        summaries[mode] = evaluate_alpha_mode(model, loader, device, mode)
-        cuts[mode] = collect_mode_rows(model, loader, device, mode)
+        summaries[mode] = evaluate_alpha_mode(
+            model, loader, device, mode, rounded_count_bias=args.rounded_count_bias
+        )
+        cuts[mode] = collect_mode_rows(
+            model, loader, device, mode, rounded_count_bias=args.rounded_count_bias
+        )
 
     result = {
         "checkpoint": str(args.checkpoint),
@@ -285,6 +306,7 @@ def main():
         "load_info": load_info,
         "arch_config": arch_config,
         "state_load": {"missing": missing, "unexpected": unexpected},
+        "rounded_count_bias": args.rounded_count_bias,
         "mode_summaries": summaries,
         "mode_cuts": cuts,
         "interpretation": (

@@ -573,6 +573,24 @@ def rescale_alphas_to_predicted_lengths(
     return alphas * scale.unsqueeze(1), lengths
 
 
+def rescale_alphas_to_rounded_count(
+    alphas: torch.Tensor,
+    *,
+    max_len: int,
+    min_len: int = 1,
+    bias: float = 0.0,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Length decision from the CIF's own continuous count instead of length_head.
+
+    Clean-LOSO showed the discrete length_head collapses on unseen signers while
+    round(alpha.sum()) stays within one sign of the target; `bias` corrects the
+    systematic undercount (~0.2-0.6) measured there, fit on train signers only.
+    """
+    return rescale_alphas_to_predicted_lengths(
+        alphas, alphas.sum(dim=1) + bias, max_len=max_len, min_len=min_len
+    )
+
+
 def alpha_diagnostics(
     features: torch.Tensor,
     alpha_logits: torch.Tensor,

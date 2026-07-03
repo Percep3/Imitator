@@ -48,6 +48,7 @@ from src.mslm.models.temporal_sign_prompt import (
     length_mask_from_lengths,
     load_visual_low_level_weights,
     rescale_alphas_to_predicted_lengths,
+    rescale_alphas_to_rounded_count,
     rescale_alphas_to_target_lengths,
     set_cif_diagnostic_freeze,
 )
@@ -545,7 +546,9 @@ def _classification_metrics(out, batch, centers=None):
     }
 
 
-def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
+def evaluate_alpha_mode(
+    model, loader, device, mode, w_target=1.0, w_pred=0.0, rounded_count_bias=0.0
+):
     """Evaluate a concrete CIF alpha source."""
     model.eval()
     totals = defaultdict(float)
@@ -583,6 +586,12 @@ def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
                 alphas = alpha_rescaled
             elif mode == "pred_rescaled_to_pred_len":
                 alphas = alpha_rescaled_pred_len
+            elif mode == "pred_rescaled_to_rounded_count":
+                alphas, rounded_lengths = rescale_alphas_to_rounded_count(
+                    alpha_pred,
+                    max_len=model.max_len_class,
+                    bias=rounded_count_bias,
+                )
             elif mode == "blended_alpha":
                 alphas = w_target * alpha_target + w_pred * alpha_rescaled
             else:
@@ -594,6 +603,10 @@ def evaluate_alpha_mode(model, loader, device, mode, w_target=1.0, w_pred=0.0):
             if mode == "pred_rescaled_to_pred_len":
                 totals["rescale_length_mae"] += (
                     pred_lengths.float() - batch["token_lengths"].float()
+                ).abs().mean().item()
+            elif mode == "pred_rescaled_to_rounded_count":
+                totals["rescale_length_mae"] += (
+                    rounded_lengths.float() - batch["token_lengths"].float()
                 ).abs().mean().item()
             totals["alpha_eval_sum_mean"] += alphas.sum(dim=1).mean().item()
             totals["target_alpha_sum_mean"] += alpha_target.sum(dim=1).mean().item()
@@ -796,6 +809,7 @@ def write_prediction_report(
     path: Path,
     max_rows: int,
     alpha_mode: str,
+    rounded_count_bias: float = 0.0,
 ):
     """Write prototype rows: Gemma token IDs, decoded text, correction prompt."""
     if max_rows <= 0:
@@ -834,6 +848,12 @@ def write_prediction_report(
                         alpha_pred,
                         pred_lengths,
                         max_len=model.max_len_class,
+                    )
+                elif alpha_mode == "pred_rescaled_to_rounded_count":
+                    alphas, _ = rescale_alphas_to_rounded_count(
+                        alpha_pred,
+                        max_len=model.max_len_class,
+                        bias=rounded_count_bias,
                     )
                 else:
                     raise ValueError(f"unknown prediction alpha mode: {alpha_mode}")

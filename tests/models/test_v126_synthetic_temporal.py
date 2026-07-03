@@ -44,6 +44,7 @@ TemporalSignPromptModel = _model_mod.TemporalSignPromptModel
 alpha_diagnostics = _model_mod.alpha_diagnostics
 rescale_alphas_to_target_lengths = _model_mod.rescale_alphas_to_target_lengths
 rescale_alphas_to_predicted_lengths = _model_mod.rescale_alphas_to_predicted_lengths
+rescale_alphas_to_rounded_count = _model_mod.rescale_alphas_to_rounded_count
 
 
 def _fixture_h5(tmp_path):
@@ -389,6 +390,29 @@ def test_rescale_alphas_to_predicted_lengths_uses_clamped_prediction():
 
     assert lengths.tolist() == [2, 4]
     assert torch.allclose(scaled.sum(dim=1), torch.tensor([2.0, 4.0]))
+
+
+def test_rescale_alphas_to_rounded_count_rounds_and_clamps_quantity():
+    # sums: 3.4 -> 3, 0.3 -> clamp to min_len=1, 99.0 -> clamp to max_len=4
+    alphas = torch.tensor(
+        [[1.5, 1.0, 0.9], [0.1, 0.1, 0.1], [33.0, 33.0, 33.0]]
+    )
+
+    scaled, lengths = rescale_alphas_to_rounded_count(alphas, max_len=4)
+
+    assert lengths.tolist() == [3, 1, 4]
+    assert torch.allclose(scaled.sum(dim=1), torch.tensor([3.0, 1.0, 4.0]))
+
+
+def test_rescale_alphas_to_rounded_count_bias_corrects_undercount():
+    # 1.8 rounds to 2 with or without bias; 1.4 only reaches 2 with bias=+0.2
+    alphas = torch.tensor([[0.7, 0.7, 0.4], [0.7, 0.5, 0.2]])
+
+    _, no_bias = rescale_alphas_to_rounded_count(alphas, max_len=4)
+    _, biased = rescale_alphas_to_rounded_count(alphas, max_len=4, bias=0.2)
+
+    assert no_bias.tolist() == [2, 1]
+    assert biased.tolist() == [2, 2]
 
 
 def test_checkpoint_selection_prefers_pred_len_exact_over_raw_top1():
