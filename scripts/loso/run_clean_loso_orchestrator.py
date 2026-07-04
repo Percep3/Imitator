@@ -356,7 +356,7 @@ def run_test_signer_eval(fold: dict, final_checkpoint: Path) -> Path:
 PRUNABLE_AFTER = {"A1": "v121", "A2": "A1", "A3_pre_decoder": "A2", "decoder_final": "A3_pre_decoder"}
 
 
-def run_fold(fold: dict, manifest_sha256: str) -> Path:
+def run_fold(fold: dict, manifest_sha256: str, *, evaluate_outer: bool = True) -> Path:
     v121_checkpoint = run_v121_stage(fold, manifest_sha256)
     parent = v121_checkpoint
     stage_out_dirs: dict[str, Path] = {}
@@ -370,27 +370,55 @@ def run_fold(fold: dict, manifest_sha256: str) -> Path:
         elif prune_target in stage_out_dirs:
             prune_checkpoint_files(stage_out_dirs[prune_target])
 
-    run_test_signer_eval(fold, parent)
+    if evaluate_outer:
+        run_test_signer_eval(fold, parent)
+    else:
+        print(
+            f"[orchestrator] fold={fold['fold']} preparation complete; "
+            "outer-test evaluation deliberately skipped",
+            flush=True,
+        )
     return parent
 
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--manifest", type=Path, default=Path("experiments/a3_etapa4_clean_loso/manifest.json")
     )
-    parser.add_argument("--fold", type=int, default=None, help="Run only this outer_test_signer fold.")
-    return parser.parse_args()
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument(
+        "--fold", type=int, default=None, help="Run only this manifest fold."
+    )
+    selection.add_argument(
+        "--folds", type=int, nargs="+", default=None, help="Run only these manifest folds."
+    )
+    parser.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help="Build final checkpoints but never load or evaluate the outer-test signer.",
+    )
+    return parser.parse_args(argv)
+
+
+def selected_folds(manifest: dict, *, fold: int | None, folds: list[int] | None) -> list[dict]:
+    requested = [fold] if fold is not None else folds
+    available = manifest["folds"]
+    if requested is None:
+        return available
+    if len(set(requested)) != len(requested):
+        raise ValueError("fold selection contains duplicates")
+    by_number = {int(row["fold"]): row for row in available}
+    missing = [number for number in requested if number not in by_number]
+    if missing:
+        raise ValueError(f"fold(s) not found in manifest: {missing}")
+    return [by_number[number] for number in requested]
 
 
 def main():
     args = parse_args()
     manifest = load_manifest(args.manifest)
-    folds = manifest["folds"]
-    if args.fold is not None:
-        folds = [f for f in folds if f["fold"] == args.fold]
-        if not folds:
-            raise ValueError(f"--fold {args.fold} not found in manifest")
+    folds = selected_folds(manifest, fold=args.fold, folds=args.folds)
 
     for fold in folds:
         print(
@@ -399,7 +427,9 @@ def main():
             f"{datetime.now(timezone.utc).isoformat()} ===",
             flush=True,
         )
-        final_checkpoint = run_fold(fold, manifest["manifest_sha256"])
+        final_checkpoint = run_fold(
+            fold, manifest["manifest_sha256"], evaluate_outer=not args.prepare_only
+        )
         print(
             f"=== fold {fold['fold']} done final_checkpoint={final_checkpoint} "
             f"{datetime.now(timezone.utc).isoformat()} ===",

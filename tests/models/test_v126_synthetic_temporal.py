@@ -20,9 +20,14 @@ def _load(name, relpath):
     return mod
 
 
-sys.modules.setdefault("src", types.ModuleType("src"))
-sys.modules.setdefault("src.mslm", types.ModuleType("src.mslm"))
-sys.modules.setdefault("src.mslm.dataloader", types.ModuleType("src.mslm.dataloader"))
+src_stub = sys.modules.setdefault("src", types.ModuleType("src"))
+src_stub.__path__ = [str(_ROOT / "src")]
+mslm_stub = sys.modules.setdefault("src.mslm", types.ModuleType("src.mslm"))
+mslm_stub.__path__ = [str(_ROOT / "src/mslm")]
+dataloader_stub = sys.modules.setdefault(
+    "src.mslm.dataloader", types.ModuleType("src.mslm.dataloader")
+)
+dataloader_stub.__path__ = [str(_ROOT / "src/mslm/dataloader")]
 models_stub = types.ModuleType("src.mslm.models")
 models_stub.__path__ = [str(_ROOT / "src/mslm/models")]
 sys.modules["src.mslm.models"] = models_stub
@@ -498,6 +503,19 @@ def test_permute_video_segments_changes_chunk_order():
             break
 
     assert found_different_order
+
+
+def test_permute_video_segments_can_force_non_identity():
+    keypoints = torch.arange(10, dtype=torch.float32).view(10, 1, 1)
+    boundaries = torch.tensor([[0, 2], [4, 6], [8, 10]])
+
+    # seed 5 gives the identity permutation for three chunks.
+    permuted = permute_video_segments(
+        keypoints, boundaries, 10, random.Random(5), require_change=True
+    )
+
+    assert not torch.equal(permuted, keypoints)
+    assert sorted(permuted.flatten().tolist()) == sorted(keypoints.flatten().tolist())
 
 
 def test_token_head_linear_variant_ignores_cross_slot_context():

@@ -191,6 +191,8 @@ def permute_video_segments(
     boundaries: torch.Tensor,
     length: int,
     rng: random.Random,
+    *,
+    require_change: bool = False,
 ) -> torch.Tensor:
     """Shuffle whole gloss segments (each with its leading neutral gap) in time.
 
@@ -216,6 +218,10 @@ def permute_video_segments(
 
     order = list(range(len(chunks)))
     rng.shuffle(order)
+    if require_change and order == list(range(len(chunks))):
+        # Deterministically avoid a no-op intervention.  This changes only an
+        # identity draw; all sampled non-identity permutations are preserved.
+        order = order[1:] + order[:1]
 
     pieces = [keypoints[:prefix_end]] if prefix_end > 0 else []
     for idx in order:

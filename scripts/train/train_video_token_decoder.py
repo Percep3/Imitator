@@ -83,8 +83,8 @@ def load_manifest(path: Path) -> dict:
 
 
 def fold_spec(manifest: dict, fold: int) -> dict:
-    if fold not in range(1, 7):
-        raise ValueError("this protocol permits only folds 1-6")
+    if fold not in range(1, 11):
+        raise ValueError("this protocol permits only folds 1-10")
     try:
         spec = next(row for row in manifest["folds"] if int(row["fold"]) == fold)
     except StopIteration as exc:
@@ -420,6 +420,7 @@ def checkpoint_payload(model, optimizer, epoch, metric, provenance, args, *, clo
             "vocab_map": model.vocab_map,
             "ctc_weight": float(args.ctc_weight),
             "label_smoothing": float(args.label_smoothing),
+            "unfreeze_stgcn_epoch": args.unfreeze_stgcn_epoch,
             "select": args.select,
             "run_tag": args.run_tag,
         },

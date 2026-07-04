@@ -236,6 +236,21 @@ def test_prune_v121_checkpoint_handles_missing_run_dir(tmp_path, monkeypatch):
     MODULE.prune_v121_checkpoint(424242)  # no such run dir; must not raise
 
 
+def test_selected_folds_preserves_requested_order_and_rejects_unknown():
+    manifest = {"folds": [{"fold": 7}, {"fold": 8}, {"fold": 9}]}
+    assert MODULE.selected_folds(manifest, fold=None, folds=[8, 7]) == [
+        {"fold": 8}, {"fold": 7}
+    ]
+    with pytest.raises(ValueError, match="not found"):
+        MODULE.selected_folds(manifest, fold=None, folds=[10])
+
+
+def test_prepare_only_cli_is_explicit_and_supports_folds_seven_eight():
+    args = MODULE.parse_args(["--folds", "7", "8", "--prepare-only"])
+    assert args.folds == [7, 8]
+    assert args.prepare_only is True
+
+
 if __name__ == "__main__":
     test_expected_run_name_adds_diag_prefix_for_diagnostic_flags()
     test_expected_run_name_keeps_plain_name_without_diagnostic_flags()

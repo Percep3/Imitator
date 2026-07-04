@@ -16,10 +16,24 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
 
 
-def test_protocol_rejects_folds_seven_through_ten():
-    manifest = {"folds": [{"fold": 7}]}
-    with pytest.raises(ValueError, match="only folds 1-6"):
-        MODULE.fold_spec(manifest, 7)
+def _valid_fold_row(fold):
+    return {
+        "fold": fold,
+        "outer_test_signer": fold,
+        "inner_val_signer": fold % 10 + 1,
+        "train_signers": [signer for signer in range(1, 11) if signer not in {fold, fold % 10 + 1}],
+    }
+
+
+@pytest.mark.parametrize("fold", [7, 8, 9, 10])
+def test_protocol_accepts_manifest_folds_seven_through_ten(fold):
+    assert MODULE.fold_spec({"folds": [_valid_fold_row(fold)]}, fold)["fold"] == fold
+
+
+@pytest.mark.parametrize("fold", [0, 11])
+def test_protocol_rejects_folds_outside_one_through_ten(fold):
+    with pytest.raises(ValueError, match="only folds 1-10"):
+        MODULE.fold_spec({"folds": []}, fold)
 
 
 def test_manifest_hash_is_verified(tmp_path):
