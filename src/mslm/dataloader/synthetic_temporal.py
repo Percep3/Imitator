@@ -61,6 +61,10 @@ class SyntheticTemporalSignDataset(Dataset):
         apply_remove_keypoints: bool = False,
         normalize: bool = False,
         n_keypoints: int = 111,
+        rescue_augmentation: bool = False,
+        jitter_std: float = 0.01,
+        temporal_drop_rate: float = 0.15,
+        augmentation_probability: float = 0.5,
     ):
         if min_clips < 1 or max_clips < min_clips:
             raise ValueError("clip count range must satisfy 1 <= min <= max")
@@ -93,6 +97,27 @@ class SyntheticTemporalSignDataset(Dataset):
         self.apply_remove_keypoints = bool(apply_remove_keypoints)
         self.normalize = bool(normalize)
         self.n_keypoints = int(n_keypoints)
+        self.rescue_augmentation = bool(rescue_augmentation)
+        self.jitter_std = float(jitter_std)
+        self.temporal_drop_rate = float(temporal_drop_rate)
+        self.augmentation_probability = float(augmentation_probability)
+
+    def _augment_clip(self, keypoints: torch.Tensor, rng: random.Random) -> torch.Tensor:
+        """Apply the single predefined AR rescue augmentation to one clip."""
+        if not self.rescue_augmentation:
+            return keypoints
+        if rng.random() < self.augmentation_probability:
+            generator = torch.Generator(device="cpu")
+            generator.manual_seed(rng.randrange(2**31))
+            noise = torch.randn(
+                keypoints.shape, generator=generator, dtype=keypoints.dtype
+            ).to(keypoints.device)
+            keypoints = keypoints + self.jitter_std * noise
+        if rng.random() < self.augmentation_probability and keypoints.size(0) > 1:
+            keep_count = max(1, round(keypoints.size(0) * (1.0 - self.temporal_drop_rate)))
+            kept = sorted(rng.sample(range(keypoints.size(0)), keep_count))
+            keypoints = keypoints[torch.tensor(kept, device=keypoints.device)]
+        return keypoints
 
     def __len__(self):
         return self.samples_per_epoch
@@ -124,6 +149,7 @@ class SyntheticTemporalSignDataset(Dataset):
         with h5py.File(self.h5_path, "r") as f:
             for pos, clip_id in enumerate(chosen):
                 kp = self._read_keypoints(f, clip_id)
+                kp = self._augment_clip(kp, rng)
                 start = frame_cursor
                 end = start + kp.size(0)
                 parts.append(kp)

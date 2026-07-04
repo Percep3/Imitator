@@ -359,8 +359,28 @@ class TemporalSignPromptModel(nn.Module):
         }
 
 
+def sinusoidal_positional_encoding(length: int, dim: int) -> torch.Tensor:
+    """Standard fixed sin/cos table of shape [length, dim]."""
+    position = torch.arange(length, dtype=torch.float32).unsqueeze(1)
+    div = torch.exp(
+        torch.arange(0, dim, 2, dtype=torch.float32)
+        * (-torch.log(torch.tensor(10_000.0)) / dim)
+    )
+    table = torch.zeros(length, dim)
+    table[:, 0::2] = torch.sin(position * div)
+    table[:, 1::2] = torch.cos(position * div)
+    return table
+
+
 class STGCNTemporalFrameEncoder(nn.Module):
-    """ST-GCN + TCN + Transformer frame encoder for v126 synthetic sequences."""
+    """ST-GCN + TCN + Transformer frame encoder for v126 synthetic sequences.
+
+    ``use_positional_encoding`` adds a fixed sinusoidal table before the
+    transformer. Without it the transformer is permutation-equivariant and the
+    frame features carry no global temporal order (v125 audit: permuting video
+    segments left 86% of AR predictions identical). Off by default so existing
+    CIF checkpoints keep their exact behaviour.
+    """
 
     def __init__(
         self,
@@ -374,8 +394,17 @@ class STGCNTemporalFrameEncoder(nn.Module):
         transformer_layers: int = 1,
         transformer_heads: int = 4,
         dropout: float = 0.1,
+        use_positional_encoding: bool = False,
+        max_positions: int = 4096,
     ):
         super().__init__()
+        self.use_positional_encoding = bool(use_positional_encoding)
+        if self.use_positional_encoding:
+            self.register_buffer(
+                "positional_encoding",
+                sinusoidal_positional_encoding(max_positions, hidden_size),
+                persistent=False,
+            )
         A_part = partition_adjacency(A)
         layers = nn.ModuleList()
         c_in = 2
@@ -432,6 +461,13 @@ class STGCNTemporalFrameEncoder(nn.Module):
             x = layer(x)
         x = self.linear_hidden(x).mean(dim=-1)
         x = self.tcn(x).permute(0, 2, 1).contiguous()
+        if self.use_positional_encoding:
+            if x.size(1) > self.positional_encoding.size(0):
+                raise ValueError(
+                    f"sequence length {x.size(1)} exceeds max_positions "
+                    f"{self.positional_encoding.size(0)}"
+                )
+            x = x + self.positional_encoding[: x.size(1)]
         return self.transformer(
             x,
             src_key_padding_mask=self._length_mask(frame_lengths, x.size(1)),
