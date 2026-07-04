@@ -25,6 +25,7 @@ from src.mslm.utils.sequence_metrics import gloss_sequence_diagnostics
 DEFAULT_OUTPUT_ROOT = ROOT.parent / "outputs/video_token_decoder"
 DEFAULT_JSON = ROOT / "experiments/video_token_decoder/paper_master_results.json"
 DEFAULT_MARKDOWN = ROOT / "experiments/video_token_decoder/PAPER_TABLES.md"
+DEFAULT_LATEX_MACROS = ROOT / "experiments/video_token_decoder/paper/results_macros.tex"
 
 
 def read_json(path: Path) -> dict | None:
@@ -231,11 +232,59 @@ def render_markdown(results: dict) -> str:
     return "\n".join(lines)
 
 
+def render_latex_macros(results: dict) -> str:
+    """Render confirmatory values without permitting manual result transcription."""
+    by_fold = {row["fold"]: row for row in results["folds"]}
+
+    def value_or_pending(value, formatter):
+        return r"\pending" if value is None else formatter(value)
+
+    def fold_commands(fold: int, word: str) -> list[str]:
+        row = by_fold.get(fold, {})
+        cif = row.get("cif_affine") or {}
+        e1 = row.get("e1") or {}
+        metrics = e1.get("metrics", {})
+        diagnostics = e1.get("gloss_diagnostics", {})
+        paired = row.get("paired_e1_vs_cif") or {}
+        curves = row.get("robustness_curves") or {}
+        permutation = curves.get("segment_permutation") or {}
+        delta_block = permutation.get("paired_clean_minus_condition_bootstrap_95_ci") or {}
+        edit_delta = (delta_block.get("token_edit_similarity") or {}).get("estimate")
+        wlt = None
+        if paired:
+            wlt = f"{paired['wins']}/{paired['losses']}/{paired['ties']}"
+        return [
+            rf"\newcommand{{\Fold{word}CIFExact}}{{{value_or_pending(cif.get('strict_exact'), lambda x: f'{100*x:.1f}')}}}",
+            rf"\newcommand{{\Fold{word}Exact}}{{{value_or_pending(metrics.get('strict_exact'), lambda x: f'{100*x:.1f}')}}}",
+            rf"\newcommand{{\Fold{word}Edit}}{{{value_or_pending(metrics.get('token_edit_similarity'), lambda x: f'{100*x:.1f}')}}}",
+            rf"\newcommand{{\Fold{word}Order}}{{{value_or_pending(diagnostics.get('pairwise_order_accuracy'), lambda x: f'{100*x:.1f}')}}}",
+            rf"\newcommand{{\Fold{word}PermutationDrop}}{{{value_or_pending(edit_delta, lambda x: f'{x:.3f}')}}}",
+            rf"\newcommand{{\Fold{word}WLT}}{{{value_or_pending(wlt, str)}}}",
+            rf"\newcommand{{\Fold{word}PValue}}{{{value_or_pending(paired.get('two_sided_sign_test_p'), lambda x: f'{x:.3g}')}}}",
+        ]
+
+    commands = [
+        "% Auto-generated from paper_master_results.json; do not edit result values manually.",
+        *fold_commands(7, "Seven"),
+        *fold_commands(8, "Eight"),
+    ]
+    for hypothesis, macro in (("H1", "HOneOutcome"), ("H2", "HTwoOutcome"), ("H3", "HThreeOutcome")):
+        status = results["confirmatory_hypotheses"][hypothesis]["pass"]
+        text = r"\pending" if status is None else ("passes" if status else "fails")
+        commands.append(rf"\newcommand{{\{macro}}}{{{text}}}")
+    overall = results["full_confirmation"]
+    overall_text = r"\pending" if overall is None else ("passes" if overall else "fails")
+    commands.append(rf"\newcommand{{\OverallOutcome}}{{{overall_text}}}")
+    commands.append("")
+    return "\n".join(commands)
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--json", type=Path, default=DEFAULT_JSON)
     parser.add_argument("--markdown", type=Path, default=DEFAULT_MARKDOWN)
+    parser.add_argument("--latex-macros", type=Path, default=DEFAULT_LATEX_MACROS)
     return parser.parse_args(argv)
 
 
@@ -244,9 +293,20 @@ def main(argv=None):
     results = build_results(args.output_root)
     args.json.parent.mkdir(parents=True, exist_ok=True)
     args.markdown.parent.mkdir(parents=True, exist_ok=True)
+    args.latex_macros.parent.mkdir(parents=True, exist_ok=True)
     args.json.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     args.markdown.write_text(render_markdown(results), encoding="utf-8")
-    print(json.dumps({"json": str(args.json), "markdown": str(args.markdown)}, indent=2))
+    args.latex_macros.write_text(render_latex_macros(results), encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "json": str(args.json),
+                "markdown": str(args.markdown),
+                "latex_macros": str(args.latex_macros),
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -41,3 +41,18 @@ def test_render_markdown_keeps_missing_cells_explicit():
 def test_percent_formats_proportions_as_percent_values():
     assert MODULE.percent(0.181) == "18.1"
     assert MODULE.percent(None) == "—"
+
+
+def test_latex_macros_remain_pending_without_both_confirmatory_results():
+    results = {
+        "folds": [],
+        "confirmatory_hypotheses": {
+            "H1": {"pass": None},
+            "H2": {"pass": None},
+            "H3": {"pass": None},
+        },
+        "full_confirmation": None,
+    }
+    rendered = MODULE.render_latex_macros(results)
+    assert r"\newcommand{\FoldSevenExact}{\pending}" in rendered
+    assert r"\newcommand{\OverallOutcome}{\pending}" in rendered
