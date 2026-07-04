@@ -1,0 +1,20 @@
+{
+    "latex-workshop.latex.tools": [
+        {
+            "name": "tectonic",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "conda run -n tex tectonic %DOC%.tex"
+            ]
+        }
+    ],
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "tectonic",
+            "tools": ["tectonic"]
+        }
+    ],
+    "latex-workshop.latex.recipe.default": "tectonic",
+    "latex-workshop.latex.outDir": "%DIR%"
+}
