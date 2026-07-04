@@ -70,3 +70,12 @@ def test_validate_e1_checkpoint_rejects_unfreeze_or_wrong_selection():
     }
     with pytest.raises(RuntimeError, match="not frozen E1"):
         MODULE.validate_e1_checkpoint(state, 7, 23)
+
+
+def test_condition_subset_requires_both_pre_registered_primary_conditions():
+    selected = MODULE.condition_transforms(["clean", "segment_permutation"])
+    assert list(selected) == ["clean", "segment_permutation"]
+    with pytest.raises(ValueError, match="requires both"):
+        MODULE.condition_transforms(["clean"])
+    with pytest.raises(ValueError, match="unknown"):
+        MODULE.condition_transforms(["clean", "segment_permutation", "rain"])

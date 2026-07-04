@@ -334,7 +334,7 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def condition_transforms() -> dict[str, BatchTransform]:
+def condition_transforms(selected: list[str] | None = None) -> dict[str, BatchTransform]:
     transforms: dict[str, BatchTransform] = {
         "clean": identity_transform,
         "segment_permutation": permutation_transform,
@@ -346,7 +346,17 @@ def condition_transforms() -> dict[str, BatchTransform]:
     transforms.update(
         {f"temporal_speed_{speed:.2f}x": speed_transform(speed) for speed in TEMPORAL_SPEEDS}
     )
-    return transforms
+    if selected is None:
+        return transforms
+    unknown = [name for name in selected if name not in transforms]
+    if unknown:
+        raise ValueError(f"unknown robustness condition(s): {unknown}")
+    required = {"clean", "segment_permutation"}
+    if not required.issubset(selected):
+        raise ValueError(
+            "H1-H3 evaluation requires both clean and segment_permutation conditions"
+        )
+    return {name: transforms[name] for name in selected}
 
 
 def parse_args(argv=None):
@@ -356,6 +366,11 @@ def parse_args(argv=None):
     parser.add_argument("--cif-comparator", type=Path, required=True)
     parser.add_argument("--eval-samples", type=int, default=896)
     parser.add_argument("--eval-batch-size", type=int, default=2)
+    parser.add_argument(
+        "--conditions",
+        nargs="+",
+        help="condition names to run; default runs the full secondary battery",
+    )
     parser.add_argument("--output", type=Path)
     return parser.parse_args(argv)
 
@@ -382,7 +397,8 @@ def main(argv=None):
 
     conditions = {}
     clean_rows = None
-    for condition_index, (name, transform) in enumerate(condition_transforms().items()):
+    transforms = condition_transforms(args.conditions)
+    for condition_index, (name, transform) in enumerate(transforms.items()):
         loader = protocol.make_loader(dataset, args.eval_batch_size, False)
         metrics, rows = evaluate_condition(model, loader, device, tokenizer, transform)
         if clean_rows is None:
@@ -446,6 +462,8 @@ def main(argv=None):
             "bootstrap_replicates": BOOTSTRAP_REPLICATES,
             "permutation_requires_non_identity": True,
             "temporal_factor_semantics": "playback speed; output frames = round(input frames / speed)",
+            "evaluated_conditions": list(transforms),
+            "secondary_battery_complete": args.conditions is None,
         },
         "paired_vs_affine_cif": paired_cif,
         "conditions": conditions,
