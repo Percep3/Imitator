@@ -1,0 +1,3 @@
+baseline,checkpoint,sequence_id,token_position,reference_token_id,cosine,spearman,ablation_delta_pose,ablation_delta_face,ablation_delta_left_hand,ablation_delta_right_hand
+random_base,random_candidate,smoke_fold4_shortest,0,236749,0.9836353659629822,0.9406804940719508,0.01024627685546875,0.05362701416015625,-0.00647735595703125,0.0357818603515625
+random_base,random_candidate,smoke_fold4_shortest,1,6298,0.9540737271308899,0.8639822375753123,-0.0047454833984375,0.0010986328125,-0.0097198486328125,0.00350189208984375

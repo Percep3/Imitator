@@ -20,6 +20,7 @@ Diagnosticos y auditorias:
 
 - `diagnostics/diag_v118_train_val_gap.py`, `diagnostics/diag_text_discriminability.py`: diagnosticos v118.
 - `diagnostics/diagnose_ctc_posteriors.py`, `diagnostics/diagnose_ctc_activations.py`: diagnosticos v119.
+- `interpretability/analyze_keypoint_saliency.py`: saliencia Input x Gradient, ablaciones corporales y comparacion de checkpoints AR; escribe NPZ y heatmaps en `interpretability/<run>/`.
 - `audits/run_anisotropy_gate_v125.py`, `audits/run_gemma_oracle_v125.py`, `audits/run_gemma_oracle_prompt_sweep_v125.py`, `audits/freeze_v125_artifacts.py`, `audits/smoke_gemma_inputs_embeds.py`: auditorias v125/Gemma.
 
 Inferencia:

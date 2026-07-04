@@ -1,0 +1,28 @@
+[
+  {
+    "baseline": "random_base",
+    "checkpoint": "random_candidate",
+    "sequence_id": "smoke_fold4_shortest",
+    "token_position": 0,
+    "reference_token_id": 236749,
+    "cosine": 0.9836353659629822,
+    "spearman": 0.9406804940719508,
+    "ablation_delta_pose": 0.01024627685546875,
+    "ablation_delta_face": 0.05362701416015625,
+    "ablation_delta_left_hand": -0.00647735595703125,
+    "ablation_delta_right_hand": 0.0357818603515625
+  },
+  {
+    "baseline": "random_base",
+    "checkpoint": "random_candidate",
+    "sequence_id": "smoke_fold4_shortest",
+    "token_position": 1,
+    "reference_token_id": 6298,
+    "cosine": 0.9540737271308899,
+    "spearman": 0.8639822375753123,
+    "ablation_delta_pose": -0.0047454833984375,
+    "ablation_delta_face": 0.0010986328125,
+    "ablation_delta_left_hand": -0.0097198486328125,
+    "ablation_delta_right_hand": 0.00350189208984375
+  }
+]
