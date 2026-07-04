@@ -1,0 +1,39 @@
+\section{Data and Protocol}
+
+\subsection{Controlled sign streams}
+
+LSA64 contains 3,200 videos of 64 Argentinian Sign Language signs, performed five
+times by each of ten subjects \citep{ronchetti2016lsa64}.  We extract and normalize
+111 two-dimensional upper-body, hand, and facial keypoints per frame.  Each model
+example concatenates two to eight isolated clips, optionally separated by short
+zero-valued neutral gaps.  The target is the concatenation of the \Gemma{}
+tokenizations of the corresponding Spanish labels.
+
+The sign order is sampled randomly.  Consequently, \Gemma{} cannot use a natural
+sentence prior to guess the next sign, and any recovered order must come from the
+video.  Conversely, these examples contain neither natural syntax nor
+coarticulation.  We call the task \emph{controlled token transcription}, not
+continuous sign-language translation.
+
+\subsection{Signer-disjoint evaluation}
+
+Each LOSO fold excludes one outer-test signer, uses a second signer for inner
+validation, and trains on the remaining signers.  Folds 1--6 are development;
+folds 7 and 8 are prospective confirmation; folds 9 and 10 remain reserved.  The
+frozen E1 configuration uses seed 23, 2,048 synthetic training examples per epoch,
+512 deterministic inner-validation examples, 30 epochs, and 896 deterministic
+outer examples.  The checkpoint is selected by inner-validation edit similarity,
+then strict accuracy.  Outer results never select a variant or epoch.
+
+Only one training seed and two confirmatory signers were admitted under the compute
+budget.  We therefore estimate sample uncertainty but do not claim to estimate
+between-seed variability or population-level signer heterogeneity.
+
+\subsection{Pre-registered questions}
+
+The prospective protocol asks whether E1 beats a historical affine CIF system on
+paired strict accuracy (H1), retains at least 11.9\% strict accuracy independently
+on each new signer (H2), and demonstrates visually grounded ordering through both
+pairwise order accuracy and a gold-boundary segment-permutation intervention (H3).
+CIF is not a proposed final architecture: it is retained only as the pre-registered
+historical comparator and signer-clean source initialization.

@@ -1,0 +1,41 @@
+\section{Model}
+
+\subsection{Visual encoder}
+
+For each frame, three ST-GCN blocks model the keypoint graph, followed by a linear
+projection to 128 channels and averaging over graph nodes.  Two temporal
+convolution blocks extract local motion; a one-layer, four-head Transformer
+produces the visual memory.  A fixed sinusoidal signal is added before global
+self-attention \citep{vaswani2017attention}.  This positional signal was an
+important development correction: without it, permuting complete sign segments
+left 86.3\% of predictions unchanged.  With it, the decoder can bind recognized
+content to its video position.  This is an architectural prerequisite for ordered
+token imitation, not the application-level contribution of the paper.
+
+The ST-GCN and spatial projection are initialized from a signer-clean visual
+checkpoint and remain frozen.  Temporal convolution and the visual Transformer
+are unfrozen after five epochs.  Checkpoint hashes and signer lists are validated
+before training to prevent outer-signer exposure.
+
+\subsection{Autoregressive token decoder}
+
+The causal decoder has two Transformer layers, four heads, hidden size 128, and
+feed-forward size 512.  It attends to the visual memory and predicts one token at
+a time.  The input embedding and output projection share their weights.  Greedy
+decoding begins with BOS, emits at most 32 content tokens, and ends at EOS.
+
+Although \Gemma{} 3n has a large tokenizer vocabulary, only 118 content IDs occur
+in this controlled 64-label task.  We use a dense bijection over those IDs plus
+BOS, EOS, and PAD, for 121 output rows.  Every row still maps to its original
+\Gemma{} ID; this is a computational reparameterization, not a new sign-token
+vocabulary.  Expanding to sentence data will expand the effective set of IDs.
+
+\subsection{Downstream language stage}
+
+The emitted IDs are decoded with the same tokenizer and inserted into a fixed
+\Gemma{} 3n E2B instruction prompt.  \Gemma{} is not fine-tuned jointly with the
+visual model.  This separation prevents fluent output from being mistaken for
+visual accuracy: we report transcription before the LLM and correction after it.
+The official model is designed for efficient text and multimodal inference on
+consumer devices \citep{gemma3n}, making it compatible with the lightweight
+motivation of the original \system{} proposal.

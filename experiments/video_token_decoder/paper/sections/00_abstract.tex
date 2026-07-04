@@ -1,0 +1,23 @@
+\begin{abstract}
+We present \system, a sign-transcription architecture designed to connect a
+lightweight visual model to a pretrained language model through its native token
+interface.  The original \system{} proposal imitated continuous language-model
+embeddings.  We instead predict explicit \Gemma{} token IDs: this removes the
+ambiguity of decoding an approximate vector, permits exact sequence evaluation,
+and gives a downstream \Gemma{} model a standard textual input that it can
+punctuate, normalize, or---when context permits---correct.  A spatial--temporal
+keypoint encoder and autoregressive decoder are trained on synthetic streams of
+two to eight LSA64 signs and evaluated with signer-held-out splits.  On three
+development signers, the selected model improves strict token-sequence accuracy
+from 1.8--2.3\% for the initial autoregressive decoder to 16.9--19.8\% while
+preserving the exact \Gemma{} IDs.  Prospectively registered evaluation on two
+additional signers obtains \FoldSevenExact\% and \FoldEightExact\% strict
+accuracy.  We also audit the complete token-to-language interface.  \Gemma{} 3n
+preserves 95\% of clean isolated-label inputs, but recovers no exact sequence at
+any tested nonzero substitution rate and slightly decreases chrF.  This negative
+result identifies a current boundary rather than a hidden language-model rescue:
+random isolated signs contain almost no sentence context from which to infer a
+corrupted word.  The present evidence therefore supports signer-independent,
+LLM-compatible token transcription on controlled sign streams; correction of
+recognition errors in natural sentences remains a testable next-stage hypothesis.
+\end{abstract}

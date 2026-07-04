@@ -1,0 +1,63 @@
+\section{From Embedding Imitation to Token-ID Imitation}
+
+The present work is a direct successor to the published embedding-based \system{}
+\citep{velasquez2026imitator}, not a separate use of the same name.  It preserves
+the modular premise---a small visual network learns the input language of a frozen
+LLM---while replacing the learned interface and the evaluation protocol.
+
+Let $X=(x_1,\ldots,x_T)$ be a sequence of 2D keypoints and let a frozen tokenizer
+map the target text $s$ to IDs $Y=(y_1,\ldots,y_L)$.  The original design learned
+vectors $\hat{E}=f_\theta(X)$ and minimized a combination of mean-squared distance
+and cosine distance to frozen LLM embeddings $E(Y)$.  Its downstream requirement
+was implicit: an approximate vector still had to be interpreted correctly by the
+language model.
+
+The revised design makes that requirement the supervised objective:
+\begin{equation}
+    \mathcal{L}_{\mathrm{ID}}
+      = -\sum_{i=1}^{L+1}\log p_\theta(y_i\mid y_{<i},X),
+    \qquad y_{L+1}=\mathrm{EOS}.
+\end{equation}
+The prediction is correct only if the emitted ID sequence matches the tokenizer
+output and terminates with EOS.  Thus, geometric alignment is replaced by a
+categorical, falsifiable interface contract.  This does not make training
+annotation-free: in the present study, the text targets are derived from the 64
+LSA64 sign labels.  The precise claim is that no intermediate 64-class gloss
+classifier is required at inference, not that the supervision is gloss-free.
+
+Figure~\ref{fig:pipeline} summarizes the intended two-stage system.  The solid
+path is evaluated here.  The final correction arrow is also audited, but current
+isolated-label data do not provide the sentence context needed to demonstrate
+error recovery.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=2mm,
+  box/.style={draw, rounded corners, align=center, minimum height=10mm,
+              text width=20mm, fill=blue!4, font=\small},
+  llm/.style={box, fill=orange!10},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+\node[box] (video) {2D sign\\keypoints};
+\node[box, right=of video] (encoder) {ST-GCN + TCN\\visual encoder};
+\node[box, right=of encoder] (decoder) {autoregressive\\token decoder};
+\node[box, right=of decoder] (ids) {exact \Gemma{}\\token IDs};
+\node[llm, right=of ids] (gemma) {\Gemma{} 3n\\language stage};
+\node[box, right=of gemma] (text) {normalized or\\corrected text};
+\draw[arr] (video) -- (encoder);
+\draw[arr] (encoder) -- (decoder);
+\draw[arr] (decoder) -- (ids);
+\draw[arr] (ids) -- (gemma);
+\draw[arr] (gemma) -- (text);
+\node[draw, dashed, rounded corners, fit=(video)(encoder)(decoder)(ids),
+      inner sep=3mm, label=below:{\small \system{}: visually grounded transcription}] {};
+\node[draw, dashed, rounded corners, fit=(gemma)(text), inner sep=3mm,
+      label=below:{\small linguistic realization}] {};
+\end{tikzpicture}
+\caption{The revised \system{} interface.  Instead of approximating an LLM
+embedding, the visual model emits explicit tokenizer IDs.  The language-model
+stage receives ordinary text tokens and is evaluated separately from visual
+transcription.}
+\label{fig:pipeline}
+\end{figure}

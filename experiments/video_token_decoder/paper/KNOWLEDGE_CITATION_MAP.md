@@ -38,6 +38,9 @@ verificó directamente en el markdown y se añadió manualmente a `references.bi
 | `graves2006ctc` | definición original de CTC | ACM ICML, DOI `10.1145/1143844.1143891` |
 | `camgoz2020signtransformers` | Transformer conjunto CSLR/SLT | CVF Open Access |
 | `efron1979bootstrap` | bootstrap no paramétrico | Annals of Statistics, DOI `10.1214/aos/1176344552` |
+| `gemma3n` | modelo lingüístico downstream y características de Gemma 3n E2B | documentación oficial Google AI for Developers |
+| `ronchetti2016lsa64` | composición, signers y licencia del dataset LSA64 | repositorio institucional SEDICI/UNLP |
+| `velasquez2026imitator` | primera versión de Imitator basada en imitación de embeddings | capítulo Springer SIMBig 2025, DOI `10.1007/978-3-032-20322-9_23` |
 
 Antes de añadir nuevas citas externas se debe: buscar la fuente primaria, verificar
 autores/título/venue/DOI y registrar aquí qué afirmación sustenta.

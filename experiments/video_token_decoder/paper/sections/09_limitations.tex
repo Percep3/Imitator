@@ -1,0 +1,19 @@
+\section{Limitations and Scope}
+
+The study uses synthetic concatenations of isolated LSA64 clips, not naturally
+continuous signing.  It contains no coarticulation, natural sentence order, or
+open-vocabulary text; the 121-row output layer covers only IDs observed in this
+task.  Labels are Spanish lexical annotations of LSA signs, so direct token
+prediction is not equivalent to modeling LSA grammar.  Skeleton inputs omit visual
+appearance and remain dependent on pose-estimation quality; isolated-sign findings
+cannot simply be transferred to continuous signing
+\citep{harrouch2026manual,nam2026liftsign}.
+
+Only seed 23 is used, between-seed variance is unknown, and only two outer signers
+are prospectively confirmatory.  Sample-level bootstrap intervals do not replace
+signer-level replication.  E1 and the H2 threshold were developed on folds 4--6.
+The tokenizer restriction is efficient for a closed label set but must be expanded
+and revalidated for sentence data.  Finally, the correction audit tests one model
+and a fixed prompt; its defensible conclusion is limited to the tested setup and
+rates, although the absence of contextual information is a structural limitation
+of the present data.

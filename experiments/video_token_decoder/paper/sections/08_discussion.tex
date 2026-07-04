@@ -1,0 +1,24 @@
+\section{Discussion}
+
+The main result is an interface result.  Predicting tokenizer IDs turns the original
+embedding-imitation idea into an explicit communication channel between the visual
+encoder and the LLM.  It also separates two sources of success: \system{} must first
+place the correct IDs on that channel; only then can \Gemma{} contribute language
+knowledge.  Fluency from the downstream model cannot conceal an incorrect visual
+sequence because upstream exact and edit metrics are reported independently.
+
+The current evidence does not yet support the strongest product story---that
+\Gemma{} repairs imperfect sign transcription.  It supports the prerequisite:
+sign streams from held-out signers can be mapped directly into ordered, valid
+\Gemma{} IDs with
+substantially higher sequence accuracy than the initial decoder.  The negative
+corruption audit explains why correction is absent here and produces a concrete
+data requirement for the next stage: natural multiword sentences, multiple
+plausible contexts, and enough redundancy that a corrupted token is inferable.
+
+Discrete IDs trade flexibility for auditability.  Unlike continuous prompts, they
+do not communicate a calibrated posterior over alternative tokens.  Future work
+should compare top-$k$ or posterior-weighted interfaces, as explored in speech
+prompting \citep{deng2025wav2prompt,ma2025legoslm}, while retaining a separately
+scored visual transcript.  Such uncertainty may give the LLM useful alternatives
+without returning to unconstrained embedding imitation.

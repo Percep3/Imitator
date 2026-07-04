@@ -1,0 +1,86 @@
+\section{Results}
+
+\subsection{Token-ID transcription}
+
+Table~\ref{tab:development} shows the development trajectory.  Direct token-ID
+prediction is viable but not solved: the selected E1 model improves strict sequence
+accuracy by roughly an order of magnitude over the initial autoregressive decoder,
+yet most complete sequences still contain at least one error.  The positional
+intervention changes pairwise label order from near chance to approximately 0.99,
+supporting the claim that the emitted sequence is visually ordered.
+
+\begin{table}[t]
+\centering
+\caption{Signer-held-out development results for seed 23.  E1 is the selected
+token-ID \system{}; folds 4--6 were used for development and are not prospective.}
+\label{tab:development}
+\begin{tabular}{rrrrr}
+\toprule
+Fold & Initial AR exact (\%) & E1 exact (\%) & E1 edit (\%) & Pair order (\%) \\
+\midrule
+4 & 2.2 & 18.1 & 63.0 & 98.6 \\
+5 & 2.3 & 19.8 & 61.9 & 98.9 \\
+6 & 1.8 & 16.9 & 58.5 & 98.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Prospectively registered signer-held-out confirmation.  The CIF column
+is the frozen historical comparator, not a candidate \system{} architecture.}
+\label{tab:confirmation}
+\begin{tabular}{rrrrrrrr}
+\toprule
+Fold & CIF exact & E1 exact & E1 edit & Order & $\Delta_{\mathrm{perm}}$ & W/L/T & $p$ \\
+\midrule
+7 & \FoldSevenCIFExact & \FoldSevenExact & \FoldSevenEdit & \FoldSevenOrder &
+    \FoldSevenPermutationDrop & \FoldSevenWLT & \FoldSevenPValue \\
+8 & \FoldEightCIFExact & \FoldEightExact & \FoldEightEdit & \FoldEightOrder &
+    \FoldEightPermutationDrop & \FoldEightWLT & \FoldEightPValue \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Under the registered conjunctive decision rule, H1 \HOneOutcome, H2
+\HTwoOutcome, and H3 \HThreeOutcome.  Overall confirmation therefore
+\OverallOutcome.  These statements are populated automatically from the frozen
+evaluation artifacts and are not manually reinterpreted after either fold.
+
+\subsection{Can \Gemma{} repair token errors?}
+
+Table~\ref{tab:gemma-tolerance} answers this question for the current isolated-label
+regime.  At zero corruption, \Gemma{} preserves exact content in 95\% of rows and
+keeps chrF near 100.  At every tested nonzero rate, exact accuracy is already zero
+before correction and remains zero afterward.  chrF decreases rather than improves.
+Thus, no nonzero error tolerance is demonstrated: there is no tested nonzero
+corruption level at which the language stage recovers exact content.  Because the
+short sequences quantize every nonzero nominal rate to at least one substitution,
+this experiment does not locate a continuous threshold between 0 and 0.10.
+
+\begin{table}[t]
+\centering
+\caption{\Gemma{} 3n E2B correction audit on 120 isolated-label rows per
+condition.  chrF is on a 0--100 scale.  On these short sequences, every nonzero
+nominal rate produces at least one substitution.}
+\label{tab:gemma-tolerance}
+\begin{tabular}{rrrrrr}
+\toprule
+Substitution rate & Exact before & Exact after & chrF before & chrF after & $\Delta$chrF \\
+\midrule
+0.00 & 1.000 & 0.950 & 100.00 & 99.16 & -0.84 \\
+0.10 & 0.000 & 0.000 & 36.67 & 34.58 & -2.10 \\
+0.20 & 0.000 & 0.000 & 36.67 & 34.58 & -2.10 \\
+0.30 & 0.000 & 0.000 & 36.67 & 34.58 & -2.10 \\
+0.40 & 0.000 & 0.000 & 34.29 & 32.35 & -1.94 \\
+0.50 & 0.000 & 0.000 & 23.30 & 21.85 & -1.45 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This is not evidence that language models cannot correct sign transcription in
+general.  A substitution such as ``photo'' $\rightarrow$ ``green'' in an isolated
+label is compatible with no surrounding syntax or semantics that identifies the
+original word.  The appropriate next experiment is therefore not another prompt
+sweep on LSA64, but a pre-registered sentence corpus in which controlled token
+errors leave genuine contextual redundancy.

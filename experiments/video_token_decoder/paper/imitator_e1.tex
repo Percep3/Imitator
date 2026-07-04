@@ -8,338 +8,37 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{xcolor}
+\usepackage{tikz}
 \usepackage[numbers,sort&compress]{natbib}
+\usetikzlibrary{arrows.meta,fit,positioning}
 
 \newcommand{\system}{\textsc{Imitator}}
 \newcommand{\pending}{\textcolor{red}{\textsc{pending}}}
 \newcommand{\Gemma}{Gemma}
 \input{results_macros}
 
-\title{Restoring Temporal Order in Autoregressive Video-to-Token Sign Transcription}
-\author{Anonymous authors}
+\title{\system: Direct Prediction of \Gemma{} Token IDs for
+Language-Model-Assisted Sign Transcription}
+\author{Christian Velasquez Borasino \and Giorgio Mancusi Barreda \and
+Rody Vilchez Marin\\
+\small Universidad Peruana de Ciencias Aplicadas (UPC), Lima, Peru}
 \date{}
 
 \begin{document}
 \maketitle
 
-\begin{abstract}
-We study direct transcription of sign-keypoint streams into ordered language-model
-token IDs, without an intermediate gloss classifier at inference time.  An initial
-autoregressive system identified much of the sign content but behaved as a bag of
-signs: its visual Transformer had no global positional signal, and segment
-permutation left 86.3\% of predictions unchanged.  We introduce \system, a compact
-autoregressive video-to-token model that adds sinusoidal temporal position to the
-visual memory, restricts the output softmax to the 121 \Gemma{} IDs present in the
-task, removes label smoothing, and selects checkpoints using inner-validation edit
-similarity.  On three development folds, these changes raise strict sequence
-accuracy from roughly 2\% to 16.9--19.8\% and pairwise gloss-order accuracy from
-chance to approximately 0.99.  We prospectively evaluate the frozen configuration
-on two signer-held-out folds.  Confirmatory strict accuracy is
-\FoldSevenExact\% and \FoldEightExact\%, with paired permutation drops of
-\FoldSevenPermutationDrop{} and \FoldEightPermutationDrop{} in token edit
-similarity.  The claims are restricted to synthetic continuous streams formed by
-randomly concatenating isolated signs; real continuous signing remains out of
-scope.
-\end{abstract}
-
-\section{Introduction}
-
-Continuous sign transcription requires both identifying signed content and preserving
-its temporal order.  This distinction is easy to obscure when evaluation emphasizes
-token-level averages: a model may recover many correct units while producing a globally
-misordered sequence.  The issue is especially consequential for an autoregressive
-decoder, where an early ordering error changes the prefix conditioning every later
-prediction.
-
-We consider a deliberately constrained task: 2D keypoint sequences are assembled by
-concatenating isolated signs, and the model emits the corresponding sequence of
-subword IDs from the \Gemma{} tokenizer.  The target order is randomized by the data
-generator.  This removes a linguistic-order shortcut and makes successful ordering
-direct evidence that the model uses temporal video information, while also limiting
-the ecological scope of the experiment.
-
-Our initial decoder was nearly invariant to segment order.  A code and intervention
-audit traced the failure to a missing positional encoding in the visual Transformer.
-The local temporal convolution encoded short-range motion, but the memory exposed to
-cross-attention had no representation of global frame position.  Adding position,
-together with a task-effective output vocabulary and a corrected optimization regime,
-produced a large development-set improvement without changing the token-level product
-interface.
-
-This paper makes three contributions:
-\begin{enumerate}
-    \item We isolate a bag-of-signs failure through a segment-permutation intervention
-          and connect it to the permutation equivariance of a Transformer encoder
-          without positional information.
-    \item We present \system, a direct autoregressive video-to-\Gemma-token model whose
-          visual memory preserves global temporal order.
-    \item We evaluate a configuration frozen on development folds under a hash-verified,
-          prospectively registered signer-held-out protocol, including paired baseline
-          tests and a causal order intervention.
-\end{enumerate}
-
-\section{Related Work}
-
-\paragraph{Skeleton-based sign recognition.}
-Spatial--temporal graph networks provide a compact way to model joints and motion
-\citep{yan2018stgcn}.  Recent skeleton CSLR systems study input decomposition,
-multi-stream static/motion features, temporal downsampling, and signer generalization
-\citep{min2025skeleton,nam2026liftsign}.  Multi-scale spatial--temporal enhancement
-and explicit frame-level objectives likewise emphasize that preserving fine temporal
-information is central to continuous recognition \citep{wang2025stnet}.  Other systems
-combine body, handshape, velocity, or non-manual streams
-\citep{zhao2026multimodal,harrouch2026manual,yenisari2025multifeature}, or connect an
-ST-GCN recognizer to a language-generation stage \citep{pai2026tsl}.  This literature
-also identifies recurring threats relevant here: pose-estimation error, scarce
-signer-diverse data, coarticulation, and overfitting in small Transformer datasets
-\citep{harrouch2026manual,min2025skeleton,nam2026liftsign,huamaniLessIsMore}.
-
-\paragraph{Connecting visual or acoustic encoders to language models.}
-Gloss-free sign translation increasingly connects visual representations to pretrained
-language models.  Sign2GPT uses pseudo-gloss pretraining and LLM-based generation
-\citep{wong2024sign2gpt}; SignLLM constructs discrete, hierarchical sign tokens for a
-frozen LLM \citep{gong2024signllm}; and FLa-LLM separates visual initialization from
-LLM fine-tuning to prevent the language model from dominating visual learning
-\citep{chen2024flallm}.  Related speech work maps encoder information into an LLM token
-space through continuous prompts or CTC posterior-weighted token embeddings
-\citep{deng2025wav2prompt,ma2025legoslm}.  These works motivate a token-level interface,
-but our controlled recognition task does not perform natural-language translation or
-invoke an LLM at inference time.  Moreover, contextual embedding spaces can be strongly
-anisotropic \citep{ethayarajh2019contextual}; consequently, we do not interpret embedding
-cosine geometry alone as evidence of visual--linguistic alignment.
-
-\paragraph{Alignment objectives.}
-Connectionist temporal classification (CTC) \citep{graves2006ctc} remains a standard
-choice for monotonic weak alignment in continuous recognition
-\citep{min2025skeleton,nam2026liftsign}.  Joint CTC/attention has also been adapted to
-text-level sign translation where the output order need not be monotonic with video
-\citep{tan2025textctc}; an earlier end-to-end Sign Language Transformer coupled CSLR and
-translation through CTC supervision \citep{camgoz2020signtransformers}.  Boundary-aware
-systems instead use explicit handshape and motion
-cues to segment signs \citep{zhao2026multimodal}.  In our development study, a token-level
-CTC auxiliary head was evaluated but not retained: it did not improve the autoregressive
-model, and its standalone decoding collapsed to blank.  The central gain instead came
-from restoring global temporal position to the visual memory.
-
-\section{Task and Data}
-\label{sec:data}
-
-\paragraph{Inputs.}
-Each example is a sequence $X\in\mathbb{R}^{T\times111\times2}$ of normalized 2D
-keypoints.  The synthetic generator samples between two and eight isolated clips and
-concatenates them, inserting zero-valued neutral gaps of zero to eight frames.  Clip
-order is sampled independently for every synthetic example.
-
-\paragraph{Targets.}
-The 64 gloss labels are tokenized with the fixed \Gemma{} tokenizer.  A target is the
-concatenation of the tokenizations of its sampled glosses.  Across this task there are
-118 content-token IDs; adding BOS, EOS, and PAD yields an effective vocabulary of 121
-real \Gemma{} IDs.  The model therefore remains a token-ID transcriber rather than a
-64-way gloss classifier.
-
-\paragraph{Signer-held-out protocol.}
-The dataset contains ten signers.  Each LOSO fold excludes one outer-test signer and
-uses a second signer for inner validation; all remaining signers form the training set.
-Folds 1--6 are development folds.  Folds 7 and 8 are the prospectively registered
-confirmation folds; folds 9 and 10 remain reserved.  Each outer evaluation contains
-896 deterministic synthetic sequences generated with seed 200023.
-
-\section{Method}
-\label{sec:method}
-
-\subsection{Visual encoder}
-
-The frame encoder applies three ST-GCN blocks to the keypoint graph, projects to 128
-channels, averages over graph nodes, and applies two temporal convolution blocks.  A
-one-layer, four-head Transformer encoder then produces visual memory
-$H\in\mathbb{R}^{T\times128}$.  The ST-GCN projection is initialized from a
-signer-clean CIF checkpoint whose lineage is verified by SHA-256 and signer lists.
-
-The original encoder passed temporal-convolution features directly to the Transformer.
-Because self-attention without position is permutation equivariant, its global memory
-could not distinguish segment order beyond the local convolutional receptive field.
-Following the explicit positional construction of the original Transformer
-\citep{vaswani2017attention}, \system{} adds a fixed sinusoidal vector $p_t$ before
-self-attention,
-\begin{equation}
-    \tilde{h}_t = h_t + p_t,
-\end{equation}
-thereby making global frame position available to the encoder and downstream
-cross-attention.
-
-\subsection{Autoregressive token decoder}
-
-The causal decoder has two Transformer layers, four attention heads, hidden size 128,
-and feed-forward size 512.  At step $i$, it predicts a \Gemma{} token conditioned on the
-visual memory and the gold prefix during training,
-\begin{equation}
-    \mathcal{L}_{\mathrm{AR}}
-      = -\sum_i \log p_\theta(y_i\mid y_{<i}, X).
-\end{equation}
-The input embedding and output projection are tied.  Greedy inference begins with BOS,
-stops on EOS, forbids EOS at the first step, and emits at most 32 content tokens.
-
-Rather than allocating the full 262,400-row \Gemma{} softmax, we use a bijective dense
-reparameterization over the 121 IDs effective in this task.  Every output row maps to a
-specific \Gemma{} ID, and decoding maps it back before evaluation.  This reduces unused
-parameters without changing the external target space.  The tied token embedding and
-output rows are initialized from the corresponding classifier rows of the same
-signer-clean CIF checkpoint; all lineage and shape checks occur before training.
-
-\subsection{Training configuration}
-
-The frozen E1 configuration uses seed 23, 2,048 synthetic training examples per epoch,
-and 512 deterministic inner-validation examples.  The decoder is optimized for 30
-epochs at learning rate $3\times10^{-4}$.  The visual TCN and Transformer remain frozen
-for five epochs and then train at $3\times10^{-5}$; the ST-GCN and spatial projection
-remain frozen throughout.  Label smoothing and auxiliary CTC loss are zero.  The closed
-checkpoint is selected lexicographically by inner-validation token edit similarity and
-then strict accuracy.  No outer-test result participates in model or epoch selection.
-
-\section{Evaluation}
-\label{sec:evaluation}
-
-\paragraph{Primary metrics.}
-Strict accuracy is one only when the complete predicted ID sequence equals the target
-and EOS is emitted.  Token edit similarity is
-\begin{equation}
-    \operatorname{EditSim}(\hat{y},y)
-      = \max\left(0,1-\frac{d_{\mathrm{Lev}}(\hat{y},y)}{|y|}\right).
-\end{equation}
-We report sample-level nonparametric percentile bootstrap 95\% confidence intervals
-\citep{efron1979bootstrap} with 10,000 fixed-seed replicates.
-
-\paragraph{CIF comparator.}
-CIF is not a candidate final architecture; it is the historical monotonic baseline and
-the source of signer-clean encoder initialization.  Its affine count calibration is fit
-only on inner validation and then frozen.  E1 and CIF are evaluated on identical outer
-samples.  For strict accuracy, we count E1-only successes as wins and CIF-only successes
-as losses, omit ties, and apply an exact two-sided sign test.
-
-\paragraph{Order metric.}
-Predicted token sequences are greedily parsed into gloss units by longest token match.
-A gloss is eligible when it occurs exactly once in both prediction and target.  For
-every pair of eligible glosses, we test whether their relative order agrees and
-micro-average concordant pairs.  Samples with fewer than two eligible glosses contribute
-no order pairs.  The implementation is versioned and reproduces the original audit
-metric exactly.
-
-\paragraph{Causal permutation test.}
-Using gold synthetic boundaries, we permute complete video segments while preserving
-all frames, sequence length, and the original target.  A non-identity permutation is
-forced for every sample.  We report the paired mean decrease in edit similarity between
-clean and permuted inputs.  This is an intervention on visual order, not a data
-augmentation used during training.
-
-\subsection{Prospectively registered hypotheses}
-
-All criteria are conjunctive across folds 7 and 8:
-\begin{itemize}
-    \item \textbf{H1:} E1 has more strict-accuracy wins than losses against affine CIF,
-          with two-sided sign-test $p<0.01$, in each fold.
-    \item \textbf{H2:} clean strict accuracy is at least 11.9\% in each fold.  The bound
-          is unilateral; performance above the development range is a success.
-    \item \textbf{H3:} pairwise gloss-order accuracy is at least 0.90 and the absolute
-          paired permutation drop in edit similarity is at least 0.15 in each fold.
-\end{itemize}
-The complete confirmation succeeds only if all three hypotheses pass in both folds.
-
-\section{Results}
-\label{sec:results}
-
-\subsection{Development evidence}
-
-Table~\ref{tab:development} reports folds used to diagnose and select E1.  These results
-are not treated as prospective confirmation.  Restoring temporal position changes the
-dominant failure mode: strict and multiset exact accuracy become nearly equal, and
-pairwise order rises from approximately chance to above 0.98.
-
-\begin{table}[t]
-\centering
-\caption{Development results (seed 23). AR-base and all E1 decisions were developed on
-folds 4--6; values are percentages except W/L/T.}
-\label{tab:development}
-\begin{tabular}{rrrrrr}
-\toprule
-Fold & CIF exact & AR-base exact & E1 exact & E1 edit & Order \\
-\midrule
-4 & 2.3 & 2.2 & 18.1 & 63.0 & 98.6 \\
-5 & 4.9 & 2.3 & 19.8 & 61.9 & 98.9 \\
-6 & 2.6 & 1.8 & 16.9 & 58.5 & 98.6 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Held-out confirmation}
-
-\begin{table}[t]
-\centering
-\caption{Prospectively registered confirmation. Values are populated directly from
-the frozen evaluation artifacts.}
-\label{tab:confirmation}
-\begin{tabular}{rrrrrrrr}
-\toprule
-Fold & CIF exact & E1 exact & E1 edit & Order & $\Delta_{\mathrm{perm}}$ & W/L/T & $p$ \\
-\midrule
-7 & \FoldSevenCIFExact & \FoldSevenExact & \FoldSevenEdit & \FoldSevenOrder &
-    \FoldSevenPermutationDrop & \FoldSevenWLT & \FoldSevenPValue \\
-8 & \FoldEightCIFExact & \FoldEightExact & \FoldEightEdit & \FoldEightOrder &
-    \FoldEightPermutationDrop & \FoldEightWLT & \FoldEightPValue \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Under the registered conjunctive rule, H1 \HOneOutcome, H2 \HTwoOutcome, and H3
-\HThreeOutcome.  The overall confirmation therefore \OverallOutcome.  This sentence is
-macro-backed and must not be edited manually to reinterpret a failed fold.
-
-\section{Discussion}
-
-The development intervention supports a specific architectural explanation rather than
-a generic capacity claim.  The autoregressive decoder could already identify a useful
-subset of signed content, but without global temporal position its cross-attention read
-an effectively unordered memory.  Position restores the information required to bind
-content to sequence order.  Restricting the softmax and correcting checkpoint selection
-improve optimization efficiency, but neither alone explains sensitivity to segment
-permutation.
-
-Random target order is both a strength and a limitation.  It prevents a language model
-from guessing the next sign and makes the permutation test unusually clean.  Conversely,
-it removes the linguistic structure and coarticulation present in natural continuous
-signing.  The present evidence should therefore be interpreted as controlled visual
-sequence transcription, not end-to-end natural sign-language understanding.
-
-\section{Limitations and Threats to Validity}
-
-Only one training seed is used, so between-seed variance is not estimated.  The
-confirmatory sample contains two outer signers; sample-level confidence intervals do not
-substitute for broader signer-level replication.  All sequences are synthetic
-concatenations of isolated clips, neutral gaps are artificial, and gold boundaries are
-available only to the diagnostic permutation procedure.  Folds 4--6 influenced the E1
-configuration and H2 threshold and are labeled development throughout.  Signers can
-serve as inner validation in one rotation and outer test in another, although every
-model is trained independently and excludes its own outer signer.  Finally, the
-effective vocabulary covers this 64-gloss task and does not establish scalability to
-open-vocabulary transcription.  These restrictions are material: isolated-sign systems
-do not capture continuous coarticulation \citep{harrouch2026manual}, skeleton CSLR can
-generalize poorly when training data are scarce \citep{min2025skeleton}, and keypoint
-pipelines remain dependent on pose-estimation quality even when they reduce RGB nuisance
-variation \citep{harrouch2026manual,nam2026liftsign}.
-
-\section{Reproducibility and Audit Trail}
-
-The pre-registration is committed before E1 outer evaluation on folds 7--8.  Data splits,
-source-checkpoint lineage, source and closed-checkpoint SHA-256 hashes, per-sample
-predictions, paired comparisons, bootstrap seeds, and hypothesis decisions are stored in
-machine-readable JSON.  The time-budget amendment postpones secondary perturbations and
-exploratory probes but does not alter E1, H1--H3, or their decision rules.  Exact commands
-and hashes are included in the accompanying repository.
-
-\section*{Data Ethics Statement}
-
-\pending{}: add the dataset's consent, licensing, demographic, privacy, and intended-use
-statements from its authoritative documentation before submission.  Keypoint-only
-processing reduces but does not eliminate biometric and re-identification concerns.
+\input{sections/00_abstract.tex}
+\input{sections/01_introduction.tex}
+\input{sections/02_related_work.tex}
+\input{sections/03_interface_evolution.tex}
+\input{sections/04_model.tex}
+\input{sections/05_data_protocol.tex}
+\input{sections/06_evaluation.tex}
+\input{sections/07_results.tex}
+\input{sections/08_discussion.tex}
+\input{sections/09_limitations.tex}
+\input{sections/10_conclusion.tex}
+\input{sections/11_reproducibility_ethics.tex}
 
 \bibliographystyle{plainnat}
 \bibliography{references}

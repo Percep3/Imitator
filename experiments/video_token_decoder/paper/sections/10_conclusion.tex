@@ -1,0 +1,11 @@
+\section{Conclusion}
+
+\system{} keeps the original goal of learning a lightweight bridge from sign motion
+to a pretrained language model, but replaces approximate embedding imitation with
+exact token-ID prediction.  This change makes the bridge directly decodable,
+measurable, and compatible with an unchanged \Gemma{} text interface.  Controlled
+signer-held-out experiments show a substantial improvement in ordered token
+transcription.  The downstream audit also prevents an overclaim: \Gemma{} does not
+repair any tested nonzero token corruption in isolated labels.  The next decisive
+test is sentence-level sign transcription, where linguistic context may turn the
+currently zero error budget into a useful correction channel.

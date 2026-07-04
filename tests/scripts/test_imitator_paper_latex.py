@@ -6,8 +6,14 @@ ROOT = Path(__file__).resolve().parents[2]
 PAPER = ROOT / "experiments/video_token_decoder/paper"
 
 
+def manuscript_tex() -> str:
+    """Read the format-agnostic root plus all section sources."""
+    paths = [PAPER / "imitator_e1.tex", *sorted((PAPER / "sections").glob("*.tex"))]
+    return "\n".join(path.read_text(encoding="utf-8") for path in paths)
+
+
 def test_every_citation_key_is_defined_and_every_bib_entry_is_used():
-    tex = (PAPER / "imitator_e1.tex").read_text(encoding="utf-8")
+    tex = manuscript_tex()
     bib = (PAPER / "references.bib").read_text(encoding="utf-8")
     defined = set(re.findall(r"@\w+\{([^,]+),", bib))
     cited = set()
@@ -27,8 +33,16 @@ def test_every_local_knowledge_markdown_has_a_citation_mapping():
 
 
 def test_confirmatory_result_macros_are_defined_in_placeholder_file():
-    tex = (PAPER / "imitator_e1.tex").read_text(encoding="utf-8")
+    tex = manuscript_tex()
     macros = (PAPER / "results_macros.tex").read_text(encoding="utf-8")
     referenced = set(re.findall(r"\\(Fold(?:Seven|Eight)\w+|H(?:One|Two|Three)Outcome|OverallOutcome)", tex))
     defined = set(re.findall(r"\\newcommand\{\\(\w+)\}", macros))
     assert referenced <= defined
+
+
+def test_root_includes_every_modular_section_exactly_once():
+    root = (PAPER / "imitator_e1.tex").read_text(encoding="utf-8")
+    section_names = {path.name for path in (PAPER / "sections").glob("*.tex")}
+    included = re.findall(r"\\input\{sections/([^}]+)\}", root)
+    assert set(included) == section_names
+    assert len(included) == len(set(included))
