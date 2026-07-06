@@ -1,0 +1,728 @@
+{
+  "schema_version": 1,
+  "protocol": "Imitator E1, seed 23",
+  "preregistration_commit": "67641eba6a28daee2b19e68d466a46f79eff7334",
+  "folds": [
+    {
+      "fold": 1,
+      "role": "development",
+      "cif_affine": null,
+      "ar_baseline": null,
+      "e1": null,
+      "paired_e1_vs_cif": null,
+      "pre_registered_decisions": null,
+      "robustness_curves": null,
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": null,
+        "ar_baseline": null,
+        "e1": null,
+        "robustness": null,
+        "probe": null
+      }
+    },
+    {
+      "fold": 2,
+      "role": "development",
+      "cif_affine": null,
+      "ar_baseline": null,
+      "e1": null,
+      "paired_e1_vs_cif": null,
+      "pre_registered_decisions": null,
+      "robustness_curves": null,
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": null,
+        "ar_baseline": null,
+        "e1": null,
+        "robustness": null,
+        "probe": null
+      }
+    },
+    {
+      "fold": 3,
+      "role": "development",
+      "cif_affine": null,
+      "ar_baseline": null,
+      "e1": null,
+      "paired_e1_vs_cif": null,
+      "pre_registered_decisions": null,
+      "robustness_curves": null,
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": null,
+        "ar_baseline": null,
+        "e1": null,
+        "robustness": null,
+        "probe": null
+      }
+    },
+    {
+      "fold": 4,
+      "role": "development",
+      "cif_affine": {
+        "strict_exact": 0.0234375,
+        "token_edit_similarity": 0.4798914937914976,
+        "length_mae": 1.7064732142857142
+      },
+      "ar_baseline": {
+        "strict_exact": 0.022321428571428572,
+        "token_edit_similarity": 0.2576529295616231,
+        "length_mae": 3.4620535714285716
+      },
+      "e1": {
+        "metrics": {
+          "strict_exact": 0.18080357142857142,
+          "token_error_rate": 0.3734061644531844,
+          "token_edit_similarity": 0.6295168797645033,
+          "text_exact": 0.18080357142857142,
+          "predicted_length": 9.917410714285714,
+          "length_mae": 1.2321428571428572,
+          "eos_rate": 1.0,
+          "no_eos_rate": 0.0
+        },
+        "bootstrap_95_ci": {
+          "strict_exact": {
+            "estimate": 0.18080357142857142,
+            "lower": 0.15625,
+            "upper": 0.20647321428571427,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800066
+          },
+          "token_edit_similarity": {
+            "estimate": 0.6295168797645029,
+            "lower": 0.6132138015651866,
+            "upper": 0.6456515723816003,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800067
+          }
+        },
+        "gloss_diagnostics": {
+          "sample_count": 896,
+          "prediction_parse_rate": 0.9430803571428571,
+          "target_parse_rate": 1.0,
+          "gloss_precision": 0.6981891348088531,
+          "gloss_recall": 0.635385671778439,
+          "multiset_exact": 0.18191964285714285,
+          "pairwise_order_accuracy": 0.9856020942408377,
+          "pairwise_order_correct": 3012,
+          "pairwise_order_total": 3056,
+          "pairwise_order_eligible_samples": 733
+        },
+        "checkpoint": "../outputs/video_token_decoder/fold4_seed23/e1_pe_vocab121/checkpoint_closed.pt",
+        "checkpoint_sha256": "1e10ee8cb5f865d35c2c170a0d468e5ab4f3a97788eb7269ae0c46c8f73661e3"
+      },
+      "paired_e1_vs_cif": {
+        "wins": 144,
+        "losses": 3,
+        "ties": 749,
+        "discordant": 147,
+        "strict_exact_delta": 0.15736607142857142,
+        "two_sided_sign_test_p": 5.936393551939367e-39
+      },
+      "pre_registered_decisions": null,
+      "robustness_curves": null,
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold4_cif_comparator.json",
+        "ar_baseline": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold4_seed23/base/outer_test.json",
+        "e1": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold4_seed23/e1_pe_vocab121/outer_test.json",
+        "robustness": null,
+        "probe": null
+      }
+    },
+    {
+      "fold": 5,
+      "role": "development",
+      "cif_affine": {
+        "strict_exact": 0.049107142857142856,
+        "token_edit_similarity": 0.5582267967858379,
+        "length_mae": 1.0111607142857142
+      },
+      "ar_baseline": {
+        "strict_exact": 0.0234375,
+        "token_edit_similarity": 0.23933408711620638,
+        "length_mae": 2.6529017857142856
+      },
+      "e1": {
+        "metrics": {
+          "strict_exact": 0.19754464285714285,
+          "token_error_rate": 0.38227201861183974,
+          "token_edit_similarity": 0.618488939180368,
+          "text_exact": 0.19754464285714285,
+          "predicted_length": 10.463169642857142,
+          "length_mae": 1.0256696428571428,
+          "eos_rate": 1.0,
+          "no_eos_rate": 0.0
+        },
+        "bootstrap_95_ci": {
+          "strict_exact": {
+            "estimate": 0.19754464285714285,
+            "lower": 0.171875,
+            "upper": 0.22433035714285715,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800076
+          },
+          "token_edit_similarity": {
+            "estimate": 0.6184889391803677,
+            "lower": 0.6008231253604278,
+            "upper": 0.6358733009082149,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800077
+          }
+        },
+        "gloss_diagnostics": {
+          "sample_count": 896,
+          "prediction_parse_rate": 0.9386160714285714,
+          "target_parse_rate": 1.0,
+          "gloss_precision": 0.6746031746031746,
+          "gloss_recall": 0.642023346303502,
+          "multiset_exact": 0.19866071428571427,
+          "pairwise_order_accuracy": 0.9893333333333333,
+          "pairwise_order_correct": 2968,
+          "pairwise_order_total": 3000,
+          "pairwise_order_eligible_samples": 741
+        },
+        "checkpoint": "../outputs/video_token_decoder/fold5_seed23/e1_pe_vocab121/checkpoint_closed.pt",
+        "checkpoint_sha256": "2e12cab3d4eaf6502ee3543b86626fc3d22749252a199a34da56a8680f834a47"
+      },
+      "paired_e1_vs_cif": {
+        "wins": 140,
+        "losses": 7,
+        "ties": 749,
+        "discordant": 147,
+        "strict_exact_delta": 0.1484375,
+        "two_sided_sign_test_p": 3.0017539079550897e-33
+      },
+      "pre_registered_decisions": null,
+      "robustness_curves": null,
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold5_cif_comparator.json",
+        "ar_baseline": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold5_seed23/base/outer_test.json",
+        "e1": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold5_seed23/e1_pe_vocab121/outer_test.json",
+        "robustness": null,
+        "probe": null
+      }
+    },
+    {
+      "fold": 6,
+      "role": "development",
+      "cif_affine": {
+        "strict_exact": 0.025669642857142856,
+        "token_edit_similarity": 0.40668480308866906,
+        "length_mae": 1.6026785714285714
+      },
+      "ar_baseline": {
+        "strict_exact": 0.017857142857142856,
+        "token_edit_similarity": 0.2134068720872214,
+        "length_mae": 2.466517857142857
+      },
+      "e1": {
+        "metrics": {
+          "strict_exact": 0.16852678571428573,
+          "token_error_rate": 0.419628862957701,
+          "token_edit_similarity": 0.5850254206307344,
+          "text_exact": 0.16852678571428573,
+          "predicted_length": 10.739955357142858,
+          "length_mae": 1.0870535714285714,
+          "eos_rate": 0.9988839285714286,
+          "no_eos_rate": 0.0011160714285714285
+        },
+        "bootstrap_95_ci": {
+          "strict_exact": {
+            "estimate": 0.16852678571428573,
+            "lower": 0.14397321428571427,
+            "upper": 0.19308035714285715,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800086
+          },
+          "token_edit_similarity": {
+            "estimate": 0.5850254206307339,
+            "lower": 0.5672452599520765,
+            "upper": 0.6027804562432818,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800087
+          }
+        },
+        "gloss_diagnostics": {
+          "sample_count": 896,
+          "prediction_parse_rate": 0.9162946428571429,
+          "target_parse_rate": 1.0,
+          "gloss_precision": 0.6459582633725114,
+          "gloss_recall": 0.616388189517052,
+          "multiset_exact": 0.16964285714285715,
+          "pairwise_order_accuracy": 0.9861868411486732,
+          "pairwise_order_correct": 2713,
+          "pairwise_order_total": 2751,
+          "pairwise_order_eligible_samples": 722
+        },
+        "checkpoint": "../outputs/video_token_decoder/fold6_seed23/e1_pe_vocab121/checkpoint_closed.pt",
+        "checkpoint_sha256": "5f0e4d7a58c7a4cfb0d1935d8b6f978fadaffc8e1667c508338ea74c3b648368"
+      },
+      "paired_e1_vs_cif": {
+        "wins": 131,
+        "losses": 3,
+        "ties": 762,
+        "discordant": 134,
+        "strict_exact_delta": 0.14285714285714285,
+        "two_sided_sign_test_p": 3.6837972573855015e-35
+      },
+      "pre_registered_decisions": null,
+      "robustness_curves": null,
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold6_cif_comparator.json",
+        "ar_baseline": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold6_seed23/base/outer_test.json",
+        "e1": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold6_seed23/e1_pe_vocab121/outer_test.json",
+        "robustness": null,
+        "probe": null
+      }
+    },
+    {
+      "fold": 7,
+      "role": "confirmatory",
+      "cif_affine": {
+        "strict_exact": 0.017857142857142856,
+        "token_edit_similarity": 0.39208956345753704,
+        "length_mae": 1.2243303571428572
+      },
+      "ar_baseline": null,
+      "e1": {
+        "metrics": {
+          "strict_exact": 0.125,
+          "token_error_rate": 0.47574312324457463,
+          "token_edit_similarity": 0.530173021622463,
+          "text_exact": 0.125,
+          "predicted_length": 9.870535714285714,
+          "length_mae": 1.3627232142857142,
+          "eos_rate": 1.0,
+          "no_eos_rate": 0.0
+        },
+        "bootstrap_95_ci": {
+          "strict_exact": {
+            "estimate": 0.125,
+            "lower": 0.10379464285714286,
+            "upper": 0.14732142857142858,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800096
+          },
+          "token_edit_similarity": {
+            "estimate": 0.5301730216224633,
+            "lower": 0.5123688419120236,
+            "upper": 0.5478189775292621,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800097
+          }
+        },
+        "gloss_diagnostics": {
+          "sample_count": 896,
+          "prediction_parse_rate": 0.9140625,
+          "target_parse_rate": 1.0,
+          "gloss_precision": 0.62463421122639,
+          "gloss_recall": 0.537422751201648,
+          "multiset_exact": 0.12611607142857142,
+          "pairwise_order_accuracy": 0.9815398469158036,
+          "pairwise_order_correct": 2180,
+          "pairwise_order_total": 2221,
+          "pairwise_order_eligible_samples": 640
+        },
+        "checkpoint": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold7_seed23/e1_pe_vocab121/checkpoint_closed.pt",
+        "checkpoint_sha256": "480bbecd4ff3c4f66d282ec4da2153ec3cb6c43c47d54e639e170d4a5ec658e1"
+      },
+      "paired_e1_vs_cif": {
+        "wins": 99,
+        "losses": 3,
+        "ties": 794,
+        "discordant": 102,
+        "strict_exact_delta": 0.10714285714285714,
+        "two_sided_sign_test_p": 6.979604631123946e-26
+      },
+      "pre_registered_decisions": {
+        "scope": "confirmatory",
+        "H1": {
+          "pass": true,
+          "criterion": "wins > losses and two-sided sign-test p < 0.01"
+        },
+        "H2": {
+          "pass": true,
+          "criterion": "clean strict_exact >= 0.119 in this fold"
+        },
+        "H3": {
+          "pass": true,
+          "criterion": "pairwise gloss order >= 0.9 and paired absolute edit_sim drop >= 0.15"
+        }
+      },
+      "robustness_curves": {
+        "clean": {
+          "metrics": {
+            "strict_exact": 0.125,
+            "token_error_rate": 0.47574312324457463,
+            "token_edit_similarity": 0.530173021622463,
+            "text_exact": 0.125,
+            "predicted_length": 9.870535714285714,
+            "length_mae": 1.3627232142857142,
+            "eos_rate": 1.0,
+            "no_eos_rate": 0.0
+          },
+          "paired_clean_minus_condition_bootstrap_95_ci": null
+        },
+        "segment_permutation": {
+          "metrics": {
+            "strict_exact": 0.0011160714285714285,
+            "token_error_rate": 0.8277425626523602,
+            "token_edit_similarity": 0.18750962068017954,
+            "text_exact": 0.0011160714285714285,
+            "predicted_length": 9.938616071428571,
+            "length_mae": 1.2790178571428572,
+            "eos_rate": 1.0,
+            "no_eos_rate": 0.0
+          },
+          "paired_clean_minus_condition_bootstrap_95_ci": {
+            "strict_exact": {
+              "estimate": 0.12388392857142858,
+              "lower": 0.10267857142857142,
+              "upper": 0.14508928571428573,
+              "confidence": 0.95,
+              "method": "sample-level nonparametric percentile bootstrap",
+              "replicates": 10000,
+              "seed": 7800146
+            },
+            "token_edit_similarity": {
+              "estimate": 0.3426634009422841,
+              "lower": 0.3238913647412819,
+              "upper": 0.3608837346201573,
+              "confidence": 0.95,
+              "method": "sample-level nonparametric percentile bootstrap",
+              "replicates": 10000,
+              "seed": 7800147
+            }
+          }
+        }
+      },
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold7_cif_comparator.json",
+        "ar_baseline": null,
+        "e1": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold7_seed23/e1_pe_vocab121/outer_test.json",
+        "robustness": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold7_seed23/e1_pe_vocab121/outer_test_robustness.json",
+        "probe": null
+      }
+    },
+    {
+      "fold": 8,
+      "role": "confirmatory",
+      "cif_affine": {
+        "strict_exact": 0.026785714285714284,
+        "token_edit_similarity": 0.503367795927208,
+        "length_mae": 1.46875
+      },
+      "ar_baseline": null,
+      "e1": {
+        "metrics": {
+          "strict_exact": 0.140625,
+          "token_error_rate": 0.4137616820953034,
+          "token_edit_similarity": 0.5873743191802071,
+          "text_exact": 0.140625,
+          "predicted_length": 9.466517857142858,
+          "length_mae": 1.4877232142857142,
+          "eos_rate": 1.0,
+          "no_eos_rate": 0.0
+        },
+        "bootstrap_95_ci": {
+          "strict_exact": {
+            "estimate": 0.140625,
+            "lower": 0.11830357142857142,
+            "upper": 0.1640625,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800106
+          },
+          "token_edit_similarity": {
+            "estimate": 0.5873743191802065,
+            "lower": 0.5710013857235495,
+            "upper": 0.6033886852912299,
+            "confidence": 0.95,
+            "method": "sample-level nonparametric percentile bootstrap",
+            "replicates": 10000,
+            "seed": 7800107
+          }
+        },
+        "gloss_diagnostics": {
+          "sample_count": 896,
+          "prediction_parse_rate": 0.9486607142857143,
+          "target_parse_rate": 1.0,
+          "gloss_precision": 0.6642449403217436,
+          "gloss_recall": 0.5859464408331426,
+          "multiset_exact": 0.140625,
+          "pairwise_order_accuracy": 0.9889240506329114,
+          "pairwise_order_correct": 2500,
+          "pairwise_order_total": 2528,
+          "pairwise_order_eligible_samples": 702
+        },
+        "checkpoint": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold8_seed23/e1_pe_vocab121/checkpoint_closed.pt",
+        "checkpoint_sha256": "60763fb452b2ee9ee6dfa27561c5ee9ea1de26f2e87546a0e33df9f86053a2e5"
+      },
+      "paired_e1_vs_cif": {
+        "wins": 108,
+        "losses": 6,
+        "ties": 782,
+        "discordant": 114,
+        "strict_exact_delta": 0.11383928571428571,
+        "two_sided_sign_test_p": 2.7161864516312885e-25
+      },
+      "pre_registered_decisions": {
+        "scope": "confirmatory",
+        "H1": {
+          "pass": true,
+          "criterion": "wins > losses and two-sided sign-test p < 0.01"
+        },
+        "H2": {
+          "pass": true,
+          "criterion": "clean strict_exact >= 0.119 in this fold"
+        },
+        "H3": {
+          "pass": true,
+          "criterion": "pairwise gloss order >= 0.9 and paired absolute edit_sim drop >= 0.15"
+        }
+      },
+      "robustness_curves": {
+        "clean": {
+          "metrics": {
+            "strict_exact": 0.140625,
+            "token_error_rate": 0.4137616820953034,
+            "token_edit_similarity": 0.5873743191802071,
+            "text_exact": 0.140625,
+            "predicted_length": 9.466517857142858,
+            "length_mae": 1.4877232142857142,
+            "eos_rate": 1.0,
+            "no_eos_rate": 0.0
+          },
+          "paired_clean_minus_condition_bootstrap_95_ci": null
+        },
+        "segment_permutation": {
+          "metrics": {
+            "strict_exact": 0.002232142857142857,
+            "token_error_rate": 0.8011092461097401,
+            "token_edit_similarity": 0.20853405249758097,
+            "text_exact": 0.002232142857142857,
+            "predicted_length": 9.517857142857142,
+            "length_mae": 1.5189732142857142,
+            "eos_rate": 1.0,
+            "no_eos_rate": 0.0
+          },
+          "paired_clean_minus_condition_bootstrap_95_ci": {
+            "strict_exact": {
+              "estimate": 0.13839285714285715,
+              "lower": 0.1171875,
+              "upper": 0.16183035714285715,
+              "confidence": 0.95,
+              "method": "sample-level nonparametric percentile bootstrap",
+              "replicates": 10000,
+              "seed": 7800146
+            },
+            "token_edit_similarity": {
+              "estimate": 0.378840266682626,
+              "lower": 0.36111480056502404,
+              "upper": 0.3967183623585672,
+              "confidence": 0.95,
+              "method": "sample-level nonparametric percentile bootstrap",
+              "replicates": 10000,
+              "seed": 7800147
+            }
+          }
+        }
+      },
+      "frame_identity_probe": null,
+      "artifacts": {
+        "cif": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold8_cif_comparator.json",
+        "ar_baseline": null,
+        "e1": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold8_seed23/e1_pe_vocab121/outer_test.json",
+        "robustness": "/shared/Code/Sign-AI/outputs/video_token_decoder/fold8_seed23/e1_pe_vocab121/outer_test_robustness.json",
+        "probe": null
+      }
+    }
+  ],
+  "confirmatory_hypotheses": {
+    "H1": {
+      "fold_passes": [
+        true,
+        true
+      ],
+      "pass": true
+    },
+    "H2": {
+      "fold_passes": [
+        true,
+        true
+      ],
+      "pass": true
+    },
+    "H3": {
+      "fold_passes": [
+        true,
+        true
+      ],
+      "pass": true
+    }
+  },
+  "full_confirmation": true,
+  "development_ablations": [
+    {
+      "fold": 4,
+      "variant": "E1",
+      "status": "available",
+      "metrics": {
+        "strict_exact": 0.18080357142857142,
+        "token_error_rate": 0.3734061644531844,
+        "token_edit_similarity": 0.6295168797645033,
+        "text_exact": 0.18080357142857142,
+        "predicted_length": 9.917410714285714,
+        "length_mae": 1.2321428571428572,
+        "eos_rate": 1.0,
+        "no_eos_rate": 0.0
+      },
+      "paired_vs_affine_cif": {
+        "strict_exact_delta": 0.15736607142857142,
+        "wins": 144,
+        "ties": 749,
+        "losses": 3
+      }
+    },
+    {
+      "fold": 4,
+      "variant": "E2_CTC",
+      "status": "available",
+      "metrics": {
+        "strict_exact": 0.17857142857142858,
+        "token_error_rate": 0.3872231806187016,
+        "token_edit_similarity": 0.6141533074765372,
+        "text_exact": 0.17857142857142858,
+        "predicted_length": 9.912946428571429,
+        "length_mae": 1.2611607142857142,
+        "eos_rate": 1.0,
+        "no_eos_rate": 0.0
+      },
+      "paired_vs_affine_cif": {
+        "strict_exact_delta": 0.15513392857142858,
+        "wins": 141,
+        "ties": 753,
+        "losses": 2
+      }
+    },
+    {
+      "fold": 4,
+      "variant": "E3_unfreeze",
+      "status": "available",
+      "metrics": {
+        "strict_exact": 0.1953125,
+        "token_error_rate": 0.35280795773560314,
+        "token_edit_similarity": 0.6481407029786824,
+        "text_exact": 0.1953125,
+        "predicted_length": 9.844866071428571,
+        "length_mae": 1.2444196428571428,
+        "eos_rate": 1.0,
+        "no_eos_rate": 0.0
+      },
+      "paired_vs_affine_cif": {
+        "strict_exact_delta": 0.171875,
+        "wins": 154,
+        "ties": 742,
+        "losses": 0
+      }
+    },
+    {
+      "fold": 5,
+      "variant": "E1",
+      "status": "available",
+      "metrics": {
+        "strict_exact": 0.19754464285714285,
+        "token_error_rate": 0.38227201861183974,
+        "token_edit_similarity": 0.618488939180368,
+        "text_exact": 0.19754464285714285,
+        "predicted_length": 10.463169642857142,
+        "length_mae": 1.0256696428571428,
+        "eos_rate": 1.0,
+        "no_eos_rate": 0.0
+      },
+      "paired_vs_affine_cif": {
+        "strict_exact_delta": 0.1484375,
+        "wins": 140,
+        "ties": 749,
+        "losses": 7
+      }
+    },
+    {
+      "fold": 5,
+      "variant": "E2_CTC",
+      "status": "not_run_or_artifact_missing",
+      "metrics": null,
+      "paired_vs_affine_cif": null
+    },
+    {
+      "fold": 5,
+      "variant": "E3_unfreeze",
+      "status": "not_run_or_artifact_missing",
+      "metrics": null,
+      "paired_vs_affine_cif": null
+    },
+    {
+      "fold": 6,
+      "variant": "E1",
+      "status": "available",
+      "metrics": {
+        "strict_exact": 0.16852678571428573,
+        "token_error_rate": 0.419628862957701,
+        "token_edit_similarity": 0.5850254206307344,
+        "text_exact": 0.16852678571428573,
+        "predicted_length": 10.739955357142858,
+        "length_mae": 1.0870535714285714,
+        "eos_rate": 0.9988839285714286,
+        "no_eos_rate": 0.0011160714285714285
+      },
+      "paired_vs_affine_cif": {
+        "strict_exact_delta": 0.14285714285714285,
+        "wins": 131,
+        "ties": 762,
+        "losses": 3
+      }
+    },
+    {
+      "fold": 6,
+      "variant": "E2_CTC",
+      "status": "not_run_or_artifact_missing",
+      "metrics": null,
+      "paired_vs_affine_cif": null
+    },
+    {
+      "fold": 6,
+      "variant": "E3_unfreeze",
+      "status": "not_run_or_artifact_missing",
+      "metrics": null,
+      "paired_vs_affine_cif": null
+    }
+  ],
+  "limitations": [
+    "one training seed; between-seed variance is not estimated",
+    "two confirmatory outer signers",
+    "synthetic concatenations of isolated signs, not real continuous signing",
+    "missing cells are reported as not run/artifact missing and are never imputed"
+  ]
+}
