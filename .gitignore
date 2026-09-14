@@ -65,3 +65,5 @@ imitator_*.pdf
 paper/build/
 paper/figures/*.png
 !paper/submissions/**/imitator_*.pdf
+!paper/data/
+!paper/data/**
