@@ -1,28 +1,31 @@
-\documentclass[10pt]{article}
+% Springer LNCS proceedings format, template v2.21 (2022/01/12).
+\documentclass[runningheads]{llncs}
 
-\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{xcolor}
-\usepackage{tikz}
-\usepackage[numbers,sort&compress]{natbib}
-\usetikzlibrary{arrows.meta,fit,positioning}
+
+% The manuscript used natbib's parenthetical command during drafting.  LNCS
+% uses numeric \cite; retain the source calls while producing Springer style.
+\let\citep\cite
 
 \newcommand{\system}{\textsc{Imitator}}
 \newcommand{\pending}{\textcolor{red}{\textsc{pending}}}
 \newcommand{\Gemma}{Gemma}
 \input{results_macros}
 
-\title{\system: Direct Prediction of \Gemma{} Token IDs for
+\title{Imitator: Direct Prediction of \Gemma{} Token IDs for
 Language-Model-Assisted Sign Transcription}
-\author{Christian Velasquez Borasino \and Giorgio Mancusi Barreda \and
-Rody Vilchez Marin\\
-\small Universidad Peruana de Ciencias Aplicadas (UPC), Lima, Peru}
-\date{}
+\titlerunning{Imitator: Direct Prediction of Gemma Token IDs}
+\author{Christian Velasquez Borasino\inst{1}\orcidID{0009-0004-6341-6924}
+\and Giorgio Mancusi Barreda\inst{1}\orcidID{0009-0001-7757-5262}
+\and Rody Vilchez Marin\inst{1}\orcidID{0009-0006-3773-9943}}
+\authorrunning{C. Velasquez Borasino et al.}
+\institute{Universidad Peruana de Ciencias Aplicadas (UPC), Lima, Peru}
 
 \begin{document}
 \maketitle
@@ -40,7 +43,7 @@ Rody Vilchez Marin\\
 \input{sections/10_conclusion.tex}
 \input{sections/11_reproducibility_ethics.tex}
 
-\bibliographystyle{plainnat}
+\bibliographystyle{splncs04}
 \bibliography{references}
 
 \end{document}

@@ -1,12 +1,14 @@
-# Draft del paper Imitator E1
+# Paper Imitator E1 (fuente canónica)
 
-Documento principal: `imitator_e1.tex`. El contenido está dividido en
-`sections/*.tex`; el archivo principal conserva únicamente preámbulo, metadatos,
-orden de inclusión y bibliografía para facilitar el cambio de plantilla.
+Documento principal: `imitator_e1.tex`. Esta es la fuente canónica del manuscrito
+Springer LNCS enviado a conferencia. El contenido está dividido en `sections/*.tex`;
+el archivo principal conserva el preámbulo, metadatos, orden de inclusión y
+bibliografía.
 
-El borrador es deliberadamente neutral respecto al venue. Las cifras confirmatorias no
-se escriben a mano: `results_macros.tex` contiene placeholders hasta que
-`scripts/eval/summarize_imitator_paper.py` lo regenere desde los JSON de folds 7–8.
+Las cifras confirmatorias no se escriben a mano:
+`scripts/eval/summarize_imitator_paper.py` genera `results_macros.tex` desde los
+JSON de los folds 7–8. Las figuras incluidas se pueden regenerar con
+`make_confirmation_figure.py` y `make_keypoint_interpretability_figure.py`.
 
 Política de citas: `knowledge/` es el corpus local canónico. Toda afirmación relacionada
 con literatura debe contrastarse primero con ese corpus. Se pueden incorporar fuentes
@@ -17,21 +19,10 @@ El relato central es la evolución de Imitator: la versión publicada imitaba em
 continuos; esta versión predice IDs exactos de Gemma y audita por separado si Gemma puede
 realizar o corregir la secuencia. El orden temporal es evidencia técnica habilitante, no
 el claim principal. La carpeta local `15/` contiene el manuscrito fuente histórico y no
-forma parte del borrador versionado.
+forma parte del manuscrito versionado.
 
-Partes ya defendibles: relación con Imitator v1, task, alcance, datos sintéticos,
-arquitectura, protocolo LOSO, métricas, hipótesis, intervención causal, auditoría de
-tolerancia de Gemma, resultados de desarrollo y limitaciones.
+El alcance incluye resultados confirmatorios, protocolo LOSO, intervención causal,
+interpretabilidad por keypoints, auditoría de tolerancia de Gemma y limitaciones.
 
-Pendiente antes de submission:
-
-- resultados confirmatorios y sus CIs;
-- curvas secundarias si entran en el presupuesto;
-- detalles de consentimiento/demografía que no aparecen en la documentación pública
-  de LSA64;
-- venue y plantilla final;
-- revisión bibliográfica más amplia.
-
-El entorno actual no incluye un compilador TeX; el archivo se valida aquí mediante
-estructura y tests del generador de macros, y debe compilarse al adoptar la plantilla del
-venue.
+La versión enviada fue compilada con Tectonic 0.16.9 y la plantilla oficial LNCS
+v2.21. Desde este directorio se compila con `tectonic imitator_e1.tex`.

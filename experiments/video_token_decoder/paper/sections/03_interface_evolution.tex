@@ -1,4 +1,4 @@
-\section{From Embedding Imitation to Token-ID Imitation}
+\section{Discrete Token-ID Imitation}
 
 The present work is a direct successor to the published embedding-based \system{}
 \citep{velasquez2026imitator}, not a separate use of the same name.  It preserves
@@ -31,30 +31,10 @@ isolated-label data do not provide the sentence context needed to demonstrate
 error recovery.
 
 \begin{figure}[t]
-\centering
-\begin{tikzpicture}[
-  node distance=2mm,
-  box/.style={draw, rounded corners, align=center, minimum height=10mm,
-              text width=20mm, fill=blue!4, font=\small},
-  llm/.style={box, fill=orange!10},
-  arr/.style={-{Latex[length=2mm]}, thick}
-]
-\node[box] (video) {2D sign\\keypoints};
-\node[box, right=of video] (encoder) {ST-GCN + TCN\\visual encoder};
-\node[box, right=of encoder] (decoder) {autoregressive\\token decoder};
-\node[box, right=of decoder] (ids) {exact \Gemma{}\\token IDs};
-\node[llm, right=of ids] (gemma) {\Gemma{} 3n\\language stage};
-\node[box, right=of gemma] (text) {normalized or\\corrected text};
-\draw[arr] (video) -- (encoder);
-\draw[arr] (encoder) -- (decoder);
-\draw[arr] (decoder) -- (ids);
-\draw[arr] (ids) -- (gemma);
-\draw[arr] (gemma) -- (text);
-\node[draw, dashed, rounded corners, fit=(video)(encoder)(decoder)(ids),
-      inner sep=3mm, label=below:{\small \system{}: visually grounded transcription}] {};
-\node[draw, dashed, rounded corners, fit=(gemma)(text), inner sep=3mm,
-      label=below:{\small linguistic realization}] {};
-\end{tikzpicture}
+\centering\small
+\fbox{\parbox{0.96\textwidth}{\centering
+2D keypoints $\rightarrow$ ST-GCN/TCN encoder $\rightarrow$ autoregressive decoder
+$\rightarrow$ exact \Gemma{} IDs $\rightarrow$ \Gemma{} 3n $\rightarrow$ text}}
 \caption{The revised \system{} interface.  Instead of approximating an LLM
 embedding, the visual model emits explicit tokenizer IDs.  The language-model
 stage receives ordinary text tokens and is evaluated separately from visual

@@ -1,38 +1,21 @@
 \section{Related Work}
 
-\paragraph{Sign encoders and signer generalization.}
-Spatial--temporal graph convolutional networks provide a natural representation of
-skeleton motion \citep{yan2018stgcn}.  Recent skeleton-based continuous sign
-recognition studies combine joint groups, motion streams, temporal lift or
-multi-scale features, while emphasizing limited signer diversity as a major
-generalization bottleneck
-\citep{min2025skeleton,nam2026liftsign,wang2025stnet}.  Manual and non-manual cues,
-handshape-aware boundaries, and feature-attention mechanisms further show that
-hands, face, body, and dynamics carry complementary information
-\citep{harrouch2026manual,zhao2026multimodal,yenisari2025multifeature}.  These gains
-must be balanced against overfitting in small Transformer datasets
-\citep{huamaniLessIsMore}.  Our visual front end follows this skeleton tradition,
-but the evaluated output is a sequence of LLM token IDs rather than a gloss-class
-sequence.
+ST-GCN models skeleton motion naturally \citep{yan2018stgcn}.  Recent skeleton
+CSLR combines joint groups, motion, temporal lift, and multi-scale features while
+highlighting signer diversity as a bottleneck
+\citep{min2025skeleton,nam2026liftsign,wang2025stnet}.  Manual/non-manual cues,
+handshape boundaries, and feature attention provide complementary evidence
+\citep{harrouch2026manual,zhao2026multimodal,yenisari2025multifeature}, although
+small Transformers readily overfit \citep{huamaniLessIsMore}.
 
-\paragraph{Connecting signs to language models.}
-Sign2GPT couples sign representations to an LLM through pseudo-gloss pretraining,
-SignLLM constructs discrete hierarchical sign tokens, and FLa-LLM factorizes visual
-and language learning so that linguistic priors do not overwhelm visual grounding
-\citep{wong2024sign2gpt,gong2024signllm,chen2024flallm}.  A low-resource pipeline
-has also combined ST-GCN recognition with a distilled language generator
-\citep{pai2026tsl}.  These systems motivate separating visual recognition from
-language realization, but differ in what crosses the interface.  \system{} emits
-real tokenizer IDs that can be inspected and decoded without training a learned
-adapter inside the LLM.
+Sign2GPT uses pseudo-gloss pretraining, SignLLM constructs hierarchical sign tokens,
+and FLa-LLM separates visual and language learning
+\citep{wong2024sign2gpt,gong2024signllm,chen2024flallm}; ST-GCN recognition has
+also been coupled to a language generator \citep{pai2026tsl}.  \system{} instead
+emits native tokenizer IDs inspectable without an LLM-side adapter.
 
-\paragraph{Continuous and discrete LLM interfaces.}
-Related speech systems learn continuous prompts or use CTC posteriors to form
-weighted LLM-token embeddings \citep{deng2025wav2prompt,ma2025legoslm}.  Continuous
-interfaces can retain uncertainty, whereas exact IDs are auditable and compatible
-with an unmodified text API.  CTC remains a standard monotonic alignment objective
-\citep{graves2006ctc} and has been used in skeleton CSLR and joint sign translation
-\citep{min2025skeleton,nam2026liftsign,camgoz2020signtransformers,tan2025textctc}.
-We tested token-level CTC as an auxiliary development objective, but it did not
-improve the selected autoregressive model.  Our final interface is therefore a
-greedily decoded causal token sequence.
+Speech systems use continuous prompts or CTC token embeddings
+\citep{deng2025wav2prompt,ma2025legoslm}.  CTC is standard for monotonic
+alignment \citep{graves2006ctc} and appears in CSLR and joint translation
+\citep{camgoz2020signtransformers,tan2025textctc}.  Our token-level CTC auxiliary
+did not improve development results, so the final interface is causal decoding.

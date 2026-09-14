@@ -2,31 +2,16 @@
 
 \subsection{Token-ID transcription}
 
-Table~\ref{tab:development} shows the development trajectory.  Direct token-ID
-prediction is viable but not solved: the selected E1 model improves strict sequence
+On development folds 4--6, E1 obtains 18.1, 19.8, and 16.9\% strict accuracy,
+versus 2.2, 2.3, and 1.8\% for the initial autoregressive model.  Direct token-ID
+prediction is therefore viable but not solved: E1 improves strict sequence
 accuracy by roughly an order of magnitude over the initial autoregressive decoder,
 yet most complete sequences still contain at least one error.  The positional
 intervention changes pairwise label order from near chance to approximately 0.99,
 supporting the claim that the emitted sequence is visually ordered.
 
 \begin{table}[t]
-\centering
-\caption{Signer-held-out development results for seed 23.  E1 is the selected
-token-ID \system{}; folds 4--6 were used for development and are not prospective.}
-\label{tab:development}
-\begin{tabular}{rrrrr}
-\toprule
-Fold & Initial AR exact (\%) & E1 exact (\%) & E1 edit (\%) & Pair order (\%) \\
-\midrule
-4 & 2.2 & 18.1 & 63.0 & 98.6 \\
-5 & 2.3 & 19.8 & 61.9 & 98.9 \\
-6 & 1.8 & 16.9 & 58.5 & 98.6 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\centering
+\centering\small
 \caption{Prospectively registered signer-held-out confirmation.  The CIF column
 is the frozen historical comparator, not a candidate \system{} architecture.}
 \label{tab:confirmation}
@@ -47,6 +32,37 @@ Under the registered conjunctive decision rule, H1 \HOneOutcome, H2
 \OverallOutcome.  These statements are populated automatically from the frozen
 evaluation artifacts and are not manually reinterpreted after either fold.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{confirmation_results.pdf}
+\caption{Confirmatory evidence on unseen signers. Left: strict sequence accuracy
+against the historical CIF comparator. Right: edit similarity collapses when
+complete sign segments are permuted while targets remain fixed.}
+\label{fig:confirmation-results}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{keypoint_interpretability.pdf}
+\caption{Qualitative keypoint interpretation for the target subtokens of an
+unseen signer-7 ``A tierra / Perfume'' sequence. Left: normalized
+Input$\times$Gradient attribution aggregated into anatomical regions. Right:
+decrease in target log-probability when each region is zeroed. Both analyses
+identify the left hand as the dominant evidence for the central subtokens; this
+single example is descriptive rather than population-level evidence.}
+\label{fig:keypoint-interpretability}
+\end{figure}
+
+Figure~\ref{fig:keypoint-interpretability} shows that the left hand contributes
+28.9--41.6\% of normalized attribution and causes the largest ablation loss for
+the central ``a'' and ``perf'' decisions (7.92 and 15.77 log-probability points).
+Face keypoints also receive substantial local attribution, whereas their ablation
+effect is smaller; this distinction indicates sensitivity without equivalent
+causal necessity.  Pose matters mainly for ``perf,'' and the final ``ume'' subtoken
+is comparatively insensitive to all four coarse removals.  The agreement between
+hand saliency and hand ablation supports a manually grounded decision in this
+example, but one selected sequence cannot establish a dataset-wide anatomy claim.
+
 \subsection{Can \Gemma{} repair token errors?}
 
 Table~\ref{tab:gemma-tolerance} answers this question for the current isolated-label
@@ -59,7 +75,7 @@ short sequences quantize every nonzero nominal rate to at least one substitution
 this experiment does not locate a continuous threshold between 0 and 0.10.
 
 \begin{table}[t]
-\centering
+\centering\small
 \caption{\Gemma{} 3n E2B correction audit on 120 isolated-label rows per
 condition.  chrF is on a 0--100 scale.  On these short sequences, every nonzero
 nominal rate produces at least one substitution.}

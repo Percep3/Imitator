@@ -1,54 +1,23 @@
 \section{Introduction}
 
-Sign-language translation systems must solve two different problems: extract
-linguistic evidence from motion, and turn that evidence into fluent text.  Large
-language models (LLMs) are strong candidates for the second problem, but a visual
-encoder still needs a well-defined interface through which to communicate its
-prediction.  Continuous visual prompts and embedding alignment offer one route;
-discrete language-model tokens offer another.
+Sign-language translation requires extracting linguistic evidence from motion and
+turning it into text.  LLMs can address the latter, but visual encoders need a
+well-defined interface.  The first published \system{} mapped 2D keypoints to a
+frozen LLM's token-embedding space and reported preliminary MSE--cosine loss near
+$8\times10^{-4}$ \citep{velasquez2026imitator}.  Yet geometric proximity does not
+guarantee the intended token, particularly in anisotropic contextual spaces
+\citep{ethayarajh2019contextual}, and its splits were not signer-exclusive.
 
-The first published version of \system{} mapped 2D body keypoints to the token
-embedding space of a frozen LLM.  Lightweight temporal convolutions and a
-Transformer encoded the video; learned cross-attention queries then imitated a
-fixed-length sequence of LLaMA embeddings.  It reported a preliminary combined
-MSE--cosine validation loss near $8\times10^{-4}$
-\citep{velasquez2026imitator}.  This was attractive because the LLM could consume
-visual vectors without a conventional gloss-recognition stage.  However, a small
-geometric loss does not imply that an approximate vector decodes to the intended
-token.  Contextual embedding spaces are anisotropic, and proximity alone is not a
-transcription metric \citep{ethayarajh2019contextual}.  Moreover, the original
-partitions were not signer-exclusive, so that study did not establish
-generalization to an unseen person.
+We preserve the premise---a compact model learns the input language of a frozen
+LLM---but predict exact \Gemma{} tokenizer IDs.  Outputs are directly measurable
+and can enter the ordinary \Gemma{} 3n text interface \citep{gemma3n}.  \system{}
+performs visually grounded transcription; \Gemma{} performs linguistic realization
+only when sufficient context exists.
 
-We retain the central idea---a compact \emph{Imitator} learns the input language of
-a frozen LLM---but change what is imitated.  The current model predicts the exact
-token IDs produced by the \Gemma{} tokenizer.  The output can be decoded directly,
-measured with sequence metrics, or passed through the ordinary text interface of
-\Gemma{} 3n \citep{gemma3n}.  The intended system is consequently modular:
-\system{} is responsible for visually grounded token transcription, while \Gemma{}
-is responsible for linguistic realization and correction only to the extent that
-the predicted text contains enough context.
-
-This distinction matters empirically.  Our current data are synthetic streams
-constructed from isolated signs in random order.  They are useful for testing
-whether the visual model can produce ordered token IDs without exploiting a
-language prior, but they are almost the worst possible setting for LLM correction:
-if the only word is replaced, no linguistic evidence remains.  We therefore report
-both the upstream transcription result and a downstream corruption audit, including
-the negative outcome.
-
-Our contributions are:
-\begin{enumerate}
-    \item We reformulate \system{} from continuous embedding imitation as direct,
-          autoregressive prediction of exact \Gemma{} token IDs.
-    \item We evaluate this interface under a signer-disjoint LOSO protocol, with a
-          configuration frozen on development folds and prospectively tested on two
-          outer signers.
-    \item We measure the downstream \Gemma{} interface rather than assuming that an
-          LLM will repair upstream mistakes.  The measured error budget is zero at
-          the tested nonzero corruption levels for isolated labels, motivating a
-          future sentence-level test with genuine linguistic redundancy.
-    \item We retain temporal-order restoration and segment permutation as a causal
-          architectural validation, but treat them as enabling evidence for
-          \system{} rather than as the paper's central task.
-\end{enumerate}
+Our synthetic streams contain isolated signs in random order.  This prevents a
+language-order shortcut but leaves little context for correcting a replaced word.
+We therefore score visual transcription and downstream correction separately.
+Our contributions are: (1) direct autoregressive prediction of \Gemma{} IDs;
+(2) signer-disjoint LOSO evaluation with two prospectively held-out signers;
+(3) an explicit corruption audit showing no recovery at tested nonzero rates; and
+(4) causal validation of visual ordering through segment permutation.

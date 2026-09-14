@@ -18,6 +18,14 @@ Samples with fewer than two eligible labels add no pair.  We also permute comple
 input segments using gold synthetic boundaries, keep the target fixed, and measure
 the paired drop in edit similarity.
 
+\paragraph{Keypoint interpretation.}
+For one unseen-signer sequence, we compute the absolute Input$\times$Gradient of
+each target-token log-probability with respect to every coordinate, normalize it
+per token, and aggregate keypoints into pose, face, left hand, and right hand.
+As a complementary intervention, each region is zeroed and the resulting decrease
+in target log-probability is measured.  Gradients describe local sensitivity;
+ablation tests whether the region is functionally necessary for that example.
+
 \paragraph{Downstream correction audit.}
 To isolate the language stage from visual errors, we corrupt gold tokenizer
 sequences at fixed rates and submit the decoded inputs to \Gemma{} with an explicit
@@ -29,9 +37,6 @@ most remaining multi-token labels are single words split by the tokenizer; only
 five of the 64 labels are genuine multiword expressions.  We measure exact decoded
 text and chrF before and after \Gemma{}.
 
-As a separate positive control for linguistic realization, an oracle experiment on
-uncorrupted continuous Spanish transcripts uses a fixed three-example prompt to add
-surface punctuation.  It reaches chrF 92.86, BLEU 78.66, ROUGE-L 0.989, and
-content-word F1 0.985.  This control shows that the text stage and ID/embedding
-bridge can preserve well-formed content; it does not show correction of visual
-recognition errors.
+An oracle control on uncorrupted continuous Spanish reaches chrF 92.86 and
+content-word F1 0.985 after surface realization.  It verifies preservation of
+well-formed content, not correction of recognition errors.
