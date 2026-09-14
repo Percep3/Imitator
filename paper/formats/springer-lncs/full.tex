@@ -1,0 +1,52 @@
+% Springer LNCS full-paper wrapper. Compile through ../../build.sh.
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\graphicspath{{../../figures/}}
+
+% Universal content uses natbib's parenthetical spelling; LNCS uses numeric cite.
+\let\citep\cite
+
+\input{../../shared/metadata.tex}
+\input{../../shared/results_macros.tex}
+
+\title{\PaperTitle}
+\titlerunning{\PaperTitleRunning}
+\author{\AuthorOne\inst{1}\orcidID{\AuthorOneOrcid}
+\and \AuthorTwo\inst{1}\orcidID{\AuthorTwoOrcid}
+\and \AuthorThree\inst{1}\orcidID{\AuthorThreeOrcid}}
+\authorrunning{C. Velasquez Borasino et al.}
+\institute{\PaperInstitute}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{../../content/full/abstract.tex}
+
+\keywords{Sign language recognition \and LLM tokens \and ST-GCN \and
+signer-independent evaluation}
+\end{abstract}
+
+\input{../../content/full/body.tex}
+
+\begin{credits}
+\subsubsection{Acknowledgements}
+The authors acknowledge the Universidad Peruana de Ciencias Aplicadas for
+supporting this research.
+
+\subsubsection{Disclosure of Interests}
+The authors have no competing interests to declare that are relevant to the
+content of this article.
+\end{credits}
+
+\bibliographystyle{splncs04}
+\bibliography{../../shared/references}
+
+\end{document}

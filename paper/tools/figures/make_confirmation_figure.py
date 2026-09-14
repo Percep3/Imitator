@@ -5,8 +5,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-HERE = Path(__file__).resolve().parent
-data = json.loads((HERE.parent / "paper_master_results.json").read_text())
+PAPER = Path(__file__).resolve().parents[2]
+data = json.loads((PAPER / "data/frozen-paper-results/paper_master_results.json").read_text())
 folds = {row["fold"]: row for row in data["folds"]}
 
 labels = ["Signer 7", "Signer 8"]
@@ -41,5 +41,5 @@ for ax, left, right, names, title, ylabel, ymax in (
         ax.bar_label(bars, fmt="%.1f", padding=2, fontsize=7)
 
 fig.tight_layout(w_pad=2.0)
-fig.savefig(HERE / "confirmation_results.pdf", bbox_inches="tight")
-fig.savefig(HERE / "confirmation_results.png", dpi=220, bbox_inches="tight")
+fig.savefig(PAPER / "figures/confirmation_results.pdf", bbox_inches="tight")
+fig.savefig(PAPER / "figures/confirmation_results.png", dpi=220, bbox_inches="tight")

@@ -60,3 +60,8 @@ knowledge/kb
 
 15/
 imitator_*.pdf
+
+# Paper build products; submitted snapshots are explicitly retained.
+paper/build/
+paper/figures/*.png
+!paper/submissions/**/imitator_*.pdf

@@ -4,11 +4,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[3]
-HERE = Path(__file__).resolve().parent
-artifact = ROOT / "interpretability/e1_fold7_paper/e1/saliency.npz"
-if not artifact.exists():
-    artifact = HERE / "keypoint_saliency.npz"
+PAPER = Path(__file__).resolve().parents[2]
+artifact = PAPER / "data/frozen-paper-results/saliency.npz"
 p = np.load(artifact)
 
 frames = int(p["frame_lengths"][0])
@@ -46,5 +43,5 @@ for ax, (values, title, cbar_label, cmap, fmt) in zip(axes, panels):
     cbar.ax.tick_params(labelsize=6.5)
 
 fig.tight_layout(w_pad=1.7)
-fig.savefig(HERE / "keypoint_interpretability.pdf", bbox_inches="tight")
-fig.savefig(HERE / "keypoint_interpretability.png", dpi=220, bbox_inches="tight")
+fig.savefig(PAPER / "figures/keypoint_interpretability.pdf", bbox_inches="tight")
+fig.savefig(PAPER / "figures/keypoint_interpretability.png", dpi=220, bbox_inches="tight")

@@ -23,9 +23,9 @@ from src.mslm.utils.sequence_metrics import gloss_sequence_diagnostics
 
 
 DEFAULT_OUTPUT_ROOT = ROOT.parent / "outputs/video_token_decoder"
-DEFAULT_JSON = ROOT / "experiments/video_token_decoder/paper_master_results.json"
+DEFAULT_JSON = ROOT / "paper/data/frozen-paper-results/paper_master_results.json"
 DEFAULT_MARKDOWN = ROOT / "experiments/video_token_decoder/PAPER_TABLES.md"
-DEFAULT_LATEX_MACROS = ROOT / "experiments/video_token_decoder/paper/results_macros.tex"
+DEFAULT_LATEX_MACROS = ROOT / "paper/shared/results_macros.tex"
 
 
 def read_json(path: Path) -> dict | None:
