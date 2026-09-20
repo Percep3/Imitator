@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "Sign_chris",
+  "project_id": "3a84d852-ec23-4f93-a411-f7ab663d63da"
+}

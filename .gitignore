@@ -67,3 +67,7 @@ paper/figures/*.png
 !paper/submissions/**/imitator_*.pdf
 !paper/data/
 !paper/data/**
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+.beads-credential-key

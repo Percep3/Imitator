@@ -1,5 +1,32 @@
 {
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  },
   "permissions": {
+    "additionalDirectories": [
+      "/shared/Code/Sign-AI/data/processed"
+    ],
     "allow": [
       "Bash(python3 -m py_compile src/mslm/training/trainer.py src/mslm/dataloader/keypoint_dataset.py src/mslm/utils/setup_train.py src/mslm/utils/config_loader.py)",
       "Bash(python3 -c ' *)",
@@ -33,24 +60,24 @@
       "Bash(tmux list-sessions *)",
       "Bash(tmux capture-pane *)",
       "Bash(tmux list-panes *)",
-      "Bash(ls -la /proc/1853940/fd/ 2>&1 | head -20)",
+      "Bash(ls -la /proc/1853940/fd/ 2\u003e\u00261 | head -20)",
       "Read(//proc/1853940/fd/**)",
-      "Bash(ls -la /proc/1853922/fd/1 /proc/1853922/fd/2 2>&1)",
+      "Bash(ls -la /proc/1853922/fd/1 /proc/1853922/fd/2 2\u003e\u00261)",
       "Read(//dev/pts/**)",
       "Bash(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader)",
       "Bash(nvidia-smi dmon *)",
       "Bash(xargs ls -lt)",
-      "Bash(cat /proc/1853940/status | grep -E \"VmRSS|State|voluntary\" 2>&1)",
+      "Bash(cat /proc/1853940/status | grep -E \"VmRSS|State|voluntary\" 2\u003e\u00261)",
       "Read(//proc/1853940/**)",
       "Bash(grep -v \"nvidia\\\\|pipe\\\\|socket\\\\|anon\\\\|pts\\\\|total\\\\|\\\\.\\\\.$\\\\|\\\\. $\")",
       "Bash(xargs -I{} readlink /proc/1853940/fd/{})",
       "Read(//proc/1856031/fd/**)",
       "Bash(xargs -I{} readlink /proc/1856031/fd/{})",
       "Bash(grep -v \"nvidia\\\\|pipe\\\\|socket\\\\|anon\\\\|/dev/pts\\\\|^$\")",
-      "Bash(ls -la /shared/Code/Sign-AI/Sign-chris/../outputs/ 2>&1 || ls -la /shared/Code/Sign-AI/outputs/ 2>&1)",
+      "Bash(ls -la /shared/Code/Sign-AI/Sign-chris/../outputs/ 2\u003e\u00261 || ls -la /shared/Code/Sign-AI/outputs/ 2\u003e\u00261)",
       "Read(//shared/Code/Sign-AI/outputs//**)",
       "Bash(conda run *)",
-      "Bash(2>&1)",
+      "Bash(2\u003e\u00261)",
       "Bash(~/miniconda3/bin/conda run *)",
       "Bash(/home/nakato/miniconda3/envs/Sign-env/bin/python -c ' *)",
       "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief docs/experiments/plans/2026-06-23-v125-data-reconstruction.md 1)",
@@ -63,7 +90,7 @@
       "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package 857788334ba459952ae0c2c894c394bf86c762d7 HEAD)",
       "Bash(/home/nakato/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief docs/experiments/plans/2026-06-23-v125-data-reconstruction.md 3)",
       "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python -m pytest tests/scripts/test_backfill_dataset2_metadata.py -v)",
-      "Bash(cp /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5.bak-task3 && ls -la /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5.bak-task3)",
+      "Bash(cp /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5.bak-task3 \u0026\u0026 ls -la /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5.bak-task3)",
       "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python scripts/data/backfill_dataset2_metadata.py --h5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5 --n 5600 --seed 23)",
       "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python -c ' *)",
       "Bash(PYTHONPATH=. /home/nakato/miniconda3/envs/Sign-env/bin/python scripts/data/add_token_ids_h5.py --phase token_ids --h5 /shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5)",
@@ -106,9 +133,6 @@
       "Bash(code --install-extension mushan.vscode-paste-image)",
       "Bash(code --install-extension analytic-signal.preview-pdf)",
       "Bash(code --uninstall-extension mushan.vscode-paste-image)"
-    ],
-    "additionalDirectories": [
-      "/shared/Code/Sign-AI/data/processed"
     ]
   }
 }
