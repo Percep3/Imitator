@@ -3,8 +3,14 @@
 \subsection{Token-ID transcription}
 
 On development folds 4--6, \ImitatorEOne{} obtains 18.1, 19.8, and 16.9\% strict
-accuracy, versus 2.2, 2.3, and 1.8\% for the initial autoregressive model.  Direct
-token-ID prediction is therefore viable but not solved: \ImitatorEOne{} improves
+accuracy, versus 2.2, 2.3, and 1.8\% for the initial autoregressive model. This
+baseline paired a two-layer causal Transformer decoder (128 hidden units, four
+attention heads, and a 512-unit feed-forward layer) with tied token input and
+output embeddings. Its visual encoder used an ST-GCN, temporal convolutions, and
+a Transformer, but lacked global temporal positional encoding. The decoder used
+Gemma's full 262,400-token vocabulary and teacher-forced cross-entropy. Direct
+token-ID prediction is therefore viable but not solved:
+\ImitatorEOne{} improves
 strict sequence accuracy by roughly an order of magnitude over the initial
 autoregressive decoder,
 yet most complete sequences still contain at least one error.  The positional
