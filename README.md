@@ -24,3 +24,9 @@ Objetivo Imitator actual: el modelo oficial no es la clasificacion 64-way de
 glosas aisladas. El prototipo real predice **token IDs de Gemma** desde
 video/keypoints de dataset1 y exporta `predictions.jsonl` con token IDs, texto
 decodificado y prompt v125 para que Gemma corrija/formatee la salida final.
+
+## License
+
+Copyright (c) 2026 Christian Velasquez, Giorgio Mancusi, and Rody Vilchez.
+
+The project code and materials are licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), unless otherwise noted. Third-party components, datasets, and pretrained models retain their own terms. See [LICENSE](LICENSE).
