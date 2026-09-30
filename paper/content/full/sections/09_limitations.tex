@@ -1,13 +1,13 @@
 \section{Limitations and Scope}
 
-The study uses synthetic concatenations of isolated LSA64 clips, not naturally
-continuous signing.  It contains no coarticulation, natural sentence order, or
-open-vocabulary text; the 121-row output layer covers only IDs observed in this
-task.  Labels are Spanish lexical annotations of LSA signs, so direct token
-prediction is not equivalent to modeling LSA grammar.  Skeleton inputs omit visual
-appearance and remain dependent on pose-estimation quality; isolated-sign findings
-cannot simply be transferred to continuous signing
-\citep{harrouch2026manual,nam2026liftsign}.
+LSA64 contains 64 isolated signs \citep{ronchetti2016lsa64}.  Our examples
+concatenate two to eight clips, but remain synthetic: they lack coarticulation
+and natural sentence order.  The 64-sign inventory limits evaluation to a fixed
+vocabulary; these results do not establish lexical coverage for natural
+sign-language communication or open-vocabulary translation.  The 121-row output
+layer covers only Gemma IDs observed for this task.  Spanish lexical annotations
+do not model LSA grammar.  Skeleton inputs omit visual appearance and depend on
+pose-estimation quality \citep{harrouch2026manual,nam2026liftsign}.
 
 Only seed 23 is used, between-seed variance is unknown, and only two outer signers
 are prospectively confirmatory.  Sample-level bootstrap intervals do not replace
