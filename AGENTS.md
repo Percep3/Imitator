@@ -40,6 +40,11 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
+## Revision Files
+
+- Never include files under `paper/revisions/` in a Git commit.
+- Stage only explicit paths and check `git diff --cached --name-only` before committing.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 
