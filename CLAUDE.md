@@ -2,6 +2,10 @@
 
 This file provides instructions and context for AI coding agents working on this project.
 
+## Paper Page Limit
+
+The complete paper must not exceed 11 pages. Treat 11 pages as a hard maximum: do not accept or leave any manuscript change that builds to more than 11 pages. Build the current manuscript sources and verify the generated PDF page count; do not rely on stale PDFs.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 
