@@ -24,5 +24,6 @@ reparameterization rather than a new sign vocabulary.
 
 \paragraph{Language stage.}
 The same tokenizer decodes emitted IDs for a fixed \Gemma{} 3n E2B instruction
-prompt.  \Gemma{} is not jointly fine-tuned.  We report transcription before the
-LLM and correction afterward, preventing fluent output from masking visual error.
+prompt \citep{gemma3n}.  We do not jointly fine-tune this downstream model; this
+is an experimental-design choice.  We report transcription before the LLM and
+correction afterward, preventing fluent output from masking visual error.
