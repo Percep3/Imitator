@@ -9,10 +9,12 @@ layer covers only Gemma IDs observed for this task.  Spanish lexical annotations
 do not model LSA grammar.  Skeleton inputs omit visual appearance and depend on
 pose-estimation quality \citep{harrouch2026manual,nam2026liftsign}.
 
-Only seed 23 is used, between-seed variance is unknown, and only two outer signers
-are prospectively confirmatory.  Sample-level bootstrap intervals do not replace
-signer-level replication.  \ImitatorEOne{} and the H2 threshold were developed on
-folds 4--6.
+All reported model results use a single training seed (23), so between-seed
+variance and robustness across independent training runs are unknown.  The
+sample-level bootstrap intervals quantify uncertainty across evaluated examples,
+not variability across training runs, and do not replace signer-level replication.
+Only two outer signers are prospectively confirmatory.  \ImitatorEOne{} and the H2
+threshold were developed on folds 4--6.
 The tokenizer restriction is efficient for a closed label set but must be expanded
 and revalidated for sentence data.  Finally, the correction audit tests one model
 and a fixed prompt; its defensible conclusion is limited to the tested setup and
