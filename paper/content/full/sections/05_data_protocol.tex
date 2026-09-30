@@ -4,9 +4,13 @@ LSA64 has 3,200 videos of 64 Argentinian Sign Language signs, performed five tim
 by ten subjects \citep{ronchetti2016lsa64}.  We normalize 111 upper-body, hand,
 and facial 2D keypoints per frame.  Each example concatenates two to eight clips
 with optional neutral gaps; its target concatenates the \Gemma{} tokenizations of
-their Spanish labels.  Random order prevents a linguistic next-sign prior but
-contains neither syntax nor coarticulation.  The task is controlled token
-transcription, not continuous SLT.
+their Spanish labels.  For each example, clip IDs are drawn at random with
+replacement from the pool assigned to that split, so a source clip may recur
+across examples or more than once in one example.  The pools are partitioned by
+signer, so no source clip is shared across train, validation, and test within a
+fold.  Random order prevents a linguistic next-sign prior but contains neither
+syntax nor coarticulation.  The task is controlled token transcription, not
+continuous SLT.
 
 Each LOSO fold excludes an outer-test signer, uses another for inner validation,
 and trains on the rest.  Folds 1--6 are development, 7--8 prospective confirmation,
