@@ -25,7 +25,7 @@ w = 0.34
 colors = ("#8B8B8B", "#2878B5")
 
 for ax, left, right, names, title, ylabel, ymax in (
-    (axes[0], cif, e1, ("CIF", "Imitator E1"), "Strict sequence accuracy", "Accuracy (%)", 18),
+    (axes[0], cif, e1, ("CIF", "imitator_e1"), "Strict sequence accuracy", "Accuracy (%)", 18),
     (axes[1], permuted, clean, ("Permuted", "Clean"), "Causal order intervention", "Token edit similarity (%)", 70),
 ):
     bars1 = ax.bar(x - w / 2, left, w, label=names[0], color=colors[0])
@@ -36,9 +36,13 @@ for ax, left, right, names, title, ylabel, ymax in (
     ax.set_title(title, fontweight="bold", pad=4)
     ax.grid(axis="y", alpha=0.25, linewidth=0.6)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(frameon=False, fontsize=7, loc="upper left")
-    for bars in (bars1, bars2):
-        ax.bar_label(bars, fmt="%.1f", padding=2, fontsize=7)
+    legend_location = "upper right" if title == "Causal order intervention" else "upper left"
+    ax.legend(frameon=False, fontsize=7, loc=legend_location)
+    ax.bar_label(bars1, fmt="%.1f", padding=2, fontsize=7)
+    if title == "Causal order intervention":
+        ax.bar_label(bars2, fmt="%.1f", label_type="center", color="white", fontsize=7)
+    else:
+        ax.bar_label(bars2, fmt="%.1f", padding=2, fontsize=7)
 
 fig.tight_layout(w_pad=2.0)
 fig.savefig(PAPER / "figures/confirmation_results.pdf", bbox_inches="tight")

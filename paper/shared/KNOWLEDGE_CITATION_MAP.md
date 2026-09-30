@@ -14,7 +14,7 @@ primaria o cubren un hueco, tras verificación web.
 | `Continuous_Sign_Language_Recognition_with_Multi-Sc.md` | `wang2025stnet` | información temporal fina y modelado multi-escala en CSLR |
 | `Deep_Learning_Based_Sign_Language_Recognition_Usin.md` | `yenisari2025multifeature` | atención y fusión de múltiples features |
 | `FLa_LLM_Factorized_Learning_Assisted_LLM_for_Sign_Language_Translation.md` | `chen2024flallm` | separación del aprendizaje visual y el LLM |
-| `Joe_Huamani.md` | `huamaniLessIsMore` | overfitting de Transformers en datasets pequeños |
+| `Joe_Huamani.md` | `huamaniLessIsMore` | overfitting de Transformers en datasets pequeños; referencia publicada como póster en LatinX in AI Research Workshop 2023, DOI `10.52591/lxai2023061812` |
 | `LREC26-26014.md` | `zhao2026multimodal` | handshape, señales multimodales y detección de boundaries |
 | `LegoSLM_Language_Modeling_with_Embedded_Speech_Units.md` | `ma2025legoslm` | CTC posteriors y conexión encoder→espacio de tokens LLM |
 | `Min_A_Closer_Look_at_Skeleton-based_Continuous_Sign_Language_Recognition_ICCVW_2025_paper.md` | `min2025skeleton` | skeleton-CSLR, CTC y generalización limitada por datos |

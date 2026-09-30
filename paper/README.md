@@ -1,7 +1,7 @@
 # Imitator papers
 
 Esta carpeta separa el contenido científico de las plantillas editoriales.
-El manuscrito actual es un **full paper** de 10 páginas en Springer LNCS. La
+El manuscrito actual es un **full paper** de hasta 11 páginas en Springer LNCS; la
 versión short todavía no ha sido redactada.
 
 ## Organización
@@ -31,7 +31,7 @@ el PDF enviado. La salida queda en
 `formats/springer-lncs/imitator_e1.tex` conserva el nombre de trabajo usado en
 la entrega; sin él solo cambia el ID interno del PDF y, por tanto, su SHA.
 
-SHA-256 esperado de la entrega Springer full:
+SHA-256 del snapshot previamente enviado (no se sobrescribe al regenerar):
 
 ```text
 bb6edb38ef200da7479e25aafdd5097fbb5805d0730690bcf7ea4d69fdf1a23f
