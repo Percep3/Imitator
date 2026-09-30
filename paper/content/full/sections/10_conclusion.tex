@@ -3,9 +3,8 @@
 \system{} keeps the original goal of learning a lightweight bridge from sign motion
 to a pretrained language model, but replaces approximate embedding imitation with
 exact token-ID prediction.  This change makes the bridge directly decodable,
-measurable, and compatible with an unchanged \Gemma{} text interface.  Controlled
-signer-held-out experiments show a substantial improvement in ordered token
-transcription.  The downstream audit also prevents an overclaim: \Gemma{} does not
-repair any tested nonzero token corruption in isolated labels.  The next decisive
-test is sentence-level sign transcription, where linguistic context may turn the
-currently zero error budget into a useful correction channel.
+measurable, and compatible with an unchanged \Gemma{} text interface.  In the
+seed-23 evaluation, signer-held-out tests of synthetic two-to-eight-sign LSA64
+streams show improved ordered token transcription.  The correction audit covers
+isolated labels at the tested substitution rates and finds no recovery at nonzero
+rates; sentence-level correction remains untested.
