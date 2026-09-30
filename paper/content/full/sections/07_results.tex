@@ -2,22 +2,23 @@
 
 \subsection{Token-ID transcription}
 
-On development folds 4--6, E1 obtains 18.1, 19.8, and 16.9\% strict accuracy,
-versus 2.2, 2.3, and 1.8\% for the initial autoregressive model.  Direct token-ID
-prediction is therefore viable but not solved: E1 improves strict sequence
-accuracy by roughly an order of magnitude over the initial autoregressive decoder,
+On development folds 4--6, \ImitatorEOne{} obtains 18.1, 19.8, and 16.9\% strict
+accuracy, versus 2.2, 2.3, and 1.8\% for the initial autoregressive model.  Direct
+token-ID prediction is therefore viable but not solved: \ImitatorEOne{} improves
+strict sequence accuracy by roughly an order of magnitude over the initial
+autoregressive decoder,
 yet most complete sequences still contain at least one error.  The positional
 intervention changes pairwise label order from near chance to approximately 0.99,
 supporting the claim that the emitted sequence is visually ordered.
 
 \begin{table}[t]
-\centering\small
+\centering\scriptsize
 \caption{Prospectively registered signer-held-out confirmation.  The CIF column
 is the frozen historical comparator, not a candidate \system{} architecture.}
 \label{tab:confirmation}
 \begin{tabular}{rrrrrrrr}
 \toprule
-Fold & CIF exact & E1 exact & E1 edit & Order & $\Delta_{\mathrm{perm}}$ & W/L/T & $p$ \\
+Fold & CIF exact & \ImitatorEOne{} exact & \ImitatorEOne{} edit & Order & $\Delta_{\mathrm{perm}}$ & W/L/T & $p$ \\
 \midrule
 7 & \FoldSevenCIFExact & \FoldSevenExact & \FoldSevenEdit & \FoldSevenOrder &
     \FoldSevenPermutationDrop & \FoldSevenWLT & \FoldSevenPValue \\

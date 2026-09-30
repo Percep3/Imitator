@@ -49,6 +49,11 @@ bd close <id>         # Complete work
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
 
+## Closing bd Issues
+
+- Do NOT close a bd issue while the work is still being iterated on (more edits, wording changes, pending feedback from the user). Closing signals the change is final.
+- If verification is incomplete, or another round of changes is plausible (e.g. the user is still reviewing wording, a fact still needs checking, a build/test hasn't been re-run after the latest edit), keep the issue open/in_progress instead of closing and reopening.
+- Only close once the change has been verified (compiles/tests pass, claims checked against real sources) AND no further iteration is expected. The close reason should describe the final state, not an intermediate draft.
 
 ## Build & Test
 

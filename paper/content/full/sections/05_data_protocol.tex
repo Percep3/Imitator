@@ -10,10 +10,10 @@ transcription, not continuous SLT.
 
 Each LOSO fold excludes an outer-test signer, uses another for inner validation,
 and trains on the rest.  Folds 1--6 are development, 7--8 prospective confirmation,
-and 9--10 reserved.  E1 uses seed 23, 2,048 training examples per epoch, 512 fixed
-inner-validation examples, 30 epochs, and 896 outer examples.  Checkpoint selection
-uses inner-validation edit similarity, then strict accuracy; outer results select
-nothing.
+and 9--10 reserved.  \ImitatorEOne{} uses seed 23, 2,048 training examples per
+epoch, 512 fixed inner-validation examples, 30 epochs, and 896 outer examples.
+Checkpoint selection uses inner-validation edit similarity, then strict accuracy;
+outer results select nothing.
 
 We train with AdamW (weight decay $10^{-4}$), a physical batch size of two, and
 two gradient-accumulation steps (effective batch size four).  The decoder uses a
@@ -25,7 +25,23 @@ exclude near-zero invalid landmarks when computing per-axis extrema, and min--ma
 scale valid coordinates within that clip while preserving invalid markers.
 Neutral gaps are inserted after normalization.
 
+CIF (Continuous Integrate-and-Fire \citep{dong2020cif}) is a non-autoregressive
+alignment mechanism that pools frame features into one embedding per detected
+segment via a learned, accumulating firing weight, then classifies each segment
+independently.  Our comparator reuses the same ST-GCN visual-encoder design as
+our earlier published \system{} \citep{velasquez2026imitator}, paired with a
+non-autoregressive segment-classification head that we developed and evaluated
+earlier in this study, before adopting the autoregressive design used by
+\ImitatorEOne{}.  Because CIF's raw fired-segment count does not exactly match
+the target token count, we fit an affine length calibration
+($\mathrm{count}=a\cdot\mathrm{raw}+b$) on inner-validation data only and freeze
+it before outer-test evaluation; we call this frozen, calibrated model
+historical affine CIF.  Unlike \ImitatorEOne{}'s autoregressive causal decoder,
+CIF classifies all segments in parallel and needs no learned stopping token; its
+frozen encoder weights also initialize \ImitatorEOne{}'s visual encoder
+(Section~4).
+
 The preregistration requires, on each confirmation fold: more strict-accuracy wins
 than losses against historical affine CIF with sign-test $p<.01$ (H1); strict
 accuracy $\geq11.9\%$ (H2); and pair order $\geq.90$ plus permutation edit drop
-$\geq.15$ (H3).  CIF is only the frozen comparator and source initialization.
+$\geq.15$ (H3).

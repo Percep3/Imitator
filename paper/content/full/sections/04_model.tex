@@ -1,5 +1,10 @@
 \section{Model}
 
+We propose \ImitatorEOne{}, an autoregressive architecture that predicts exact
+\Gemma{} token IDs from 2D keypoints, extending the modular premise of our
+earlier embedding-based \system{} \citep{velasquez2026imitator} with the
+discrete token-ID objective introduced in Section~3.
+
 \paragraph{Visual encoder.}
 Three ST-GCN blocks process each keypoint graph, followed by a 128-channel
 projection, node averaging, two temporal convolutions, and a one-layer, four-head
