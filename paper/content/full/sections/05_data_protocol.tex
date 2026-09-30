@@ -15,6 +15,16 @@ inner-validation examples, 30 epochs, and 896 outer examples.  Checkpoint select
 uses inner-validation edit similarity, then strict accuracy; outer results select
 nothing.
 
+We train with AdamW (weight decay $10^{-4}$), a physical batch size of two, and
+two gradient-accumulation steps (effective batch size four).  The decoder uses a
+learning rate of $3\times10^{-4}$.  After five decoder-only epochs, we unfreeze
+the temporal convolutions and visual Transformer at $3\times10^{-5}$; the ST-GCN
+and spatial projection remain frozen.  For each isolated clip, we retain 111 of
+the original 133 upper-body, face, and hand landmarks, take absolute coordinates,
+exclude near-zero invalid landmarks when computing per-axis extrema, and min--max
+scale valid coordinates within that clip while preserving invalid markers.
+Neutral gaps are inserted after normalization.
+
 The preregistration requires, on each confirmation fold: more strict-accuracy wins
 than losses against historical affine CIF with sign-test $p<.01$ (H1); strict
 accuracy $\geq11.9\%$ (H2); and pair order $\geq.90$ plus permutation edit drop
