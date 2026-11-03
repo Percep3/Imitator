@@ -1,0 +1,130 @@
+{
+ "groups": {
+  "embeddings": 5600,
+  "frame_count": 5600,
+  "keypoints": 5600,
+  "labels": 5600,
+  "source_group": 5600,
+  "text_ctx": 5600,
+  "token_count": 5600,
+  "token_ids": 5600,
+  "video_id": 5600,
+  "word_count": 5600
+ },
+ "all_keys_contiguous_0_5599": true,
+ "groups_missing_keys": {
+  "embeddings": 0,
+  "frame_count": 0,
+  "keypoints": 0,
+  "labels": 0,
+  "source_group": 0,
+  "text_ctx": 0,
+  "token_count": 0,
+  "token_ids": 0,
+  "video_id": 0,
+  "word_count": 0
+ },
+ "kp_shape_joint_dims": {
+  "(134, 2)": 5600
+ },
+ "frame_count_eq_kp_T": 5600,
+ "frame_count_ge_250": {
+  "keys<600": 228,
+  "keys>=600": 2145,
+  "eq250_keys<600": 1,
+  "max_keys<600": 1312,
+  "max_keys>=600": 1400
+ },
+ "video_id_unique": 5600,
+ "video_id_duplicates": [],
+ "video_id_in_raw": 5600,
+ "source_group_eq_parent(video_id)": 5600,
+ "source_group_mismatch_examples": [],
+ "n_source_groups": 64,
+ "n_parents_raw": 64,
+ "labels_empty": 0,
+ "manifest_keys_eq_h5_keys": true,
+ "groups_per_split": {
+  "train": 40,
+  "val": 12,
+  "test": 12
+ },
+ "groups_spanning_splits": {},
+ "test_groups": {
+  "noticias-en-lengua-de-senas-argentina-resumen-semanal-28022021": {
+   "test": 70
+  },
+  "como-reducir-el-consumo-de-productos-plasticos-episodio-5-en-lengua-de-senas-argentina-lsa": {
+   "test": 67
+  },
+  "noticias-en-lsa-especial-aniversario-resumen-semanal-28112021": {
+   "test": 53
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-12092021": {
+   "test": 51
+  },
+  "la-tierra-nuestro-planeta-acciones-para-cuidarlo-episodio-4-en-lengua-de-senas-argentina-lsa": {
+   "test": 50
+  },
+  "como-hacer-una-huerta-urbana-en-casa-episodio-8-en-lengua-de-senas-argentina-lsa": {
+   "test": 49
+  },
+  "la-importancia-del-reciclado-episodio-1-en-lengua-de-senas-argentina-lsa": {
+   "test": 46
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-03102021": {
+   "test": 43
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-31102021": {
+   "test": 39
+  },
+  "como-se-hace-el-compost-episodio-6-en-lengua-de-senas-argentina-lsa": {
+   "test": 35
+  },
+  "ultimo-momento-temporal-filomena-tormenta-de-nieve-en-espana-corresponsal-sordo-desde-madrid": {
+   "test": 7
+  },
+  "ultimo-momento-reconocimiento-la-lengua-de-senas-chilena-como-lengua-oficial-de-las-personas-sordas": {
+   "test": 3
+  }
+ },
+ "val_groups": {
+  "noticias-en-lengua-de-senas-argentina-resumen-semanal-21022021": {
+   "val": 71
+  },
+  "noticias-en-lengua-de-senas-argentina-resumen-semanal-20122020": {
+   "val": 66
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-05092021": {
+   "val": 53
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-26092021": {
+   "val": 52
+  },
+  "agua-como-tomar-conciencia-sobre-su-cuidado-episodio-3-en-lengua-de-senas-argentina-lsa": {
+   "val": 50
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-10102021": {
+   "val": 47
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-21112021": {
+   "val": 47
+  },
+  "guia-basica-de-consumo-responsable-episodio-2-en-lengua-de-senas-argentina-lsa": {
+   "val": 44
+  },
+  "lsa-noticias-en-lengua-de-senas-argentina-resumen-semanal-14112021": {
+   "val": 39
+  },
+  "noticias-en-lengua-de-senas-argentina-lsa-resumen-semanal-7112021": {
+   "val": 32
+  },
+  "cnsordos-se-renueva-noticias-en-lsa-tu-idioma": {
+   "val": 10
+  },
+  "ultimo-momento-en-lsa-sismo-san-juan-18-enero-2021": {
+   "val": 2
+  }
+ },
+ "groups_only_in_excluded": []
+}

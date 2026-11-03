@@ -1,0 +1,144 @@
+{
+ "h5": "/shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5",
+ "hdf5_groups": [
+  "embeddings",
+  "frame_count",
+  "keypoints",
+  "labels",
+  "source_group",
+  "text_ctx",
+  "token_count",
+  "token_ids",
+  "video_id",
+  "word_count"
+ ],
+ "n_rows": 5600,
+ "torch": "2.13.0+cu130",
+ "full_5600_v118f_v119_baseline": {
+  "scenario": "5600 no filter (v118f, v119 baseline)",
+  "n": 5600,
+  "n_train": 4481,
+  "n_val": 1119,
+  "val_exact_label_in_train": 66,
+  "val_clips_with_label_repeated_within_val": 27,
+  "val_tokens": 17819,
+  "val_oov_tokens_vs_train_vocab": 1278,
+  "val_oov_rate": 0.0717,
+  "train_vocab_size": 9913,
+  "groups_known": true,
+  "n_groups_total": 64,
+  "n_frames_gt_250": 2361,
+  "frames_mean": 278.7,
+  "frames_mean_of_gt_250": 464.2,
+  "words_mean_gt_250_vs_rest": [
+   24.5,
+   10.0
+  ],
+  "val_clips_whose_source_group_in_train": 1119,
+  "n_val_groups": 62,
+  "frames": {
+   "median": 215.0,
+   "p95": 711.0500000000002,
+   "max": 1400,
+   "n_eq_250": 12,
+   "n_gt_768": 219,
+   "n_gt_1024": 63
+  },
+  "words": {
+   "median": 13.0,
+   "p95": 37.0,
+   "max": 153
+  },
+  "frames_per_word": {
+   "median": 16.69,
+   "p5": 8.45,
+   "n_lt_4": 56,
+   "n_lt_8": 234
+  }
+ },
+ "filtered_v119_levers": {
+  "scenario": "v119 min_frames=16 + frames//4>=words",
+  "n": 5544,
+  "n_train": 4436,
+  "n_val": 1108,
+  "val_exact_label_in_train": 69,
+  "val_clips_with_label_repeated_within_val": 21,
+  "val_tokens": 17734,
+  "val_oov_tokens_vs_train_vocab": 1290,
+  "val_oov_rate": 0.0727,
+  "train_vocab_size": 9878,
+  "groups_known": true,
+  "n_groups_total": 64,
+  "n_frames_gt_250": 2361,
+  "frames_mean": 281.2,
+  "frames_mean_of_gt_250": 464.2,
+  "words_mean_gt_250_vs_rest": [
+   24.5,
+   9.9
+  ],
+  "val_clips_whose_source_group_in_train": 1108,
+  "n_val_groups": 63,
+  "frames": {
+   "median": 217.0,
+   "p95": 712.8499999999995,
+   "max": 1400,
+   "n_eq_250": 12,
+   "n_gt_768": 219,
+   "n_gt_1024": 63
+  },
+  "words": {
+   "median": 13.0,
+   "p95": 37.0,
+   "max": 153
+  },
+  "frames_per_word": {
+   "median": 16.8,
+   "p5": 8.72,
+   "n_lt_4": 0,
+   "n_lt_8": 178
+  }
+ },
+ "keys_0_599_assumed_v116_v118e": {
+  "scenario": "keys 0..599 (assumed = historical 600)",
+  "n": 600,
+  "n_train": 481,
+  "n_val": 119,
+  "val_exact_label_in_train": 2,
+  "val_clips_with_label_repeated_within_val": 0,
+  "val_tokens": 2102,
+  "val_oov_tokens_vs_train_vocab": 477,
+  "val_oov_rate": 0.2269,
+  "train_vocab_size": 2378,
+  "groups_known": true,
+  "n_groups_total": 62,
+  "n_frames_gt_250": 227,
+  "frames_mean": 266.3,
+  "frames_mean_of_gt_250": 468.3,
+  "words_mean_gt_250_vs_rest": [
+   25.2,
+   10.8
+  ],
+  "val_clips_whose_source_group_in_train": 119,
+  "n_val_groups": 49,
+  "frames": {
+   "median": 201.0,
+   "p95": 681.1499999999999,
+   "max": 1312,
+   "n_eq_250": 1,
+   "n_gt_768": 21,
+   "n_gt_1024": 4
+  },
+  "words": {
+   "median": 13.0,
+   "p95": 37.0,
+   "max": 65
+  },
+  "frames_per_word": {
+   "median": 15.72,
+   "p5": 7.5,
+   "n_lt_4": 11,
+   "n_lt_8": 35
+  },
+  "caveat": "frame counts are CURRENT (post-250fix re-extraction); historical v116/v117/v118 runs1-3 saw <=250"
+ }
+}

@@ -1,0 +1,978 @@
+{
+ "provenance": {
+  "repo_commit": "a7db233a86eff014459bedecb470e1a7c4141add",
+  "branch_at_audit": "v125-temporal-prompt-alignment",
+  "audit_date": "2026-10-19",
+  "python": "/shared/Code/nakato/projects/VQ_RL/.venv/bin/python (Sign-env is empty)",
+  "input_artifacts_sha256_from_01_inventory": {
+   "/shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5": "24c9aa401b44b14283ea71851b12ccb44b3c224ec7d7b85119b534389c3b1d38",
+   "/shared/Code/Sign-AI/data/processed/dataset2_manifest_v125.json": "04c3a7c1836483bc7fcd749b32386339b5e407be34d9483bb4e1ec3276598bad",
+   "/shared/Code/Sign-AI/data/processed/dataset2_split_v125.json": "6669635ad97950c4f48c90816f8bf99e5902bd107412cc049670bec6f388dbf9",
+   "/shared/Code/Sign-AI/data/processed/v125_artifacts.json": "9d71868cdfbbedc60b6c4c3e7530afc37a65679569ec457dc32e6be24785614e",
+   "/shared/Code/Sign-AI/data/processed/gemma3n_embed_table.pt": "2043797146e6d6ff94d107f25715fe602d73429adf74ab79471818be2763a6d7",
+   "/shared/Code/Sign-AI/data/processed/v125_gemma_oracle.json": "b037bfca2b539ecef2923925feca88a126a4ed9595976701d9f3ea09148a75be",
+   "/shared/Code/Sign-AI/data/processed/v125_anisotropy_gate.json": "b7fa2139bca8e112b40579039489e27a5c2c3e2067a0940e9a29ec81497b8a10",
+   "/shared/Code/Sign-AI/data/processed/v125_anisotropy_gate.transform.pt": "fbf55997b32fc512a35a62d06c18253048a0f50bb40f42adc3e0fb7b46e11bc9",
+   "/shared/Code/Sign-AI/data/processed/ds2_smoke.hdf5": "b54430e35000c2e580d12b82fb817ed44fcf1579610c37734d5a63c850840970",
+   "/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/video_metadata.csv": "67689c12d4b5dcd1ebe34127b0169f1e7326c9a9d0c0ed85dad28f8dabb2da18",
+   "/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/dataset_summary.csv": "994ef8e89841e1d157ea2225822153d90de823e484bbb81954e7be2d046bd347",
+   "/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/eda_summary.json": "a2e984531a3b77b2f116574308ef8533f4f699dbd36143167d6d155111af7a4f",
+   "/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/srt_summary.csv": "6fb35e6d14e38d41c57dd78c4af3d72546c8a8d58f0d47537302c00ff489669c",
+   "/shared/Code/Sign-AI/data/raw/dataset2/videos": "3062dde404c54ef2130ae3f7ddec38282e4d1eaf2f6921859753c51e92b18b44"
+  },
+  "audit_artifacts_sha256": {
+   "_work/visual_stats.json": "036ae3522f7533dbd4ab02ea40bd83f2c723e4653b206c3fee0acb1260077ab7",
+   "_work/text_split_stats.json": "f6ab42bf651d184c7088283887ed24320857a0ce58c08ffead3b28ef2c47782a",
+   "_work/01_h5_provenance.json": "1349e854cdc30525f8ff87dca17bd4dfa22a34a9fc4416fc970d3765458f965c",
+   "_work/04_experiments_split_stats.json": "5e80ce6f8d68e3a9a4a874cf87ada94ccf6c48d9f75f0b8e565110dced0c0cdd",
+   "_work/visual_integrity_per_clip.csv": "38040b42c668bfd6b10a99b84dc374cce5ca22b5b943b436c2a40fe93a5887d0",
+   "_work/text_split_per_clip.csv": "c6f16fce50b9c6bca15eb6736e61d360d9b4dfd4ea50811a2b2decd52f07b248",
+   "_work/01_inventory.tsv": "e94d9a810b63745e5a7cb79f219c277769989ab8f39952820219b957d9067edd",
+   "integrity_report.csv": "8b72d8a4caaf60693313451af4836913156bbb1ecf4847771d3dd2136a7a5e49",
+   "sample_manifest.csv": "5ba98a5243b29a301fb0ce112acdbc14daac3dbaa68955d072b362816931de13",
+   "human_review_template.csv": "89a5d9fa03f1aa2fc96c0bd3fcc8c7ae6bf7e0223b11609a2cb12afa69ab21ef"
+  },
+  "ai_disclosure": "Generated with AI assistance (Claude); validate with subject-matter experts."
+ },
+ "observed": {
+  "raw_videos": {
+   "mp4_files": 8459,
+   "appledouble_sidecars": 1,
+   "parent_videos": 64,
+   "has_audio_true": 0,
+   "source": "01_provenance.md §I; artifacts/data_eda/video_metadata.csv"
+  },
+  "meta_csv": {
+   "exists": false,
+   "deleted": "2026-09-10 (DATA_CLEANUP_2026-09-10.md)",
+   "historical_rows": 8459,
+   "historical_columns": 14,
+   "had_timestamps": "start,end,splits=(text,start,end) [git show fef07a3:Sign-Dataset.ipynb]"
+  },
+  "hdf5": {
+   "path": "/shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5",
+   "groups": {
+    "embeddings": 5600,
+    "frame_count": 5600,
+    "keypoints": 5600,
+    "labels": 5600,
+    "source_group": 5600,
+    "text_ctx": 5600,
+    "token_count": 5600,
+    "token_ids": 5600,
+    "video_id": 5600,
+    "word_count": 5600
+   },
+   "keys_contiguous_0_5599": true,
+   "kp_shape_joint_dims": {
+    "(134, 2)": 5600
+   },
+   "video_id_unique": 5600,
+   "video_id_in_raw": 5600,
+   "n_source_groups": 64,
+   "labels_empty": 0,
+   "confidence_scores": "not stored in HDF5 (only (T,134,2) xy); build_dataset2_h5.py:57 discards scores",
+   "nan": 0,
+   "inf": 0
+  },
+  "video_fps": {
+   "29.97": 5136,
+   "30.0": 442,
+   "24.0": 22
+  },
+  "manifest_v125": {
+   "total": 5600,
+   "kept": 5138,
+   "excluded": 462,
+   "by_cause": {
+    "truncated": 413,
+    "frames_per_token": 16,
+    "min_tokens": 29,
+    "min_frames": 4
+   }
+  },
+  "split_v125": {
+   "sizes": {
+    "train": 4112,
+    "val": 513,
+    "test": 513
+   },
+   "ratios_field": [
+    0.8,
+    0.1,
+    0.1
+   ],
+   "seed": 23,
+   "pairwise_overlap_clip_ids": {
+    "train&val": 0,
+    "train&test": 0,
+    "val&test": 0
+   },
+   "union_eq_manifest_kept": true,
+   "n_union": 5138,
+   "n_kept": 5138,
+   "duplicate_ids_within_split_lists": {
+    "train": 0,
+    "val": 0,
+    "test": 0
+   },
+   "regenerated_split_identical": true
+  },
+  "groups_per_split": {
+   "train": 40,
+   "val": 12,
+   "test": 12
+  },
+  "consistency_failures": {
+   "token_ids_ne_retokenized_norm_label": 0,
+   "token_count_ne_len_token_ids": 0,
+   "emb_rows_ne_token_count": 0,
+   "emb_dim_ne_2048": 0,
+   "frame_count_ne_kp_T": 0,
+   "word_count_ne_vocab_tokenize": 0,
+   "text_ctx_shape_ne_1x2048": 0,
+   "kp_shape_not_Tx134x2": 0,
+   "video_id_prefix_ne_source_group": 0,
+   "vocab_tokenize_ne_alignment_norm_split": 253,
+   "emb_ne_table_lookup_atol1e-3": 0
+  }
+ },
+ "derived": {
+  "length_frames_h5": {
+   "p0": 3.0,
+   "p1": 35.0,
+   "p5": 65.0,
+   "p25": 129.0,
+   "p50": 215.0,
+   "p75": 359.0,
+   "p95": 711.0500000000002,
+   "p99": 1051.0400000000009,
+   "p100": 1400.0,
+   "n": 5600,
+   "mean": 278.7482142857143,
+   "n_eq_250": 12,
+   "n_ge_250": 2373,
+   "n_lt_8": 4
+  },
+  "video_duration_s": {
+   "p0": 1.001001,
+   "p1": 1.768435,
+   "p5": 2.469136,
+   "p25": 4.571238,
+   "p50": 7.440774,
+   "p75": 12.312312,
+   "p95": 24.067871500000003,
+   "p99": 35.30494931000006,
+   "p100": 89.833333,
+   "n": 5600,
+   "mean": 9.594968149107142
+  },
+  "frames_ratio_h5_over_video": {
+   "derived": {
+    "p0": 0.037037037037037035,
+    "p1": 0.2972446783066252,
+    "p5": 0.707548656163114,
+    "p10": 0.9732972972972973,
+    "p25": 1.0,
+    "p50": 1.0,
+    "p75": 1.0,
+    "p90": 1.0,
+    "p100": 1.0,
+    "n": 5600,
+    "mean": 0.9664970922641555
+   },
+   "n_lt_0.9": 434,
+   "n_lt_0.5": 145,
+   "n_eq_1": 4967
+  },
+  "frame_count_ge_250_by_key_range": {
+   "keys<600": 228,
+   "keys>=600": 2145,
+   "eq250_keys<600": 1,
+   "max_keys<600": 1312,
+   "max_keys>=600": 1400
+  },
+  "cap_reconciliation": {
+   "T_eq_250": 12,
+   "T_eq_250_note": "11 have video nb_frames==250, 1 has 270 (clip 5285, ratio 0.926): natural lengths, not a cap; visual flag 'hits_cap_250' is a misnomer",
+   "T_eq_1400": 12,
+   "videos_gt_1400_frames": 12,
+   "videos_gt_1400_with_T_lt_1400": 0,
+   "T_eq_1400_excluded_truncated": 7,
+   "T_eq_1400_kept_tail_cut": 5,
+   "conclusion": "5,600 build has no 250 cap; the extension behaved as --max-frames 1400 (command not recorded)"
+  },
+  "visual_flag_counts_all": {
+   "body_jump": 3187,
+   "identity_switch_suspect": 1728,
+   "scale_jump": 2528,
+   "frames_lt_90pct_video": 434,
+   "hits_cap_250": 12,
+   "degenerate_shoulders": 25,
+   "hand_offframe_gt20pct": 37
+  },
+  "visual_flag_counts_kept": {
+   "body_jump": 2822,
+   "identity_switch_suspect": 1461,
+   "scale_jump": 2366,
+   "hits_cap_250": 12,
+   "degenerate_shoulders": 20,
+   "hand_offframe_gt20pct": 32
+  },
+  "identity_switch": {
+   "jumps": {
+    "jumps": 59025,
+    "returning": 48038
+   },
+   "suspect": {
+    "all": 1728,
+    "among_kept_v125": 1461
+   }
+  },
+  "filter_recomputed": {
+   "kept": 5138,
+   "excluded": 462,
+   "by_cause": {
+    "truncated": 413,
+    "frames_per_token": 16,
+    "min_tokens": 29,
+    "min_frames": 4
+   }
+  },
+  "filter_disagreements": 0,
+  "text_all": {
+   "n": 5600,
+   "word_count": {
+    "p0": 1.0,
+    "p1": 1.0,
+    "p5": 3.0,
+    "p25": 8.0,
+    "p50": 13.0,
+    "p75": 21.0,
+    "p95": 37.0,
+    "p99": 52.01000000000022,
+    "p100": 153.0,
+    "mean": 16.089464285714286,
+    "n": 5600
+   },
+   "token_count_norm_gemma": {
+    "p0": 1.0,
+    "p1": 2.0,
+    "p5": 4.0,
+    "p25": 10.0,
+    "p50": 16.0,
+    "p75": 26.0,
+    "p95": 46.0,
+    "p99": 64.01000000000022,
+    "p100": 169.0,
+    "mean": 19.505357142857143,
+    "n": 5600
+   },
+   "token_count_raw_label_gemma": {
+    "p0": 1.0,
+    "p1": 3.0,
+    "p5": 6.0,
+    "p25": 12.0,
+    "p50": 18.0,
+    "p75": 29.0,
+    "p95": 50.0,
+    "p99": 69.0,
+    "p100": 196.0,
+    "mean": 22.11392857142857,
+    "n": 5600
+   },
+   "chars": {
+    "p0": 3.0,
+    "p1": 9.0,
+    "p5": 21.0,
+    "p25": 49.0,
+    "p50": 76.0,
+    "p75": 127.0,
+    "p95": 224.05000000000018,
+    "p99": 312.0,
+    "p100": 919.0,
+    "mean": 95.27857142857142,
+    "n": 5600
+   },
+   "flags": {
+    "digits": 844,
+    "quotes_brackets": 506,
+    "very_long": 194,
+    "very_short": 167,
+    "no_final_punct": 54,
+    "ellipsis": 40,
+    "hyphen_compound": 34,
+    "lead_trail_ws": 29,
+    "unbalanced_inv_punct": 25,
+    "internal_ws": 9
+   }
+  },
+  "text_kept": {
+   "n": 5138,
+   "word_count": {
+    "p0": 1.0,
+    "p1": 2.0,
+    "p5": 3.0,
+    "p25": 8.0,
+    "p50": 13.0,
+    "p75": 22.0,
+    "p95": 38.0,
+    "p99": 52.63000000000011,
+    "p100": 111.0,
+    "mean": 16.26956014013235,
+    "n": 5138
+   },
+   "token_count_norm_gemma": {
+    "p0": 2.0,
+    "p1": 2.0,
+    "p5": 4.0,
+    "p25": 10.0,
+    "p50": 16.0,
+    "p75": 26.0,
+    "p95": 46.0,
+    "p99": 63.63000000000011,
+    "p100": 122.0,
+    "mean": 19.741144414168936,
+    "n": 5138
+   },
+   "token_count_raw_label_gemma": {
+    "p0": 2.0,
+    "p1": 4.0,
+    "p5": 6.0,
+    "p25": 12.0,
+    "p50": 18.0,
+    "p75": 29.0,
+    "p95": 50.0,
+    "p99": 69.0,
+    "p100": 137.0,
+    "mean": 22.348189957181784,
+    "n": 5138
+   },
+   "chars": {
+    "p0": 6.0,
+    "p1": 11.0,
+    "p5": 22.0,
+    "p25": 50.0,
+    "p50": 77.0,
+    "p75": 129.0,
+    "p95": 225.0,
+    "p99": 312.0,
+    "p100": 614.0,
+    "mean": 96.32347216815882,
+    "n": 5138
+   },
+   "flags": {
+    "digits": 806,
+    "quotes_brackets": 477,
+    "very_long": 183,
+    "very_short": 131,
+    "no_final_punct": 44,
+    "ellipsis": 38,
+    "hyphen_compound": 32,
+    "lead_trail_ws": 20,
+    "unbalanced_inv_punct": 17,
+    "internal_ws": 8
+   }
+  },
+  "duplicates_all": {
+   "exact": {
+    "distinct": 5382,
+    "dup_texts": 167,
+    "clips_in_dup_texts": 385,
+    "redundant_clips": 218,
+    "top": [
+     [
+      "¿empezamos? empezamos.",
+      8
+     ],
+     [
+      "¡hola!",
+      7
+     ],
+     [
+      " ¡chau",
+      6
+     ],
+     [
+      "sí, así es.",
+      5
+     ],
+     [
+      "mi nombre es lautaro.",
+      5
+     ],
+     [
+      "espero que les haya gustado esta nueva edición.",
+      4
+     ],
+     [
+      " comencemos.",
+      4
+     ],
+     [
+      "mi nombre es lucía.",
+      4
+     ],
+     [
+      "¡hola! ¿cómo estás?",
+      4
+     ],
+     [
+      "sí.",
+      4
+     ],
+     [
+      "¿vieron toda la edición? ¿les gustó?",
+      3
+     ],
+     [
+      "entonces, esto que me decís, es como que la comunidad sorda quiere que la ley sea ahora, ¿no? sí, al 100%.",
+      3
+     ],
+     [
+      "hola, ¿cómo están? mi nombre es lucía.",
+      3
+     ],
+     [
+      "sí, ahora.",
+      3
+     ],
+     [
+      "en esta convocatoria, los participantes sordos, ¿en qué promedio de edad estaban?",
+      3
+     ]
+    ]
+   },
+   "normalized": {
+    "distinct": 5348,
+    "dup_texts": 174,
+    "clips_in_dup_texts": 426,
+    "redundant_clips": 252,
+    "top": [
+     [
+      "chau",
+      12
+     ],
+     [
+      "hola",
+      8
+     ],
+     [
+      "empezamos empezamos",
+      8
+     ],
+     [
+      "comencemos",
+      7
+     ],
+     [
+      "hola cómo estás",
+      6
+     ],
+     [
+      "sí así es",
+      5
+     ],
+     [
+      "mi nombre es lautaro",
+      5
+     ],
+     [
+      "nos vemos el próximo domingo ambos chau",
+      4
+     ],
+     [
+      "espero que les haya gustado esta nueva edición",
+      4
+     ],
+     [
+      "chau chau",
+      4
+     ],
+     [
+      "mi nombre es lucía",
+      4
+     ],
+     [
+      "gracias",
+      4
+     ],
+     [
+      "nos vemos el próximo domingo chau",
+      4
+     ],
+     [
+      "hola bienvenidos a una nueva edición de cn sordos ecología",
+      4
+     ],
+     [
+      "sí",
+      4
+     ]
+    ]
+   }
+  },
+  "duplicates_kept": {
+   "exact": {
+    "distinct": 4949,
+    "dup_texts": 155,
+    "clips_in_dup_texts": 344,
+    "redundant_clips": 189,
+    "top": [
+     [
+      "¿empezamos? empezamos.",
+      7
+     ],
+     [
+      "sí, así es.",
+      5
+     ],
+     [
+      "espero que les haya gustado esta nueva edición.",
+      4
+     ],
+     [
+      " comencemos.",
+      4
+     ],
+     [
+      "mi nombre es lucía.",
+      4
+     ],
+     [
+      "¡hola! ¿cómo estás?",
+      4
+     ],
+     [
+      "mi nombre es lautaro.",
+      4
+     ],
+     [
+      "entonces, esto que me decís, es como que la comunidad sorda quiere que la ley sea ahora, ¿no? sí, al 100%.",
+      3
+     ],
+     [
+      "sí, ahora.",
+      3
+     ],
+     [
+      "en esta convocatoria, los participantes sordos, ¿en qué promedio de edad estaban?",
+      3
+     ],
+     [
+      "son todos ámbitos diferentes, pero que están todos relacionados con la ley.",
+      3
+     ],
+     [
+      "que se logre una comunicación y accesibilidad en la sociedad en los diferentes ámbitos. sí, es la accesibilidad.",
+      3
+     ],
+     [
+      "gracias por tu tiempo, por esta entrevista.",
+      3
+     ],
+     [
+      "¡gracias!",
+      3
+     ],
+     [
+      "hola, bienvenidos a una nueva edición de \"cn sordos ecología\".",
+      3
+     ]
+    ]
+   },
+   "normalized": {
+    "distinct": 4925,
+    "dup_texts": 163,
+    "clips_in_dup_texts": 376,
+    "redundant_clips": 213,
+    "top": [
+     [
+      "empezamos empezamos",
+      7
+     ],
+     [
+      "comencemos",
+      7
+     ],
+     [
+      "hola cómo estás",
+      6
+     ],
+     [
+      "sí así es",
+      5
+     ],
+     [
+      "nos vemos el próximo domingo ambos chau",
+      4
+     ],
+     [
+      "espero que les haya gustado esta nueva edición",
+      4
+     ],
+     [
+      "chau chau",
+      4
+     ],
+     [
+      "mi nombre es lucía",
+      4
+     ],
+     [
+      "gracias",
+      4
+     ],
+     [
+      "hola bienvenidos a una nueva edición de cn sordos ecología",
+      4
+     ],
+     [
+      "mi nombre es lautaro",
+      4
+     ],
+     [
+      "y porque anteriormente siempre tuvimos muchos obstáculos",
+      3
+     ],
+     [
+      "entonces esto que me decís es como que la comunidad sorda quiere que la ley sea ahora no sí al 100",
+      3
+     ],
+     [
+      "sí ahora",
+      3
+     ],
+     [
+      "en esta convocatoria los participantes sordos en qué promedio de edad estaban",
+      3
+     ]
+    ]
+   }
+  },
+  "series_groups_per_split": {
+   "train": {
+    "weekly_news": 37,
+    "other": 1,
+    "eco_episodes": 2
+   },
+   "val": {
+    "weekly_news": 8,
+    "eco_episodes": 2,
+    "other": 2
+   },
+   "test": {
+    "weekly_news": 5,
+    "eco_episodes": 5,
+    "other": 2
+   }
+  },
+  "text_leakage_cross_split": {
+   "exact_label": {
+    "val": {
+     "clips_with_text_in_train": 13,
+     "of": 513,
+     "pct": 2.53
+    },
+    "test": {
+     "clips_with_text_in_train": 6,
+     "of": 513,
+     "pct": 1.17
+    },
+    "val&test_shared_texts": 4
+   },
+   "normalized": {
+    "val": {
+     "clips_with_text_in_train": 17,
+     "of": 513,
+     "pct": 3.31
+    },
+    "test": {
+     "clips_with_text_in_train": 8,
+     "of": 513,
+     "pct": 1.56
+    },
+    "val&test_shared_texts": 5
+   }
+  },
+  "id_leakage": {
+   "source_group": {
+    "distinct": 64,
+    "spanning_splits": 0,
+    "clips_in_spanning": 0
+   },
+   "video_id": {
+    "distinct": 5138,
+    "spanning_splits": 0,
+    "clips_in_spanning": 0
+   }
+  },
+  "near_dup_motion": {
+   "resample_T": 32,
+   "threshold_cos": 0.95,
+   "nn_cos_all": {
+    "p0": 0.10357632488012314,
+    "p1": 0.19439458847045898,
+    "p5": 0.231931671500206,
+    "p25": 0.3071972727775574,
+    "p50": 0.41163018345832825,
+    "p75": 0.5660675168037415,
+    "p95": 0.7619828581809998,
+    "p99": 0.8712565898895264,
+    "p100": 0.957014799118042,
+    "mean": 0.4469834566116333,
+    "n": 5600
+   },
+   "random_pair_cos": {
+    "p0": -0.5244166851043701,
+    "p1": -0.22360057532787322,
+    "p5": -0.1288812480866909,
+    "p25": -0.04146959725767374,
+    "p50": 0.003742072032764554,
+    "p75": 0.051053148694336414,
+    "p95": 0.14513265267014502,
+    "p99": 0.25883802354335744,
+    "p100": 0.8991808295249939,
+    "mean": 0.006044074738706695,
+    "n": 20000
+   },
+   "n_pairs": 2,
+   "n_cross_split_pairs": 0
+  },
+  "historical_clip_level_splits": {
+   "h5": "/shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5",
+   "hdf5_groups": [
+    "embeddings",
+    "frame_count",
+    "keypoints",
+    "labels",
+    "source_group",
+    "text_ctx",
+    "token_count",
+    "token_ids",
+    "video_id",
+    "word_count"
+   ],
+   "n_rows": 5600,
+   "torch": "2.13.0+cu130",
+   "full_5600_v118f_v119_baseline": {
+    "scenario": "5600 no filter (v118f, v119 baseline)",
+    "n": 5600,
+    "n_train": 4481,
+    "n_val": 1119,
+    "val_exact_label_in_train": 66,
+    "val_clips_with_label_repeated_within_val": 27,
+    "val_tokens": 17819,
+    "val_oov_tokens_vs_train_vocab": 1278,
+    "val_oov_rate": 0.0717,
+    "train_vocab_size": 9913,
+    "groups_known": true,
+    "n_groups_total": 64,
+    "n_frames_gt_250": 2361,
+    "frames_mean": 278.7,
+    "frames_mean_of_gt_250": 464.2,
+    "words_mean_gt_250_vs_rest": [
+     24.5,
+     10.0
+    ],
+    "val_clips_whose_source_group_in_train": 1119,
+    "n_val_groups": 62,
+    "frames": {
+     "median": 215.0,
+     "p95": 711.0500000000002,
+     "max": 1400,
+     "n_eq_250": 12,
+     "n_gt_768": 219,
+     "n_gt_1024": 63
+    },
+    "words": {
+     "median": 13.0,
+     "p95": 37.0,
+     "max": 153
+    },
+    "frames_per_word": {
+     "median": 16.69,
+     "p5": 8.45,
+     "n_lt_4": 56,
+     "n_lt_8": 234
+    }
+   },
+   "filtered_v119_levers": {
+    "scenario": "v119 min_frames=16 + frames//4>=words",
+    "n": 5544,
+    "n_train": 4436,
+    "n_val": 1108,
+    "val_exact_label_in_train": 69,
+    "val_clips_with_label_repeated_within_val": 21,
+    "val_tokens": 17734,
+    "val_oov_tokens_vs_train_vocab": 1290,
+    "val_oov_rate": 0.0727,
+    "train_vocab_size": 9878,
+    "groups_known": true,
+    "n_groups_total": 64,
+    "n_frames_gt_250": 2361,
+    "frames_mean": 281.2,
+    "frames_mean_of_gt_250": 464.2,
+    "words_mean_gt_250_vs_rest": [
+     24.5,
+     9.9
+    ],
+    "val_clips_whose_source_group_in_train": 1108,
+    "n_val_groups": 63,
+    "frames": {
+     "median": 217.0,
+     "p95": 712.8499999999995,
+     "max": 1400,
+     "n_eq_250": 12,
+     "n_gt_768": 219,
+     "n_gt_1024": 63
+    },
+    "words": {
+     "median": 13.0,
+     "p95": 37.0,
+     "max": 153
+    },
+    "frames_per_word": {
+     "median": 16.8,
+     "p5": 8.72,
+     "n_lt_4": 0,
+     "n_lt_8": 178
+    }
+   },
+   "keys_0_599_assumed_v116_v118e": {
+    "scenario": "keys 0..599 (assumed = historical 600)",
+    "n": 600,
+    "n_train": 481,
+    "n_val": 119,
+    "val_exact_label_in_train": 2,
+    "val_clips_with_label_repeated_within_val": 0,
+    "val_tokens": 2102,
+    "val_oov_tokens_vs_train_vocab": 477,
+    "val_oov_rate": 0.2269,
+    "train_vocab_size": 2378,
+    "groups_known": true,
+    "n_groups_total": 62,
+    "n_frames_gt_250": 227,
+    "frames_mean": 266.3,
+    "frames_mean_of_gt_250": 468.3,
+    "words_mean_gt_250_vs_rest": [
+     25.2,
+     10.8
+    ],
+    "val_clips_whose_source_group_in_train": 119,
+    "n_val_groups": 49,
+    "frames": {
+     "median": 201.0,
+     "p95": 681.1499999999999,
+     "max": 1312,
+     "n_eq_250": 1,
+     "n_gt_768": 21,
+     "n_gt_1024": 4
+    },
+    "words": {
+     "median": 13.0,
+     "p95": 37.0,
+     "max": 65
+    },
+    "frames_per_word": {
+     "median": 15.72,
+     "p5": 7.5,
+     "n_lt_4": 11,
+     "n_lt_8": 35
+    },
+    "caveat": "frame counts are CURRENT (post-250fix re-extraction); historical v116/v117/v118 runs1-3 saw <=250"
+   }
+  },
+  "integrity_report_level_A": {
+   "kept_warn": 1548,
+   "kept_no_warn": 3590,
+   "excluded_v125:truncated": 413,
+   "excluded_v125:frames_per_token": 16,
+   "excluded_v125:min_tokens": 29,
+   "excluded_v125:min_frames": 4
+  },
+  "integrity_report_level_A_warnings_kept": {
+   "identity_switch_suspect": 1461,
+   "frames_dropped_ratio_lt1": 198,
+   "degenerate_shoulders": 20,
+   "hand_offframe_gt20pct": 32,
+   "tail_cut_at_1400": 5
+  },
+  "integrity_report_kept_no_warn_by_split": {
+   "train": 2740,
+   "test": 433,
+   "val": 417
+  },
+  "review_sample": {
+   "probability_n": 80,
+   "purposive_n": 42,
+   "pilot_n": 20,
+   "kish_n_eff": 76.2,
+   "sum_design_weights": 5138.0,
+   "video_seconds": {
+    "probability": 752.2,
+    "purposive": 381.5
+   }
+  },
+  "wilson95_half_width_pp": {
+   "n=12": {
+    "p=0.5": 24.6,
+    "p=0.7": 23.1,
+    "p=0.8": 21.0,
+    "p=0.9": 17.7
+   },
+   "n=20": {
+    "p=0.5": 20.1,
+    "p=0.7": 18.7,
+    "p=0.8": 16.8,
+    "p=0.9": 13.7
+   },
+   "n=76": {
+    "p=0.5": 11.0,
+    "p=0.7": 10.1,
+    "p=0.8": 8.9,
+    "p=0.9": 6.9
+   },
+   "n=80": {
+    "p=0.5": 10.7,
+    "p=0.7": 9.9,
+    "p=0.8": 8.7,
+    "p=0.9": 6.7
+   },
+   "n=150": {
+    "p=0.5": 7.9,
+    "p=0.7": 7.3,
+    "p=0.8": 6.4,
+    "p=0.9": 4.8
+   },
+   "n=200": {
+    "p=0.5": 6.9,
+    "p=0.7": 6.3,
+    "p=0.8": 5.5,
+    "p=0.9": 4.2
+   },
+   "n=300": {
+    "p=0.5": 5.6,
+    "p=0.7": 5.2,
+    "p=0.8": 4.5,
+    "p=0.9": 3.4
+   },
+   "n=385": {
+    "p=0.5": 5.0,
+    "p=0.7": 4.6,
+    "p=0.8": 4.0,
+    "p=0.9": 3.0
+   }
+  }
+ },
+ "pending_verification": {
+  "level_B_temporal_alignment": "UNKNOWN: no per-clip timestamps (meta.csv deleted); 0 clips annotated",
+  "level_C_semantic_correspondence": "UNKNOWN: 0 of 5,600 clips reviewed by LSA-competent annotators",
+  "subtitle_source": "UNKNOWN (manual captions vs auto captions vs ASR)",
+  "signer_identity": "UNKNOWN (no signer metadata in HDF5)",
+  "identity_switch_flag_precision": "UNKNOWN (heuristic; 1 clip visually checked)",
+  "misaligned_3088_claim": "UNSUPPORTED: config comment only, no procedure/denominator/clip list",
+  "extension_command_line": "UNKNOWN (--max-frames 1400 inferred from data)",
+  "text_ctx_recomputation": "not recomputed (needs model forward pass)"
+ }
+}

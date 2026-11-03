@@ -71,3 +71,6 @@ paper/figures/*.png
 # Beads / Dolt files (added by bd init)
 .dolt/
 .beads-credential-key
+
+# Private audit images
+artifacts/dataset2_audit/_private_previews/

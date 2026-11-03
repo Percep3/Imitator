@@ -1,0 +1,18 @@
+path	exists	size_bytes	mtime	sha256	hash_kind	produced_by	n_files
+/shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5	True	2244045489	2026-06-23T10:49:51-05:00	24c9aa401b44b14283ea71851b12ccb44b3c224ec7d7b85119b534389c3b1d38	full	build_dataset2_h5.py (+add_token_ids_h5.py, backfill, rebuild_alignment_targets_v125)	
+/shared/Code/Sign-AI/data/processed/dataset2_manifest_v125.json	True	439755	2026-06-23T10:53:17-05:00	04c3a7c1836483bc7fcd749b32386339b5e407be34d9483bb4e1ec3276598bad	full	build_dataset2_manifest.py	
+/shared/Code/Sign-AI/data/processed/dataset2_split_v125.json	True	60749	2026-06-23T10:53:20-05:00	6669635ad97950c4f48c90816f8bf99e5902bd107412cc049670bec6f388dbf9	full	build_dataset2_split.py	
+/shared/Code/Sign-AI/data/processed/v125_artifacts.json	True	2122	2026-06-23T15:02:22-05:00	9d71868cdfbbedc60b6c4c3e7530afc37a65679569ec457dc32e6be24785614e	full	v125 artifact freeze (c4113c3)	
+/shared/Code/Sign-AI/data/processed/gemma3n_embed_table.pt	True	1074792061	2026-06-10T00:50:10-05:00	2043797146e6d6ff94d107f25715fe602d73429adf74ab79471818be2763a6d7	full	Gemma-3n input embedding table	
+/shared/Code/Sign-AI/data/processed/v125_gemma_oracle.json	True	58147	2026-06-23T15:02:09-05:00	b037bfca2b539ecef2923925feca88a126a4ed9595976701d9f3ea09148a75be	full	v125 oracle	
+/shared/Code/Sign-AI/data/processed/v125_anisotropy_gate.json	True	258	2026-06-23T10:53:32-05:00	b7fa2139bca8e112b40579039489e27a5c2c3e2067a0940e9a29ec81497b8a10	full	v125 PCA gate	
+/shared/Code/Sign-AI/data/processed/v125_anisotropy_gate.transform.pt	True	18589	2026-06-23T10:53:32-05:00	fbf55997b32fc512a35a62d06c18253048a0f50bb40f42adc3e0fb7b46e11bc9	full	v125 PCA gate	
+/shared/Code/Sign-AI/data/processed/ds2_smoke.hdf5	True	419556	2026-06-09T15:18:14-05:00	b54430e35000c2e580d12b82fb817ed44fcf1579610c37734d5a63c850840970	full	unknown (smoke build, 2026-06-09)	
+/shared/Code/Sign-AI/data/raw/dataset2/meta.csv	False					original metadata (deleted 2026-09-10 per DATA_CLEANUP)	
+/shared/Code/Sign-AI/data/raw/dataset2/keypoints.h5	False					legacy keypoints (deleted 2026-09-10 per DATA_CLEANUP)	
+/shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5.bak_pre250fix	False					backup before v118 250-cap fix	
+/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/video_metadata.csv	True	2815816	2026-06-08T23:31:11-05:00	67689c12d4b5dcd1ebe34127b0169f1e7326c9a9d0c0ed85dad28f8dabb2da18	full	scripts/data/data_eda.py (e68c7be)	
+/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/dataset_summary.csv	True	1938	2026-06-08T23:31:12-05:00	994ef8e89841e1d157ea2225822153d90de823e484bbb81954e7be2d046bd347	full	scripts/data/data_eda.py (e68c7be)	
+/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/eda_summary.json	True	7915	2026-06-08T23:31:12-05:00	a2e984531a3b77b2f116574308ef8533f4f699dbd36143167d6d155111af7a4f	full	scripts/data/data_eda.py (e68c7be)	
+/shared/Code/Sign-AI/Sign-chris/artifacts/data_eda/srt_summary.csv	True	1754	2026-06-08T23:31:12-05:00	6fb35e6d14e38d41c57dd78c4af3d72546c8a8d58f0d47537302c00ff489669c	full	scripts/data/data_eda.py (e68c7be)	
+/shared/Code/Sign-AI/data/raw/dataset2/videos	True	28581651780	2025-08-09T00:35:27-05:00	3062dde404c54ef2130ae3f7ddec38282e4d1eaf2f6921859753c51e92b18b44	listing_fp	original segmented clips (provenance pipeline not in repo)	8460

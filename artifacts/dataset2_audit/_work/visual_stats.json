@@ -1,0 +1,288 @@
+{
+ "_note": "observed = direct read of HDF5/ffprobe; derived = computed from observed values",
+ "inputs": {
+  "h5": "/shared/Code/Sign-AI/data/processed/dataset_v6_unsloth.hdf5",
+  "manifest": "/shared/Code/Sign-AI/data/processed/dataset2_manifest_v125.json",
+  "videos_dir": "/shared/Code/Sign-AI/data/raw/dataset2/videos"
+ },
+ "n_clips_h5": {
+  "observed": 5600
+ },
+ "n_unique_video_ids": {
+  "observed": 5600
+ },
+ "n_unique_source_groups": {
+  "observed": 64
+ },
+ "n_mp4_in_videos_dir": {
+  "observed": 8460
+ },
+ "kp_shapes": {
+  "observed": {
+   "90x134x2": 43,
+   "119x134x2": 33,
+   "149x134x2": 31,
+   "distinct": 1
+  }
+ },
+ "length_frames_h5": {
+  "derived": {
+   "p0": 3.0,
+   "p1": 35.0,
+   "p5": 65.0,
+   "p25": 129.0,
+   "p50": 215.0,
+   "p75": 359.0,
+   "p95": 711.0500000000002,
+   "p99": 1051.0400000000009,
+   "p100": 1400.0,
+   "n": 5600,
+   "mean": 278.7482142857143,
+   "n_eq_250": 12,
+   "n_ge_250": 2373,
+   "n_lt_8": 4
+  }
+ },
+ "video_fps": {
+  "observed": {
+   "29.97": 5136,
+   "30.0": 442,
+   "24.0": 22
+  }
+ },
+ "video_duration_s": {
+  "derived": {
+   "p0": 1.001001,
+   "p1": 1.768435,
+   "p5": 2.469136,
+   "p25": 4.571238,
+   "p50": 7.440774,
+   "p75": 12.312312,
+   "p95": 24.067871500000003,
+   "p99": 35.30494931000006,
+   "p100": 89.833333,
+   "n": 5600,
+   "mean": 9.594968149107142
+  }
+ },
+ "video_nb_frames": {
+  "derived": {
+   "p0": 30.0,
+   "p1": 53.0,
+   "p5": 74.0,
+   "p25": 137.0,
+   "p50": 223.0,
+   "p75": 369.0,
+   "p95": 720.0,
+   "p99": 1056.0200000000004,
+   "p100": 2695.0,
+   "n": 5600,
+   "mean": 287.2207142857143
+  }
+ },
+ "frames_ratio_h5_over_video": {
+  "derived": {
+   "p0": 0.037037037037037035,
+   "p1": 0.2972446783066252,
+   "p5": 0.707548656163114,
+   "p10": 0.9732972972972973,
+   "p25": 1.0,
+   "p50": 1.0,
+   "p75": 1.0,
+   "p90": 1.0,
+   "p100": 1.0,
+   "n": 5600,
+   "mean": 0.9664970922641555
+  },
+  "n_lt_0.9": 434,
+  "n_lt_0.5": 145,
+  "n_eq_1": 4967
+ },
+ "nan_total": {
+  "observed": 0
+ },
+ "inf_total": {
+  "observed": 0
+ },
+ "zero_points_total": {
+  "observed": 0
+ },
+ "frames_all_bad_total": {
+  "observed": 0
+ },
+ "missing_proxy_per_region_111": {
+  "derived": {
+   "pose": {
+    "p50": 0.0,
+    "p95": 0.00978144698246272,
+    "p99": 0.08339279883245936,
+    "p100": 0.287012987012987,
+    "n": 5600,
+    "mean": 0.003029542829601705
+   },
+   "face": {
+    "p50": 0.0,
+    "p95": 0.008893247635933821,
+    "p99": 0.0823615355233013,
+    "p100": 0.307421875,
+    "n": 5600,
+    "mean": 0.0029439455390494
+   },
+   "lhand": {
+    "p50": 0.0,
+    "p95": 0.044272727272727325,
+    "p99": 0.13619030951351044,
+    "p100": 0.5105633802816901,
+    "n": 5600,
+    "mean": 0.008019820355846493
+   },
+   "rhand": {
+    "p50": 0.0,
+    "p95": 0.029812729779411816,
+    "p99": 0.10842111989775563,
+    "p100": 0.4746851385390428,
+    "n": 5600,
+    "mean": 0.0052130099213356755
+   }
+  }
+ },
+ "offframe_per_region_134": {
+  "derived": {
+   "body": 0.02915678831803625,
+   "feet": 0.07830681307856628,
+   "face": 0.002947277095268011,
+   "lhand": 0.007958503193836139,
+   "rhand": 0.005324893603047996
+  }
+ },
+ "disp_per_frame_median_sw": {
+  "derived": {
+   "max": {
+    "p0": 0.0030425206045090556,
+    "p1": 0.020317130851834054,
+    "p5": 0.03168368362505118,
+    "p25": 0.051566459792907554,
+    "p50": 0.3415915056422648,
+    "p75": 3.1189872314957583,
+    "p95": 5.145597192215846,
+    "p99": 7.138355999397052,
+    "p100": 69.26034214918637,
+    "n": 5600,
+    "mean": 1.632727283066607
+   },
+   "p99": {
+    "p0": 0.0029039323486607874,
+    "p1": 0.016228147202927912,
+    "p5": 0.027329242963682058,
+    "p25": 0.03992265558225572,
+    "p50": 0.07343751425471376,
+    "p75": 2.539826559079019,
+    "p95": 4.0085509007,
+    "p99": 5.522829270369457,
+    "p100": 52.919925531903615,
+    "n": 5600,
+    "mean": 1.248573702681576
+   }
+  }
+ },
+ "neck_jump_max_sw": {
+  "derived": {
+   "p0": 0.003208683845922299,
+   "p1": 0.009546663951572611,
+   "p5": 0.028109814859845074,
+   "p25": 0.07424417164149888,
+   "p50": 1.2671045530972735,
+   "p75": 2.6872744000405477,
+   "p95": 4.000220087132906,
+   "p99": 5.799238558423085,
+   "p100": 44.00806113431757,
+   "n": 5600,
+   "mean": 1.5539518206052332
+  }
+ },
+ "clips_with_body_jump": {
+  "derived": 3187
+ },
+ "clips_with_scale_jump": {
+  "derived": 2528
+ },
+ "body_jump_frac": {
+  "derived": {
+   "p50": 0.010088288425819911,
+   "p75": 0.07388764603529704,
+   "p90": 0.14038986354775843,
+   "p95": 0.18018404670765187,
+   "p99": 0.2666804123711343,
+   "p100": 0.42424242424242425,
+   "n": 5600,
+   "mean": 0.04495526195374987
+  }
+ },
+ "body_jumps_returning_ABA": {
+  "derived": {
+   "jumps": 59025,
+   "returning": 48038
+  }
+ },
+ "identity_switch_suspect": {
+  "derived": {
+   "all": 1728,
+   "among_kept_v125": 1461
+  }
+ },
+ "kept_v125_flag_counts": {
+  "derived": {
+   "body_jump": 2822,
+   "identity_switch_suspect": 1461,
+   "scale_jump": 2366,
+   "hits_cap_250": 12,
+   "degenerate_shoulders": 20,
+   "hand_offframe_gt20pct": 32
+  }
+ },
+ "flag_counts": {
+  "derived": {
+   "body_jump": 3187,
+   "identity_switch_suspect": 1728,
+   "scale_jump": 2528,
+   "frames_lt_90pct_video": 434,
+   "hits_cap_250": 12,
+   "degenerate_shoulders": 25,
+   "hand_offframe_gt20pct": 37
+  }
+ },
+ "filter_recomputed": {
+  "derived": {
+   "kept": 5138,
+   "excluded": 462,
+   "by_cause": {
+    "truncated": 413,
+    "frames_per_token": 16,
+    "min_tokens": 29,
+    "min_frames": 4
+   }
+  }
+ },
+ "filter_stored_manifest": {
+  "observed": {
+   "total": 5600,
+   "kept": 5138,
+   "excluded": 462,
+   "by_cause": {
+    "truncated": 413,
+    "frames_per_token": 16,
+    "min_tokens": 29,
+    "min_frames": 4
+   }
+  }
+ },
+ "filter_disagreements": {
+  "derived": {
+   "n": 0,
+   "clip_keys_first50": []
+  }
+ },
+ "confidence_scores": {
+  "observed": "not stored in HDF5 (only (T,134,2) xy); build_dataset2_h5.py:57 discards scores"
+ }
+}
