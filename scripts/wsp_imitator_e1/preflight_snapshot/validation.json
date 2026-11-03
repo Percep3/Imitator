@@ -1,0 +1,9 @@
+{
+  "test_command": ".venv-wsp/bin/python -m pytest -q scripts/wsp_imitator_e1/test_harness.py tests/utils/test_sequence_metrics.py tests/scripts/test_robustness_video_token_decoder.py",
+  "tests_passed": 22,
+  "fixtures_only": true,
+  "gradients_used": false,
+  "manuscript_pages": 11,
+  "manuscript_sha256": "6f93238da4ea61da76612acccba58111f68ce6b2ff889a0b974d19b1ed9896d7",
+  "research_passes_reserved": 0
+}

@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/shared/Code/Sign-AI/Sign-chris/scripts/wsp_imitator_e1/run.py", line 32, in <module>
+    main()
+  File "/shared/Code/Sign-AI/Sign-chris/scripts/wsp_imitator_e1/run.py", line 18, in main
+    study = Study(args)
+            ^^^^^^^^^^^
+  File "/shared/Code/Sign-AI/Sign-chris/scripts/wsp_imitator_e1/harness.py", line 299, in __init__
+    self.checkpoint_hash = file_hash(args.checkpoint)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/shared/Code/Sign-AI/Sign-chris/scripts/wsp_imitator_e1/harness.py", line 47, in file_hash
+    return repo.sha256_file(path)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/shared/Code/Sign-AI/Sign-chris/src/mslm/models/video_token_decoder.py", line 289, in sha256_file
+    with open(path, "rb") as handle:
+         ^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/shared/Code/Sign-AI/outputs/video_token_decoder/fold4_seed23/e1_pe_vocab121/checkpoint_closed.pt'

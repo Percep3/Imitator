@@ -1,0 +1,13 @@
+{
+  "protocol.md": "bc1fbb1929399ce628ccb2f28e112c52b678ecc0551d1ca0b750d73fbaa9624e",
+  "protocol.json": "00bda891e21702e3b0381389cc4344147e5998248dd3f9557c6cfddbc4bf3853",
+  "protocol.sha256": "1d2291b1cc56728084ca05bfe9d75d7beb09a4792173d923c9847aeabb6263d8",
+  "environment.json": "42aa88f7353eb57d6e6a97bbac9b8fa5820e3ae826f9fae45d0f6163d80025d4",
+  "checkpoint_manifest.json": "7ac6bad600adaac0e85d4f22a907153155727efd1fa1fdc734b2781407e064e9",
+  "pass_ledger.jsonl": "684ffc08a7d03ab669ed20840784e336f08afb0a5dc3ee0e0a5ab7b6bba78144",
+  "notes.md": "164d0bef4503ea29ed5277051a69557b0f0c96c9f1a4a4a83ab6f3172b8d4749",
+  "final_report.md": "6d03e61e38c8cecf7927ba5b0686cfe2267b9ce8d7f076076a7edffbd6f6ebac",
+  "BLOCKED.md": "a8ce17b3fb9b1e922b9c6e33abd8437fd71ff785ebe9ee857a0b013e713eaed3",
+  "validation.json": "21d838428c5f9e1555f71c7aa5f0bbe48165f45cca57f407ebf6f47a20b3d202",
+  "missing_checkpoint_check.txt": "ccea714a37ad3b403fc6d79834d828e2846c5fe5a953686d469e093d3a21c480"
+}

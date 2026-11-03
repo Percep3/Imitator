@@ -10,6 +10,7 @@ htmlcov/
 
 # Virtual environments and local environment variables
 .venv/
+.venv-wsp/
 venv/
 env/
 .env
