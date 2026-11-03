@@ -1,0 +1,26 @@
+{
+  "status": "retraining_original_chain",
+  "historical_recovery": "not found in bounded search",
+  "training_outside_wsp_budget": true,
+  "fold_order": [
+    4,
+    5,
+    6
+  ],
+  "threads": 8,
+  "source_hashes": {
+    "scripts/wsp_imitator_e1/recover.py": "fe2a5f849f71d7b710e64b86fe4ebbe5d2947182a7b795fe4dcfa99318124904",
+    "scripts/train/train_isolated_staged.py": "c053cfda69fbcd30724cbb930c2feb61e0bf75ef3a048c375cd28d00c69972e0",
+    "scripts/train/train_temporal_v126.py": "4a35385feefe1beda65200468980c8a2508d29c8d389322281894a456ccb495f",
+    "scripts/train/train_video_token_decoder.py": "a56d5ace3a22b84cc9df43deb90eac16e5d8410b490185b4b10cc072b5136415"
+  },
+  "v121_config_only_difference": "output_root",
+  "source_architecture_unchanged": true,
+  "original_training_protocol_preserved": true,
+  "outer_evaluation_enabled": false,
+  "recovery_environment": "CPU; CUDA driver cuInit reports error 100 NO_DEVICE",
+  "cautions": [
+    "CPU timing projection is approximate and based on bounded training-only benchmark.",
+    "Recovery stages train with gradients; WSP remains gradient-free and has consumed zero passes."
+  ]
+}

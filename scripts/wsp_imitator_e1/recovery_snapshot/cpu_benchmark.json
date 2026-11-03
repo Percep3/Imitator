@@ -1,0 +1,33 @@
+[
+  {
+    "phase": "e1_recovery_train_benchmark",
+    "threads": 1,
+    "seconds": 15.06555741999182,
+    "batches": 3,
+    "loss": 68.25937143961589,
+    "max_rss_kib": 2639472
+  },
+  {
+    "phase": "e1_recovery_train_benchmark",
+    "threads": 4,
+    "seconds": 6.051801592984702,
+    "batches": 3,
+    "loss": 68.25937398274739,
+    "max_rss_kib": 2738312
+  },
+  {
+    "phase": "e1_recovery_train_benchmark",
+    "threads": 8,
+    "seconds": 5.005247326014796,
+    "batches": 3,
+    "loss": 68.25946553548177,
+    "max_rss_kib": 2748364
+  },
+  {
+    "phase": "v121_recovery_train_benchmark",
+    "threads": 1,
+    "seconds": 6.663600956992013,
+    "batch": 16,
+    "max_rss_kib": 3353916
+  }
+]

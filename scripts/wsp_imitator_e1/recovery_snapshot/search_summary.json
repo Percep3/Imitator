@@ -1,0 +1,26 @@
+{
+  "roots": [
+    "/shared",
+    "/home/nakato",
+    "/tmp",
+    "/mnt",
+    "/media"
+  ],
+  "excluded_dirs": [
+    ".Trash",
+    ".cache",
+    ".git",
+    ".local",
+    ".venv",
+    ".venv-wsp",
+    "miniconda3",
+    "node_modules",
+    "proc",
+    "site-packages",
+    "sys"
+  ],
+  "seconds": 6.459847452992108,
+  "directories": 84706,
+  "outcome": "No E1 or initializer checkpoint candidate found; unrelated models not loaded.",
+  "git_history": "No .pt/.pth/.ckpt path history in active repository or public clone; no local LFS store/attributes; git-lfs unavailable."
+}

@@ -1,5 +1,28 @@
 # Imitator E1 WSP: development-only harness
 
+## Recovery training authorized on 2026-11-03
+
+The user subsequently authorized retraining when the historical checkpoint search
+failed. `recover.py` now runs the existing v121 → CIF → E1 training chain, starting
+with fold 4, then folds 5/6, in `outputs/wsp_imitator_e1/recovery/`. This recovery
+uses gradients and is explicitly separate from the gradient-free WSP arm and its
+50-pass ledger. The original training/model sources and WSP harness are unchanged.
+No outer evaluation is launched. All resulting weights will be new checkpoints.
+
+```bash
+uv pip sync --python .venv-wsp/bin/python scripts/wsp_imitator_e1/recovery_requirements.lock
+.venv-wsp/bin/python -u -m scripts.wsp_imitator_e1.recover chain --folds 4 5 6 --threads 8
+```
+
+**Do not launch a duplicate.** Inspect `recovery/job.json`, verify its actual PID,
+and check the referenced log first. Completed stages are skipped only after hash
+verification; incomplete logs cause refusal rather than silently restarting.
+The current live job was launched by this session with a detached coordinator.
+The historical preflight snapshot below is preserved, not a current training ban.
+The current scientific status is in `outputs/wsp_imitator_e1/final_report.md`.
+
+## Original preflight
+
 The experiment is **blocked before baseline**: original E1 fold-4/5/6 closed
 checkpoints and their initializer chains are missing. Sidecars, dataset, adjacency
 and the matching tokenizer revision exist. No trained weights changed and no gain

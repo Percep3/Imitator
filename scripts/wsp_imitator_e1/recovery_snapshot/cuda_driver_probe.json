@@ -1,0 +1,5 @@
+{
+  "cuInit": 100,
+  "error": "CUDA_ERROR_NO_DEVICE",
+  "devices_present": []
+}
