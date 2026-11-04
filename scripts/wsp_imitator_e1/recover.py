@@ -52,6 +52,11 @@ def stage(fold, name, threads):
         if dataset_name != 'dataset1':
             raise ValueError('dataset1 only')
         rows = permitted_records(h5,spec,'discovery') + permitted_records(h5,spec,'confirmation')
+        import h5py
+        with h5py.File(h5, 'r') as handle:
+            repetitions = handle[dataset_name]['repetition']
+            for row in rows:
+                row['repetition'] = int(repetitions[row['clip_id']][0])
         return sorted(rows,key=lambda row:int(row['clip_id']))
     isolated.list_clip_records = allowed_records
     repo.list_clip_records = allowed_records
