@@ -1,0 +1,91 @@
+{
+  "captured_at": 1793751145.1664119,
+  "stage": "v121",
+  "not_e1_transcription": true,
+  "completed_epochs": 42,
+  "recent_epochs": [
+    {
+      "epoch": 36,
+      "loss": 1.214,
+      "train_pct": 85.8,
+      "inner_val_pct": 75.6
+    },
+    {
+      "epoch": 37,
+      "loss": 1.203,
+      "train_pct": 88.1,
+      "inner_val_pct": 72.2
+    },
+    {
+      "epoch": 38,
+      "loss": 1.144,
+      "train_pct": 87.6,
+      "inner_val_pct": 79.4
+    },
+    {
+      "epoch": 39,
+      "loss": 1.164,
+      "train_pct": 88.4,
+      "inner_val_pct": 74.4
+    },
+    {
+      "epoch": 40,
+      "loss": 1.157,
+      "train_pct": 89.9,
+      "inner_val_pct": 71.9
+    },
+    {
+      "epoch": 41,
+      "loss": 1.126,
+      "train_pct": 91.7,
+      "inner_val_pct": 72.8
+    }
+  ],
+  "best_logged_epoch": {
+    "epoch": 38,
+    "loss": 1.144,
+    "train_pct": 87.6,
+    "inner_val_pct": 79.4
+  },
+  "checkpoint": {
+    "path": "/shared/Code/Sign-AI/Sign-chris/outputs/wsp_imitator_e1/recovery/fold4/v121_epoch38_snapshot.pth",
+    "sha256": "562a70d09579b3590d3b768783f071ca2cfaccd59b40de1ff64c41263e0c5d6b",
+    "epoch": 38,
+    "lineage": {
+      "fold_outer_test_signer": 4,
+      "fold_inner_val_signer": 5,
+      "train_signers": [
+        1,
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "val_signers": [
+        5
+      ],
+      "git_commit": "2d67d9cf2b5f027ae707887ba9efd71ce2210518",
+      "argv": [
+        "--config",
+        "/shared/Code/Sign-AI/Sign-chris/outputs/wsp_imitator_e1/recovery/fold4/cls_v121.toml",
+        "--h5-filename",
+        "dataset1_isolated_v122.hdf5",
+        "--run-id",
+        "9004",
+        "--heldout-signer",
+        "5",
+        "--exclude-signer",
+        "4",
+        "--seed",
+        "23"
+      ]
+    },
+    "finite": true
+  },
+  "live_process": "413406 Rl    797 2952576  04:42:27 /shared/Code/Sign-AI/Sign-chris/.venv-wsp/bin/python -u -m scripts.wsp_imitator_e1.recover stage --folds 4 --stage v121 --threads 8",
+  "next_stage_import_verified": true,
+  "wsp_passes_consumed": 0
+}
