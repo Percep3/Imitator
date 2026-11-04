@@ -1,5 +1,20 @@
 # Imitator E1 WSP: development-only harness
 
+## Current path: direct E1 training from v121
+
+On 2026-11-04 the user stopped CIF reconstruction and selected direct E1 training.
+The active fold-4 run is `recover stage --folds 4 --stage e1_direct --threads 8`.
+It copies the completed v121 spatial encoder exactly, initializes the temporal
+layers/AR decoder freshly, and uses a standard token-embedding initial std of 0.02.
+The original AR trainer runs 30 epochs with 121 mapped IDs and temporal PE.
+This is a new initialization baseline, not the historical CIF-initialized E1.
+
+The expected artifact is
+`outputs/wsp_imitator_e1/recovery/fold4/ar/fold4_seed23/e1_direct_v121/checkpoint_closed.pt`.
+Inspect `recovery/job.json` and its actual PID before running any command.
+The historical `chain` command below is stopped; do not relaunch it for this run.
+Training is outside the 50-pass WSP budget. The original WSP harness is unchanged.
+
 ## Recovery training authorized on 2026-11-03
 
 The user subsequently authorized retraining when the historical checkpoint search

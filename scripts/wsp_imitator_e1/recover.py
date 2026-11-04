@@ -33,6 +33,33 @@ def record(path, data):
     temporary.replace(path)
 
 
+def initialize_direct_e1(model, checkpoint_path, *, outer_signer, expected_sha256=None):
+    """Training initialization: trained v121 spatial encoder, fresh AR decoder."""
+    from scripts.wsp_imitator_e1.harness import torch
+    from src.mslm.models.video_token_decoder import validate_checkpoint_lineage
+    actual = sha(checkpoint_path)
+    if actual != expected_sha256:
+        raise ValueError('v121 checkpoint hash mismatch')
+    state = torch.load(checkpoint_path, map_location='cpu', weights_only=True)
+    lineage = validate_checkpoint_lineage(state, outer_signer)
+    source = state['model_state']
+    loaded = []
+    for name in ('stgcn_layers', 'linear_hidden'):
+        module = getattr(model.frame_encoder, name)
+        prefix = name + '.'
+        subset = {k[len(prefix):]: v for k, v in source.items() if k.startswith(prefix)}
+        module.load_state_dict(subset, strict=True)
+        loaded.extend(prefix + k for k in subset)
+    # Standard small embedding initialization for a newly trained Transformer.
+    # This is performed before training, never as a WSP edit to trained weights.
+    with torch.no_grad():
+        torch.nn.init.normal_(model.token_embedding.weight, mean=0., std=.02)
+        model.token_embedding.weight[model.pad_id].zero_()
+    return dict(checkpoint_sha256=actual, lineage=lineage,
+                initialization_kind='v121_visual_only_fresh_autoregressive_decoder',
+                initialized_from_v121=loaded, token_embedding_initial_std=.02)
+
+
 def stage(fold, name, threads):
     # Set config environment before importing the repo ConfigLoader singleton.
     config = RECOVERY / f"fold{fold}" / 'cls_v121.toml'
@@ -63,6 +90,20 @@ def stage(fold, name, threads):
     root = RECOVERY / f'fold{fold}'
     v121 = root / f'isolated/checkpoints/121/{9000+fold}/best_top1/checkpoint.pth'
     common = ['--heldout-signer',str(spec['inner_val_signer']), '--exclude-signer',str(fold),'--seed','23']
+    if name == 'e1_direct':
+        if spec['train_signers'] != torch.load(v121, map_location='cpu', weights_only=True)['lineage']['train_signers']:
+            raise ValueError('v121 training signer list differs from manifest')
+        tag = 'e1_direct_v121'
+        target = root / 'ar' / f'fold{fold}_seed23' / tag
+        if target.exists():
+            raise RuntimeError(f'direct E1 output already exists; inspect before restart: {target}')
+        repo.initialize_from_cif_checkpoint = initialize_direct_e1
+        args = repo.parse_args(['train','--fold',str(fold),'--seed','23','--epochs','30',
+            '--encoder-pe','--restricted-vocab','--label-smoothing','0','--select','edit',
+            '--run-tag',tag,'--tokenizer',str(TOKENIZER),
+            '--source-checkpoint',str(v121),'--output-root',str(root/'ar')])
+        repo.command_train(args)
+        return
     if name == 'v121':
         sys.argv = ['scripts/train/train_isolated_staged.py','--config',str(config),
                     '--h5-filename','dataset1_isolated_v122.hdf5','--run-id',str(9000+fold),*common]
