@@ -494,7 +494,35 @@ def train_once(args, batch_size: int, accumulation: int) -> Path:
         encoding="utf-8",
     )
 
-    for epoch in range(args.epochs):
+    start_epoch = 0
+    if args.resume_from is not None:
+        resume = torch.load(args.resume_from, map_location="cpu", weights_only=False)
+        resume_provenance = resume.get("provenance", {})
+        for key in ("fold", "outer_test_signer", "inner_val_signer", "train_signers",
+                    "manifest_sha256", "checkpoint_sha256"):
+            if resume_provenance.get(key) != provenance.get(key):
+                raise RuntimeError(f"resume checkpoint provenance mismatch for {key}")
+        resume_config = resume.get("config", {})
+        for key, expected in (("vocab_map", model.vocab_map), ("seed", args.seed),
+                              ("encoder_pe", bool(args.encoder_pe)),
+                              ("ctc_weight", float(args.ctc_weight)),
+                              ("label_smoothing", float(args.label_smoothing)),
+                              ("select", args.select)):
+            if resume_config.get(key) != expected:
+                raise RuntimeError(f"resume checkpoint config mismatch for {key}")
+        if int(resume_config.get("epochs", -1)) != int(args.epochs):
+            raise RuntimeError("resume total epoch count must match original run")
+        model.load_state_dict(resume["model"], strict=True)
+        optimizer.load_state_dict(resume["optimizer"])
+        start_epoch = int(resume["epoch"]) + 1
+        if start_epoch >= args.epochs:
+            raise RuntimeError("resume checkpoint is already at or past the final epoch")
+        best_metric = tuple(map(float, resume["best_select_metric"]))
+        best_epoch = int(resume["epoch"])
+        # Preserve the starting best checkpoint in this new output directory.
+        torch.save(resume, best_path)
+
+    for epoch in range(start_epoch, args.epochs):
         stage = set_decoder_training_stage(
             model, epoch, unfreeze_stgcn_epoch=args.unfreeze_stgcn_epoch
         )
@@ -785,6 +813,8 @@ def parse_args(argv=None):
                        help="primary inner-val checkpoint selection metric")
     train.add_argument("--run-tag", default=None,
                        help="output subdirectory name (default: base/rescue)")
+    train.add_argument("--resume-from", type=Path, default=None,
+                       help="resume model and optimizer state from a training checkpoint")
     train.set_defaults(func=command_train)
     evaluate = sub.add_parser("evaluate")
     shared_parser(evaluate)

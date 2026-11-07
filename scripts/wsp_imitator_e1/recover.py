@@ -90,18 +90,33 @@ def stage(fold, name, threads):
     root = RECOVERY / f'fold{fold}'
     v121 = root / f'isolated/checkpoints/121/{9000+fold}/best_top1/checkpoint.pth'
     common = ['--heldout-signer',str(spec['inner_val_signer']), '--exclude-signer',str(fold),'--seed','23']
-    if name == 'e1_direct':
+    if name in ('e1_direct', 'e1_resume'):
         if spec['train_signers'] != torch.load(v121, map_location='cpu', weights_only=True)['lineage']['train_signers']:
             raise ValueError('v121 training signer list differs from manifest')
-        tag = 'e1_direct_v121'
-        target = root / 'ar' / f'fold{fold}_seed23' / tag
-        if target.exists():
-            raise RuntimeError(f'direct E1 output already exists; inspect before restart: {target}')
+        if name == 'e1_direct':
+            tag = 'e1_direct_v121'
+            target = root / 'ar' / f'fold{fold}_seed23' / tag
+            if target.exists():
+                raise RuntimeError(f'direct E1 output already exists; inspect before restart: {target}')
+        else:
+            previous = root / 'ar' / f'fold{fold}_seed23/e1_direct_v121/checkpoint_best.pt'
+            if not previous.is_file():
+                raise RuntimeError(f'missing incomplete direct E1 checkpoint: {previous}')
+            prior = torch.load(previous, map_location='cpu', weights_only=False)
+            if prior.get('closed') or int(prior.get('epoch', -1)) != 16:
+                raise RuntimeError('resume source is not the expected incomplete epoch-16 checkpoint')
+            tag = 'e1_direct_v121_resumed'
+            target = root / 'ar' / f'fold{fold}_seed23' / tag
+            if target.exists():
+                raise RuntimeError(f'resume output already exists; inspect before restart: {target}')
         repo.initialize_from_cif_checkpoint = initialize_direct_e1
-        args = repo.parse_args(['train','--fold',str(fold),'--seed','23','--epochs','30',
+        argv = ['train','--fold',str(fold),'--seed','23','--epochs','30',
             '--encoder-pe','--restricted-vocab','--label-smoothing','0','--select','edit',
             '--run-tag',tag,'--tokenizer',str(TOKENIZER),
-            '--source-checkpoint',str(v121),'--output-root',str(root/'ar')])
+            '--source-checkpoint',str(v121),'--output-root',str(root/'ar')]
+        if name == 'e1_resume':
+            argv += ['--resume-from',str(previous)]
+        args = repo.parse_args(argv)
         repo.command_train(args)
         return
     if name == 'v121':
