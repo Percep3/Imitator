@@ -46,3 +46,16 @@ Visual choices:
 - **Does this show LLMs can't correct sign errors?** No. It shows that for isolated labels with random order and one model and prompt, there is no context to recover from. The next step is a preregistered sentence corpus.
 - **Why did the order become correct?** Sinusoidal positional encoding. Without it, permuting segments left 86.3% of predictions unchanged. With it, shuffling drops edit similarity by 0.34–0.38.
 - If a question goes beyond this: say "we have not evaluated that".
+
+## Animations (click order)
+Everything uses a 0.5 s fade-in. Titles and charts are visible from the start; only the supporting elements appear on click.
+- **2 Context:** ① "See the signs" ② arrow + "Interface ?" ③ arrow + "Write the language" ④ prior bridges.
+- **3 History:** ① keypoints → visual model ② vectors ≈ embeddings ③ frozen LLM ④ premise + loss ⑤ open question.
+- **4 Turning point:** ① "This work" card.
+- **5 Pipeline:** ① the five boxes left to right ② scoring brackets ③ bullets.
+- **6 Protocol:** ① fold strip ② preregistered criteria.
+- **7 Development:** ① key result ② positional encoding ③ "viable, not solved".
+- **8 Confirmation:** ① H1 ② H2 ③ H3.
+- **9 Gemma audit:** ① clean input ② any substitution → 0% ③ chrF + "photo → green".
+- **10 Conclusions:** ① "Limits → next step" card.
+- Slides 1, 11 and the backup have no animations.

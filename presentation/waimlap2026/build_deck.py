@@ -14,6 +14,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
+from lxml import etree
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_LINE
@@ -213,9 +214,11 @@ def drop(slide, idx):
     p._element.getparent().remove(p._element)
 
 
-def flow(slide, stages, y0, h, x0=0.6, total=12.1, gap=0.45):
-    """Row of boxes joined by arrows. stages: (head, sub, fill, line[, dashed])."""
+def flow(slide, stages, y0, h, x0=0.6, total=12.1, gap=0.45, sub_size=15):
+    """Row of boxes joined by arrows. stages: (head, sub, fill, line[, dashed]).
+    Returns shapes in reveal order: box0, arrow1, box1, arrow2, box2, ..."""
     w = (total - gap * (len(stages) - 1)) / len(stages)
+    seq = []
     for i, (head, sub, fill, line, *dashed) in enumerate(stages):
         b = box(slide, x0 + i * (w + gap), y0, w, h, fill, line)
         if dashed:
@@ -223,11 +226,59 @@ def flow(slide, stages, y0, h, x0=0.6, total=12.1, gap=0.45):
         on_dark = fill == PURPLE
         fill_text(b, [(head, {"bold": True, "size": 18, "color": "FFFFFF" if on_dark else NAVY,
                               "align": PP_ALIGN.CENTER, "space_after": 6}),
-                      (sub, {"size": 15, "color": "FFFFFF" if on_dark else TEXT, "align": PP_ALIGN.CENTER})])
+                      (sub, {"size": sub_size, "color": "FFFFFF" if on_dark else TEXT, "align": PP_ALIGN.CENTER})])
         if i:
             xa = x0 + i * (w + gap)
-            arrow(slide, xa - gap + 0.06, y0 + h / 2, xa - 0.06, y0 + h / 2)
-    return w
+            seq.append(arrow(slide, xa - gap + 0.06, y0 + h / 2, xa - 0.06, y0 + h / 2))
+        seq.append(b)
+    return seq
+
+
+# ---------------------------------------------------------------- animations
+P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
+
+
+def animate(slide, clicks):
+    """Fade-in entrance animations. clicks: list of (targets, stagger_ms), one entry per click.
+    A target is a shape, or (shape, first_par, last_par) to reveal only those paragraphs.
+    Within a click, targets fade in one after another, `stagger_ms` apart."""
+    ids = iter(range(3, 100000))
+    build = {}
+
+    def effect(spid, pars, delay, node):
+        tgt = (f'<p:spTgt spid="{spid}">'
+               + (f'<p:txEl><p:pRg st="{pars[0]}" end="{pars[1]}"/></p:txEl>' if pars else "")
+               + "</p:spTgt>")
+        return (f'<p:par><p:cTn id="{next(ids)}" presetID="10" presetClass="entr" presetSubtype="0" '
+                f'fill="hold" grpId="0" nodeType="{node}"><p:stCondLst><p:cond delay="{delay}"/></p:stCondLst>'
+                f'<p:childTnLst><p:set><p:cBhvr><p:cTn id="{next(ids)}" dur="1" fill="hold"><p:stCondLst>'
+                f'<p:cond delay="0"/></p:stCondLst></p:cTn><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst>'
+                f'<p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to>'
+                f'<p:strVal val="visible"/></p:to></p:set><p:animEffect transition="in" filter="fade">'
+                f'<p:cBhvr><p:cTn id="{next(ids)}" dur="500"/><p:tgtEl>{tgt}</p:tgtEl></p:cBhvr>'
+                f'</p:animEffect></p:childTnLst></p:cTn></p:par>')
+
+    seq = []
+    for targets, stagger in clicks:
+        effs = []
+        for k, t in enumerate(targets):
+            shp, pars = (t[0], t[1:]) if isinstance(t, tuple) else (t, None)
+            effs.append(effect(shp.shape_id, pars, k * stagger, "clickEffect" if k == 0 else "withEffect"))
+            if shp.has_text_frame:  # shapes with text need a build entry; connectors/pictures don't
+                build[shp.shape_id] = 'build="p"' if pars else 'animBg="1"'
+        seq.append(f'<p:par><p:cTn id="{next(ids)}" fill="hold"><p:stCondLst><p:cond delay="indefinite"/>'
+                   f'</p:stCondLst><p:childTnLst><p:par><p:cTn id="{next(ids)}" fill="hold"><p:stCondLst>'
+                   f'<p:cond delay="0"/></p:stCondLst><p:childTnLst>{"".join(effs)}</p:childTnLst></p:cTn>'
+                   f'</p:par></p:childTnLst></p:cTn></p:par>')
+    bld = "".join(f'<p:bldP spid="{i}" grpId="0" {a}/>' for i, a in build.items())
+    xml = (f'<p:timing xmlns:p="{P_NS}"><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" '
+           f'nodeType="tmRoot"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" '
+           f'dur="indefinite" nodeType="mainSeq"><p:childTnLst>{"".join(seq)}</p:childTnLst></p:cTn>'
+           f'<p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond>'
+           f'</p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl>'
+           f'</p:cond></p:nextCondLst></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst>'
+           f'<p:bldLst>{bld}</p:bldLst></p:timing>')
+    slide._element.append(etree.fromstring(xml))
 
 
 # ---------------------------------------------------------------- slides
@@ -265,7 +316,7 @@ def build():
     s = new("WAIMLAp Content", NOTES["context"])
     title(s, "Sign-to-text needs a bridge between vision and language")
     drop(s, 104)
-    flow(s, [
+    f = flow(s, [
         ("See the signs", "motion → linguistic evidence\n(video → 2D keypoints)", CARD_GREY, None),
         ("Interface ?", "what should the visual model\nhand to the language model?", "FFFFFF", PURPLE, True),
         ("Write the language", "pretrained LLMs already\nturn tokens into fluent text", CARD_GREY, None),
@@ -277,12 +328,13 @@ def build():
         ("Separate visual and language learning (FLa-LLM)", {"bullet": True}),
         ("In speech: continuous prompts and CTC token embeddings (Wav2Prompt, LegoSLM)", {"bullet": True}),
     ], size=18, space_after=6)
+    animate(s, [([f[0]], 0), (f[1:3], 250), (f[3:5], 250), ([t], 0)])
 
     # 3 · History: the original Imitator ---------------------------------------
     s = new("WAIMLAp Content", NOTES["history"])
     title(s, "Our first Imitator imitated the LLM's input embeddings")
     drop(s, 104)
-    flow(s, [
+    f = flow(s, [
         ("2D keypoints", "sign video", CARD_GREY, None),
         ("Small visual model", "lightweight\nST-GCN encoder", LT_TEAL, TEAL_LINE),
         ("Vectors ≈ embeddings", "close to the frozen\nLLM's embeddings", PURPLE, None),
@@ -295,6 +347,7 @@ def build():
         ("Open question: does the LLM read those vectors as the intended words?",
          {"bullet": True, "bold": True, "color": PURPLE}),
     ], size=20, space_after=10)
+    animate(s, [(f[0:3], 300), (f[3:5], 250), (f[5:7], 250), ([(t, 0, 1)], 0), ([(t, 2, 2)], 0)])
 
     # 4 · Turning point --------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[2])
@@ -319,6 +372,7 @@ def build():
         tf.margin_left = tf.margin_right = tf.margin_top = Inches(0.3)
         fill_text(p, [(head, {"bold": True, "size": 22, "color": head_col, "space_after": 16})]
                   + [(t, {"bullet": True}) for t in lines], size=20, space_after=14)
+    animate(s, [([ph(s, 105)], 0)])
 
     # 3 · Pipeline ------------------------------------------------------------
     s = new("WAIMLAp Content", NOTES[3])
@@ -332,27 +386,22 @@ def build():
         ("Gemma 3n", "E2B, frozen;\nreads IDs as text", CARD_GREY, None),
     ]
     x0, y0, w, h, gap = 0.6, 2.35, 2.05, 1.9, 0.45
-    for i, (head, sub, fill, line) in enumerate(stages):
-        b = box(s, x0 + i * (w + gap), y0, w, h, fill, line)
-        on_dark = fill == PURPLE
-        fill_text(b, [(head, {"bold": True, "size": 18, "color": "FFFFFF" if on_dark else NAVY,
-                              "align": PP_ALIGN.CENTER, "space_after": 6}),
-                      (sub, {"size": 14, "color": "FFFFFF" if on_dark else TEXT, "align": PP_ALIGN.CENTER})])
-        if i:
-            xa = x0 + i * (w + gap)
-            arrow(s, xa - gap + 0.06, y0 + h / 2, xa - 0.06, y0 + h / 2)
+    f = flow(s, stages, y0, h, x0=x0, total=5 * w + 4 * gap, gap=gap, sub_size=14)
     # brackets: what is scored where
+    brackets = []
     for xs, xe, label, col in ((x0, x0 + 4 * w + 3 * gap, "Imitator · scored on its own: strict accuracy, edit similarity", PURPLE),
                                (x0 + 4 * (w + gap), x0 + 5 * w + 4 * gap, "Audited separately", GREY)):
         ln = s.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Inches(xs), Inches(y0 - 0.25), Inches(xe), Inches(y0 - 0.25))
         ln.line.color.rgb, ln.line.width = rgb(col), Pt(2)
         t = s.shapes.add_textbox(Inches(xs), Inches(y0 - 0.72), Inches(xe - xs), Inches(0.4))
         fill_text(t, [(label, {"bold": True, "size": 15, "color": col, "align": PP_ALIGN.CENTER})])
+        brackets += [ln, t]
     t = s.shapes.add_textbox(Inches(0.6), Inches(4.5), Inches(12.1), Inches(1.6))
     fill_text(t, ["No 64-class gloss classifier at inference (targets still come from LSA64 labels)",
                   "121 output rows map one-to-one back to the original Gemma IDs",
                   "Transcription is scored before the LLM, so fluent output cannot hide visual errors"],
               size=18, bullets=True, space_after=8)
+    animate(s, [(f, 250), (brackets, 0), ([t], 0)])
 
     # 4 · Protocol ------------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[4])
@@ -367,6 +416,7 @@ def build():
     ], size=20, space_after=12)
     drop(s, 105)
     xr = 6.7
+    n0 = len(s.shapes)
     hd = s.shapes.add_textbox(Inches(xr), Inches(1.6), Inches(6), Inches(0.5))
     fill_text(hd, [("Leave-one-signer-out folds", {"bold": True, "size": 22, "color": PURPLE})])
     sq, gp = 0.5, 0.08
@@ -381,6 +431,7 @@ def build():
                              (xr + 8 * (sq + gp), 2 * sq + gp, "reserved", GREY)):
         t = s.shapes.add_textbox(Inches(x - 0.3), Inches(2.85), Inches(wdt + 0.6), Inches(0.35))
         fill_text(t, [(lab, {"size": 14, "bold": col == PURPLE, "color": col, "align": PP_ALIGN.CENTER})])
+    folds = list(s.shapes)[n0:]
     t = s.shapes.add_textbox(Inches(xr), Inches(3.45), Inches(6), Inches(2.6))
     fill_text(t, [
         ("Preregistered, on each confirmation signer:", {"bold": True, "size": 18, "color": NAVY}),
@@ -388,6 +439,7 @@ def build():
         ("H2  strict accuracy ≥ 11.9%", {"bullet": True}),
         ("H3  label order ≥ .90 and permutation drop ≥ .15", {"bullet": True}),
     ], size=18, space_after=8)
+    animate(s, [(folds, 0), ([t], 0)])
 
     # 5 · Result: development -------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[5])
@@ -401,6 +453,8 @@ def build():
         ("Positional encoding: label order goes from chance to ≈ 0.99", {"size": 18, "space_after": 18}),
         ("Viable, not solved: most sequences still contain ≥ 1 error", {"size": 18, "color": GREY}),
     ])
+    side = ph(s, 105)
+    animate(s, [([(side, 0, 3)], 0), ([(side, 4, 4)], 0), ([(side, 5, 5)], 0)])
 
     # 6 · Result: confirmation ------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[6])
@@ -415,6 +469,8 @@ def build():
         ("label order 0.98–0.99; shuffling segments drops edit similarity by 0.34–0.38",
          {"size": 16}),
     ])
+    side = ph(s, 105)
+    animate(s, [([(side, 0, 1)], 0), ([(side, 2, 3)], 0), ([(side, 4, 5)], 0)])
 
     # 7 · Result: Gemma audit -------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[7])
@@ -428,6 +484,8 @@ def build():
         ("chrF drops 0.8–2.1 points", {"size": 18, "space_after": 12}),
         ("“photo” → “green”: isolated labels leave nothing to infer from", {"size": 18, "color": GREY}),
     ])
+    side = ph(s, 105)
+    animate(s, [([(side, 0, 1)], 0), ([(side, 2, 2)], 0), ([(side, 3, 4)], 0)])
 
     # 8 · Conclusions ---------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[8])
@@ -452,6 +510,7 @@ def build():
         fill_text(p, [(head, {"bold": True, "size": 22, "color": PURPLE if fill == LT_TEAL else GREY,
                               "space_after": 16})]
                   + [(t, {"bullet": True}) for t in lines], size=20, space_after=14)
+    animate(s, [([ph(s, 105)], 0)])
 
     # 9 · Closing -------------------------------------------------------------
     s = new("WAIMLAp Closing", NOTES[9], number=False)
