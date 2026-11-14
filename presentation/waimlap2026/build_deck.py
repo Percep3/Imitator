@@ -256,29 +256,25 @@ def animate(slide, clicks, intro=None):
     """Fade-in entrance animations. clicks: list of (targets, stagger_ms), one entry per click.
     A target is a shape, or (shape, first_par, last_par) to reveal only those paragraphs.
     Within a click, targets fade in one after another, `stagger_ms` apart.
-    intro=(centred_copy, title) from title_intro(): on the first click the centred copy flies out
-    upwards while the real title fades in at the top, then the first click's targets appear.
-    Only fade and fly effects are used, because Google Slides drops motion paths."""
+    intro=(centred_copy, title) from title_intro(): on the first click the centred copy slowly fades
+    out while the real title fades in at the top (crossfade), then the first click's targets appear.
+    Only fades are used: Google Slides drops motion paths, and its fly-out leaves the slide."""
     ids = iter(range(3, 100000))
     build = {}
-    FLY_MS = 500
+    OUT_MS, IN_DELAY, IN_MS = 900, 250, 900  # crossfade: slow and overlapping, so it reads as one move
 
-    def fly_out_top(spid):
+    def fade_out(spid):
         tgt = f'<p:spTgt spid="{spid}"/>'
-        anim = lambda attr, end: (
-            f'<p:anim calcmode="lin" valueType="num"><p:cBhvr additive="base"><p:cTn id="{next(ids)}" '
-            f'dur="{FLY_MS}"/><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst><p:attrName>{attr}</p:attrName>'
-            f'</p:attrNameLst></p:cBhvr><p:tavLst><p:tav tm="0"><p:val><p:strVal val="{attr}"/></p:val>'
-            f'</p:tav><p:tav tm="100000"><p:val><p:strVal val="{end}"/></p:val></p:tav></p:tavLst></p:anim>')
-        return (f'<p:par><p:cTn id="{next(ids)}" presetID="2" presetClass="exit" presetSubtype="1" '
+        return (f'<p:par><p:cTn id="{next(ids)}" presetID="10" presetClass="exit" presetSubtype="0" '
                 f'fill="hold" grpId="0" nodeType="clickEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst>'
-                f'<p:childTnLst>{anim("ppt_x", "ppt_x")}{anim("ppt_y", "0-ppt_h/2")}<p:set><p:cBhvr>'
-                f'<p:cTn id="{next(ids)}" dur="1" fill="hold"><p:stCondLst><p:cond delay="{FLY_MS - 1}"/>'
+                f'<p:childTnLst><p:animEffect transition="out" filter="fade"><p:cBhvr><p:cTn id="{next(ids)}" '
+                f'dur="{OUT_MS}"/><p:tgtEl>{tgt}</p:tgtEl></p:cBhvr></p:animEffect><p:set><p:cBhvr>'
+                f'<p:cTn id="{next(ids)}" dur="1" fill="hold"><p:stCondLst><p:cond delay="{OUT_MS - 1}"/>'
                 f'</p:stCondLst></p:cTn><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst><p:attrName>style.visibility'
                 f'</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="hidden"/></p:to></p:set>'
                 f'</p:childTnLst></p:cTn></p:par>')
 
-    def effect(spid, pars, delay, node):
+    def effect(spid, pars, delay, node, dur=500):
         tgt = (f'<p:spTgt spid="{spid}">'
                + (f'<p:txEl><p:pRg st="{pars[0]}" end="{pars[1]}"/></p:txEl>' if pars else "")
                + "</p:spTgt>")
@@ -288,7 +284,7 @@ def animate(slide, clicks, intro=None):
                 f'<p:cond delay="0"/></p:stCondLst></p:cTn><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst>'
                 f'<p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to>'
                 f'<p:strVal val="visible"/></p:to></p:set><p:animEffect transition="in" filter="fade">'
-                f'<p:cBhvr><p:cTn id="{next(ids)}" dur="500"/><p:tgtEl>{tgt}</p:tgtEl></p:cBhvr>'
+                f'<p:cBhvr><p:cTn id="{next(ids)}" dur="{dur}"/><p:tgtEl>{tgt}</p:tgtEl></p:cBhvr>'
                 f'</p:animEffect></p:childTnLst></p:cTn></p:par>')
 
     seq = []
@@ -296,10 +292,10 @@ def animate(slide, clicks, intro=None):
         effs, base = [], 0
         if intro and c == 0:
             copy_, title_ = intro
-            effs.append(fly_out_top(copy_.shape_id))
-            effs.append(effect(title_.shape_id, None, 200, "withEffect"))
+            effs.append(fade_out(copy_.shape_id))
+            effs.append(effect(title_.shape_id, None, IN_DELAY, "withEffect", dur=IN_MS))
             build[copy_.shape_id] = build[title_.shape_id] = 'animBg="1"'
-            base = FLY_MS + 100
+            base = IN_DELAY + IN_MS - 200
         for k, t in enumerate(targets):
             shp, pars = (t[0], t[1:]) if isinstance(t, tuple) else (t, None)
             node = "clickEffect" if k == 0 and not effs else "withEffect"
