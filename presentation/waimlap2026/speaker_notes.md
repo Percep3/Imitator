@@ -49,6 +49,7 @@ Visual choices:
 
 ## Animations (click order)
 Everything uses a 0.5 s fade-in. Titles and charts are visible from the start; only the supporting elements appear on click.
+On slides 2, 3 and 5 the title starts centred on the empty slide; click ① glides it up to its normal place, then the first content fades in.
 - **2 Context:** ① "See the signs" ② arrow + "Interface ?" ③ arrow + "Write the language" ④ prior bridges.
 - **3 History:** ① keypoints → visual model ② vectors ≈ embeddings ③ frozen LLM ④ premise + loss ⑤ open question.
 - **4 Turning point:** ① "This work" card.

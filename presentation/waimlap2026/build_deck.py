@@ -238,12 +238,42 @@ def flow(slide, stages, y0, h, x0=0.6, total=12.1, gap=0.45, sub_size=15):
 P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 
 
-def animate(slide, clicks):
+def center_title(slide, prs, idx=103):
+    """Park the title in the middle of the slide; return the move that brings it back to its
+    layout position (top-left, same as every other slide) for animate(move=...)."""
+    from PIL import ImageFont
+
+    t = ph(slide, idx)
+    x, y, w, h = t.left, t.top, t.width, t.height
+    run = t.text_frame.paragraphs[0].runs[0]
+    font = ImageFont.truetype("/usr/share/fonts/truetype/lato/Lato-Bold.ttf", int(run.font.size.pt * 10))
+    text_w = Emu(int(font.getlength(run.text) / 10 * 12700))  # measured at 10x for precision, pt -> EMU
+    t.text_frame.word_wrap = False  # a centred one-liner must not wrap at the narrower box
+    W, H = prs.slide_width, prs.slide_height
+    t.left, t.top, t.width, t.height = (W - text_w) // 2, (H - h) // 2, int(text_w * 1.1), h
+    return t, (x - t.left) / W, (y - t.top) / H
+
+
+def animate(slide, clicks, move=None):
     """Fade-in entrance animations. clicks: list of (targets, stagger_ms), one entry per click.
     A target is a shape, or (shape, first_par, last_par) to reveal only those paragraphs.
-    Within a click, targets fade in one after another, `stagger_ms` apart."""
+    Within a click, targets fade in one after another, `stagger_ms` apart.
+    move=(shape, dx, dy) from center_title(): on the first click that shape glides by (dx, dy)
+    (fractions of the slide) and the first click's targets fade in once it arrives."""
     ids = iter(range(3, 100000))
     build = {}
+    MOVE_MS = 700
+
+    def motion(spid, dx, dy):
+        tgt = f'<p:spTgt spid="{spid}"/>'
+        return (f'<p:par><p:cTn id="{next(ids)}" presetID="0" presetClass="path" presetSubtype="0" '
+                f'accel="50000" decel="50000" fill="hold" grpId="0" nodeType="clickEffect"><p:stCondLst>'
+                f'<p:cond delay="0"/></p:stCondLst><p:childTnLst><p:animMotion origin="layout" '
+                f'path="M 0 0 L {dx:.5f} {dy:.5f} E" pathEditMode="relative" ptsTypes="AA"><p:cBhvr>'
+                f'<p:cTn id="{next(ids)}" dur="{MOVE_MS}" fill="hold"/><p:tgtEl>{tgt}</p:tgtEl>'
+                f'<p:attrNameLst><p:attrName>ppt_x</p:attrName><p:attrName>ppt_y</p:attrName>'
+                f'</p:attrNameLst></p:cBhvr><p:rCtr x="0" y="0"/></p:animMotion></p:childTnLst>'
+                f'</p:cTn></p:par>')
 
     def effect(spid, pars, delay, node):
         tgt = (f'<p:spTgt spid="{spid}">'
@@ -259,11 +289,16 @@ def animate(slide, clicks):
                 f'</p:animEffect></p:childTnLst></p:cTn></p:par>')
 
     seq = []
-    for targets, stagger in clicks:
-        effs = []
+    for c, (targets, stagger) in enumerate(clicks):
+        effs, base = [], 0
+        if move and c == 0:
+            effs.append(motion(move[0].shape_id, move[1], move[2]))
+            build[move[0].shape_id] = 'animBg="1"'
+            base = MOVE_MS - 100
         for k, t in enumerate(targets):
             shp, pars = (t[0], t[1:]) if isinstance(t, tuple) else (t, None)
-            effs.append(effect(shp.shape_id, pars, k * stagger, "clickEffect" if k == 0 else "withEffect"))
+            node = "clickEffect" if k == 0 and not effs else "withEffect"
+            effs.append(effect(shp.shape_id, pars, base + k * stagger, node))
             if shp.has_text_frame:  # shapes with text need a build entry; connectors/pictures don't
                 build[shp.shape_id] = 'build="p"' if pars else 'animBg="1"'
         seq.append(f'<p:par><p:cTn id="{next(ids)}" fill="hold"><p:stCondLst><p:cond delay="indefinite"/>'
@@ -328,7 +363,7 @@ def build():
         ("Separate visual and language learning (FLa-LLM)", {"bullet": True}),
         ("In speech: continuous prompts and CTC token embeddings (Wav2Prompt, LegoSLM)", {"bullet": True}),
     ], size=18, space_after=6)
-    animate(s, [([f[0]], 0), (f[1:3], 250), (f[3:5], 250), ([t], 0)])
+    animate(s, [([f[0]], 0), (f[1:3], 250), (f[3:5], 250), ([t], 0)], move=center_title(s, prs))
 
     # 3 · History: the original Imitator ---------------------------------------
     s = new("WAIMLAp Content", NOTES["history"])
@@ -347,7 +382,8 @@ def build():
         ("Open question: does the LLM read those vectors as the intended words?",
          {"bullet": True, "bold": True, "color": PURPLE}),
     ], size=20, space_after=10)
-    animate(s, [(f[0:3], 300), (f[3:5], 250), (f[5:7], 250), ([(t, 0, 1)], 0), ([(t, 2, 2)], 0)])
+    animate(s, [(f[0:3], 300), (f[3:5], 250), (f[5:7], 250), ([(t, 0, 1)], 0), ([(t, 2, 2)], 0)],
+            move=center_title(s, prs))
 
     # 4 · Turning point --------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[2])
@@ -401,7 +437,7 @@ def build():
                   "121 output rows map one-to-one back to the original Gemma IDs",
                   "Transcription is scored before the LLM, so fluent output cannot hide visual errors"],
               size=18, bullets=True, space_after=8)
-    animate(s, [(f, 250), (brackets, 0), ([t], 0)])
+    animate(s, [(f, 250), (brackets, 0), ([t], 0)], move=center_title(s, prs))
 
     # 4 · Protocol ------------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[4])
