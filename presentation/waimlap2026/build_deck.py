@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_LINE
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Inches, Pt
@@ -212,6 +213,23 @@ def drop(slide, idx):
     p._element.getparent().remove(p._element)
 
 
+def flow(slide, stages, y0, h, x0=0.6, total=12.1, gap=0.45):
+    """Row of boxes joined by arrows. stages: (head, sub, fill, line[, dashed])."""
+    w = (total - gap * (len(stages) - 1)) / len(stages)
+    for i, (head, sub, fill, line, *dashed) in enumerate(stages):
+        b = box(slide, x0 + i * (w + gap), y0, w, h, fill, line)
+        if dashed:
+            b.line.dash_style, b.line.width = MSO_LINE.DASH, Pt(2.25)
+        on_dark = fill == PURPLE
+        fill_text(b, [(head, {"bold": True, "size": 18, "color": "FFFFFF" if on_dark else NAVY,
+                              "align": PP_ALIGN.CENTER, "space_after": 6}),
+                      (sub, {"size": 15, "color": "FFFFFF" if on_dark else TEXT, "align": PP_ALIGN.CENTER})])
+        if i:
+            xa = x0 + i * (w + gap)
+            arrow(slide, xa - gap + 0.06, y0 + h / 2, xa - 0.06, y0 + h / 2)
+    return w
+
+
 # ---------------------------------------------------------------- slides
 def build():
     prs = Presentation(str(TEMPLATE))
@@ -243,13 +261,48 @@ def build():
     fill_text(ph(s, 105), [("Oral Session X  ·  Paper ID ###",
                             {"bold": True, "size": 14, "color": TEAL, "align": PP_ALIGN.RIGHT})])
 
-    # 2 · Problem -------------------------------------------------------------
+    # 2 · Context: the interface problem ---------------------------------------
+    s = new("WAIMLAp Content", NOTES["context"])
+    title(s, "Sign-to-text needs a bridge between vision and language")
+    drop(s, 104)
+    flow(s, [
+        ("See the signs", "motion → linguistic evidence\n(video → 2D keypoints)", CARD_GREY, None),
+        ("Interface ?", "what should the visual model\nhand to the language model?", "FFFFFF", PURPLE, True),
+        ("Write the language", "pretrained LLMs already\nturn tokens into fluent text", CARD_GREY, None),
+    ], y0=2.0, h=1.9, gap=0.9)
+    t = s.shapes.add_textbox(Inches(0.6), Inches(4.4), Inches(12.1), Inches(2.0))
+    fill_text(t, [
+        ("Bridges explored so far", {"bold": True, "size": 20, "color": PURPLE, "space_after": 8}),
+        ("Pseudo-gloss pretraining (Sign2GPT) · hierarchical sign tokens (SignLLM)", {"bullet": True}),
+        ("Separate visual and language learning (FLa-LLM)", {"bullet": True}),
+        ("In speech: continuous prompts and CTC token embeddings (Wav2Prompt, LegoSLM)", {"bullet": True}),
+    ], size=18, space_after=6)
+
+    # 3 · History: the original Imitator ---------------------------------------
+    s = new("WAIMLAp Content", NOTES["history"])
+    title(s, "Our first Imitator imitated the LLM's input embeddings")
+    drop(s, 104)
+    flow(s, [
+        ("2D keypoints", "sign video", CARD_GREY, None),
+        ("Small visual model", "lightweight\nST-GCN encoder", LT_TEAL, TEAL_LINE),
+        ("Vectors ≈ embeddings", "close to the frozen\nLLM's embeddings", PURPLE, None),
+        ("Frozen LLM", "reads the vectors\nas its input", CARD_GREY, None),
+    ], y0=2.0, h=1.9)
+    t = s.shapes.add_textbox(Inches(0.6), Inches(4.4), Inches(12.1), Inches(2.0))
+    fill_text(t, [
+        ("Premise: a compact model learns the input language of a frozen LLM", {"bullet": True}),
+        ("Trained with MSE + cosine distance; reported loss ≈ 8×10⁻⁴ (preliminary)", {"bullet": True}),
+        ("Open question: does the LLM read those vectors as the intended words?",
+         {"bullet": True, "bold": True, "color": PURPLE}),
+    ], size=20, space_after=10)
+
+    # 4 · Turning point --------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[2])
     title(s, "Close to the right embedding is not the right token")
     for idx, fill, line, head, head_col, lines in (
-        (104, CARD_GREY, None, "Original Imitator: imitate embeddings", GREY,
-         ["Keypoints → continuous vectors near frozen LLM embeddings",
-          "Low loss (MSE–cosine ≈ 8×10⁻⁴), yet proximity ≠ intended token",
+        (104, CARD_GREY, None, "Limits of embedding imitation", GREY,
+         ["A nearby vector may not be the intended token, especially in anisotropic spaces",
+          "No exact way to check what the LLM receives",
           "Splits were not signer-exclusive"]),
         (105, LT_TEAL, TEAL_LINE, "This work: predict the token IDs", PURPLE,
          ["Keypoints → exact Gemma tokenizer IDs + EOS",
@@ -427,13 +480,23 @@ def build():
 NOTES = {
     1: "Good morning. I am Christian Velasquez, from UPC, presenting joint work with Giorgio Mancusi "
        "and Rody Vilchez. The question behind this paper is simple: how should a small sign-language "
-       "model talk to a large language model?",
-    2: "Our first Imitator answered that by imitating the LLM's embeddings: from keypoints, produce "
-       "vectors close to the frozen embeddings of the target words. The loss got very low, about 8 times "
-       "10 to the minus 4. But being close in that space does not guarantee the model reads the intended "
-       "token, and the splits were not signer-exclusive. So in this work we keep the idea, a small model "
-       "learning the LLM's input language, but we predict the exact Gemma token IDs. A prediction is "
-       "right only if every ID matches, and Gemma receives ordinary text. [pause] Let me show the pipeline.",
+       "model talk to a large language model? Let me start with why that is the hard part.",
+    "context": "Turning signing into text needs two skills. First, seeing: extracting linguistic evidence "
+       "from motion. Second, writing: turning that evidence into language. Large language models are "
+       "already very good at the second part. The open question is the bridge: what exactly should a "
+       "visual model hand to the language model? Several answers exist: pseudo-glosses as in Sign2GPT, "
+       "hierarchical sign tokens as in SignLLM, or keeping visual and language learning separate. In "
+       "speech, systems pass continuous prompts or token embeddings. [pause] Our own first answer was this.",
+    "history": "In our earlier, published Imitator, a small visual model read 2D keypoints and produced "
+       "continuous vectors meant to sit close to the frozen LLM's own input embeddings. The idea is that a "
+       "compact model can learn the input language of a large one. Training used mean-squared and cosine "
+       "distance, and the preliminary loss was very low, about 8 times 10 to the minus 4. But a low loss "
+       "leaves one question open: does the LLM actually read those vectors as the intended words?",
+    2: "And the answer is: not necessarily. Being geometrically close does not guarantee the intended "
+       "token, especially because these embedding spaces are anisotropic. There was also no exact way to "
+       "check what the LLM received, and the splits were not signer-exclusive. So in this work we keep the "
+       "premise, but we predict the exact Gemma token IDs. A prediction is right only if every ID matches, "
+       "and Gemma receives ordinary text. [pause] Let me show the pipeline.",
     3: "From 2D keypoints, 111 per frame, a spatial-temporal graph encoder with positional encoding builds "
        "visual memory. A small causal Transformer decoder emits Gemma IDs until end-of-sequence. The task "
        "uses 118 Gemma content IDs, so the output layer has 121 rows that map one-to-one back to the real "
