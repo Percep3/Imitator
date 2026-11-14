@@ -239,40 +239,59 @@ P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 
 
 def title_intro(slide, prs, idx=103):
-    """Centred copy of the slide title for the opening of a slide that starts empty.
-    The real title stays at its layout position (so edit view and PDF are unchanged); see animate(intro=...)."""
+    """Opening of a slide that starts empty: the title shows in the middle, then glides to the top.
+    Returns (copy, title, dx, dy) for animate(intro=...): `copy` is an identical, left-aligned text box
+    parked exactly where the title appears when centred; (dx, dy) is that offset as a fraction of
+    the slide. The real title keeps its layout position, so the final state matches every other slide."""
+    from PIL import ImageFont
+
     t = ph(slide, idx)
     run = t.text_frame.paragraphs[0].runs[0]
-    c = slide.shapes.add_textbox(t.left, (prs.slide_height - t.height) // 2, t.width, t.height)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/lato/Lato-Bold.ttf", int(run.font.size.pt * 10))
+    text_w = int(font.getlength(run.text) / 10 * 12700)  # measured at 10x for precision, pt -> EMU
+    W, H = prs.slide_width, prs.slide_height
+    x, y = (W - text_w) // 2, (H - t.height) // 2
+    c = slide.shapes.add_textbox(x, y, t.width, t.height)
     c.name = "Title intro (animation)"
-    c.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
-    c.text_frame.margin_left = c.text_frame.margin_right = 0
-    fill_text(c, [(run.text, {"bold": True, "size": run.font.size.pt, "color": PURPLE,
-                              "align": PP_ALIGN.CENTER})], space_after=0)
-    return c, t
+    tf = c.text_frame
+    tf.word_wrap = False
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE  # same as the title placeholder
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    fill_text(c, [(run.text, {"bold": True, "size": run.font.size.pt, "color": PURPLE})], space_after=0)
+    return c, t, (x - t.left) / W, (y - t.top) / H
 
 
 def animate(slide, clicks, intro=None):
     """Fade-in entrance animations. clicks: list of (targets, stagger_ms), one entry per click.
     A target is a shape, or (shape, first_par, last_par) to reveal only those paragraphs.
     Within a click, targets fade in one after another, `stagger_ms` apart.
-    intro=(centred_copy, title) from title_intro(): on the first click the centred copy slowly fades
-    out while the real title fades in at the top (crossfade), then the first click's targets appear.
-    Only fades are used: Google Slides drops motion paths, and its fly-out leaves the slide."""
+    intro=(copy, title, dx, dy) from title_intro(): on the first click the centred copy is swapped
+    for the real title at the same spot, which glides up to its place and stays; then the first
+    click's targets fade in. PowerPoint/Keynote/LibreOffice play the glide; Google Slides has no
+    motion effect, so there the title just snaps to its place on that click."""
     ids = iter(range(3, 100000))
     build = {}
-    OUT_MS, IN_DELAY, IN_MS = 900, 250, 900  # crossfade: slow and overlapping, so it reads as one move
+    MOVE_MS = 1000
 
-    def fade_out(spid):
+    def visibility(spid, cls, val, node):  # PowerPoint "Appear" / "Disappear"
         tgt = f'<p:spTgt spid="{spid}"/>'
-        return (f'<p:par><p:cTn id="{next(ids)}" presetID="10" presetClass="exit" presetSubtype="0" '
-                f'fill="hold" grpId="0" nodeType="clickEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst>'
-                f'<p:childTnLst><p:animEffect transition="out" filter="fade"><p:cBhvr><p:cTn id="{next(ids)}" '
-                f'dur="{OUT_MS}"/><p:tgtEl>{tgt}</p:tgtEl></p:cBhvr></p:animEffect><p:set><p:cBhvr>'
-                f'<p:cTn id="{next(ids)}" dur="1" fill="hold"><p:stCondLst><p:cond delay="{OUT_MS - 1}"/>'
-                f'</p:stCondLst></p:cTn><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst><p:attrName>style.visibility'
-                f'</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="hidden"/></p:to></p:set>'
-                f'</p:childTnLst></p:cTn></p:par>')
+        return (f'<p:par><p:cTn id="{next(ids)}" presetID="1" presetClass="{cls}" presetSubtype="0" '
+                f'fill="hold" grpId="0" nodeType="{node}"><p:stCondLst><p:cond delay="0"/></p:stCondLst>'
+                f'<p:childTnLst><p:set><p:cBhvr><p:cTn id="{next(ids)}" dur="1" fill="hold"><p:stCondLst>'
+                f'<p:cond delay="0"/></p:stCondLst></p:cTn><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst>'
+                f'<p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to>'
+                f'<p:strVal val="{val}"/></p:to></p:set></p:childTnLst></p:cTn></p:par>')
+
+    def glide(spid, dx, dy):  # custom motion path from the centred spot back to the layout position
+        tgt = f'<p:spTgt spid="{spid}"/>'
+        return (f'<p:par><p:cTn id="{next(ids)}" presetID="0" presetClass="path" presetSubtype="0" '
+                f'accel="50000" decel="50000" fill="hold" grpId="1" nodeType="withEffect"><p:stCondLst>'
+                f'<p:cond delay="0"/></p:stCondLst><p:childTnLst><p:animMotion origin="layout" '
+                f'path="M {dx:.5f} {dy:.5f} L 0 0 E" pathEditMode="relative" ptsTypes="AA"><p:cBhvr>'
+                f'<p:cTn id="{next(ids)}" dur="{MOVE_MS}" fill="hold"/><p:tgtEl>{tgt}</p:tgtEl>'
+                f'<p:attrNameLst><p:attrName>ppt_x</p:attrName><p:attrName>ppt_y</p:attrName>'
+                f'</p:attrNameLst></p:cBhvr><p:rCtr x="0" y="0"/></p:animMotion></p:childTnLst>'
+                f'</p:cTn></p:par>')
 
     def effect(spid, pars, delay, node, dur=500):
         tgt = (f'<p:spTgt spid="{spid}">'
@@ -291,11 +310,12 @@ def animate(slide, clicks, intro=None):
     for c, (targets, stagger) in enumerate(clicks):
         effs, base = [], 0
         if intro and c == 0:
-            copy_, title_ = intro
-            effs.append(fade_out(copy_.shape_id))
-            effs.append(effect(title_.shape_id, None, IN_DELAY, "withEffect", dur=IN_MS))
+            copy_, title_, dx, dy = intro
+            effs.append(visibility(copy_.shape_id, "exit", "hidden", "clickEffect"))
+            effs.append(visibility(title_.shape_id, "entr", "visible", "withEffect"))
+            effs.append(glide(title_.shape_id, dx, dy))
             build[copy_.shape_id] = build[title_.shape_id] = 'animBg="1"'
-            base = IN_DELAY + IN_MS - 200
+            base = MOVE_MS - 100
         for k, t in enumerate(targets):
             shp, pars = (t[0], t[1:]) if isinstance(t, tuple) else (t, None)
             node = "clickEffect" if k == 0 and not effs else "withEffect"

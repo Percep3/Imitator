@@ -49,7 +49,7 @@ Visual choices:
 
 ## Animations (click order)
 Everything uses a 0.5 s fade-in. Titles and charts are visible from the start; only the supporting elements appear on click.
-On slides 2, 3 and 5 the slide opens with a centred copy of the title; click ① crossfades it into the real title at the top (0.9 s, overlapping), then the first content appears. Only fades are used so it behaves the same in PowerPoint and Google Slides (Slides drops motion paths, and its fly-out leaves the screen).
+On slides 2, 3 and 5 the slide opens with the title centred; click ① glides it up to its normal place (1 s, ease in/out) where it stays, then the first content appears. The glide plays in PowerPoint, Keynote and LibreOffice. Google Slides has no motion effect, so there the title snaps to its place on that click (no overlap, no exit). Present from PowerPoint to get the movement.
 - **2 Context:** ① "See the signs" ② arrow + "Interface ?" ③ arrow + "Write the language" ④ prior bridges.
 - **3 History:** ① keypoints → visual model ② vectors ≈ embeddings ③ frozen LLM ④ premise + loss ⑤ open question.
 - **4 Turning point:** ① "This work" card.
