@@ -258,7 +258,7 @@ def build():
                             {"bold": True, "size": 20})])
     fill_text(ph(s, 108), [("Universidad Peruana de Ciencias Aplicadas (UPC), Lima, Peru",
                             {"size": 16, "color": TEAL})])
-    fill_text(ph(s, 105), [("Oral Session X  ·  Paper ID ###",
+    fill_text(ph(s, 105), [("Oral Session 10  ·  Paper ID 58",
                             {"bold": True, "size": 14, "color": TEAL, "align": PP_ALIGN.RIGHT})])
 
     # 2 · Context: the interface problem ---------------------------------------
@@ -458,7 +458,7 @@ def build():
     fill_text(ph(s, 105), [("Thank you · Questions?", {"bold": True, "size": 54, "color": "FFFFFF"})])
     fill_text(ph(s, 106), [
         ("Christian Velasquez Borasino", {"bold": True, "size": 20, "color": "FFFFFF"}),
-        ("Universidad Peruana de Ciencias Aplicadas (UPC)  ·  Paper ID ###", {"size": 18, "color": LAVENDER}),
+        ("Universidad Peruana de Ciencias Aplicadas (UPC)  ·  Paper ID 58", {"size": 18, "color": LAVENDER}),
     ])
 
     # 10 · Backup -------------------------------------------------------------

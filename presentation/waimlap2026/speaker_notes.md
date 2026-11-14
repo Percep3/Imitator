@@ -32,7 +32,7 @@ Visual choices:
 - **Gemma audit:** shown as two small panels (exact match, then chrF). This avoids a dual-axis chart.
 
 ## Fill in before the talk
-- Session number and Paper ID: slides 1 and 11 still say `Oral Session X · Paper ID ###`.
+- Session and Paper ID are filled in: Oral Session 10 · Paper ID 58.
 - Contact email or repository on slide 11, if you want them shown.
 
 ## Likely questions (answer only from the paper)
