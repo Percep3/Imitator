@@ -238,42 +238,45 @@ def flow(slide, stages, y0, h, x0=0.6, total=12.1, gap=0.45, sub_size=15):
 P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 
 
-def center_title(slide, prs, idx=103):
-    """Park the title in the middle of the slide; return the move that brings it back to its
-    layout position (top-left, same as every other slide) for animate(move=...)."""
-    from PIL import ImageFont
-
+def title_intro(slide, prs, idx=103):
+    """Centred copy of the slide title for the opening of a slide that starts empty.
+    The real title stays at its layout position (so edit view and PDF are unchanged); see animate(intro=...)."""
     t = ph(slide, idx)
-    x, y, w, h = t.left, t.top, t.width, t.height
     run = t.text_frame.paragraphs[0].runs[0]
-    font = ImageFont.truetype("/usr/share/fonts/truetype/lato/Lato-Bold.ttf", int(run.font.size.pt * 10))
-    text_w = Emu(int(font.getlength(run.text) / 10 * 12700))  # measured at 10x for precision, pt -> EMU
-    t.text_frame.word_wrap = False  # a centred one-liner must not wrap at the narrower box
-    W, H = prs.slide_width, prs.slide_height
-    t.left, t.top, t.width, t.height = (W - text_w) // 2, (H - h) // 2, int(text_w * 1.1), h
-    return t, (x - t.left) / W, (y - t.top) / H
+    c = slide.shapes.add_textbox(t.left, (prs.slide_height - t.height) // 2, t.width, t.height)
+    c.name = "Title intro (animation)"
+    c.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+    c.text_frame.margin_left = c.text_frame.margin_right = 0
+    fill_text(c, [(run.text, {"bold": True, "size": run.font.size.pt, "color": PURPLE,
+                              "align": PP_ALIGN.CENTER})], space_after=0)
+    return c, t
 
 
-def animate(slide, clicks, move=None):
+def animate(slide, clicks, intro=None):
     """Fade-in entrance animations. clicks: list of (targets, stagger_ms), one entry per click.
     A target is a shape, or (shape, first_par, last_par) to reveal only those paragraphs.
     Within a click, targets fade in one after another, `stagger_ms` apart.
-    move=(shape, dx, dy) from center_title(): on the first click that shape glides by (dx, dy)
-    (fractions of the slide) and the first click's targets fade in once it arrives."""
+    intro=(centred_copy, title) from title_intro(): on the first click the centred copy flies out
+    upwards while the real title fades in at the top, then the first click's targets appear.
+    Only fade and fly effects are used, because Google Slides drops motion paths."""
     ids = iter(range(3, 100000))
     build = {}
-    MOVE_MS = 700
+    FLY_MS = 500
 
-    def motion(spid, dx, dy):
+    def fly_out_top(spid):
         tgt = f'<p:spTgt spid="{spid}"/>'
-        return (f'<p:par><p:cTn id="{next(ids)}" presetID="0" presetClass="path" presetSubtype="0" '
-                f'accel="50000" decel="50000" fill="hold" grpId="0" nodeType="clickEffect"><p:stCondLst>'
-                f'<p:cond delay="0"/></p:stCondLst><p:childTnLst><p:animMotion origin="layout" '
-                f'path="M 0 0 L {dx:.5f} {dy:.5f} E" pathEditMode="relative" ptsTypes="AA"><p:cBhvr>'
-                f'<p:cTn id="{next(ids)}" dur="{MOVE_MS}" fill="hold"/><p:tgtEl>{tgt}</p:tgtEl>'
-                f'<p:attrNameLst><p:attrName>ppt_x</p:attrName><p:attrName>ppt_y</p:attrName>'
-                f'</p:attrNameLst></p:cBhvr><p:rCtr x="0" y="0"/></p:animMotion></p:childTnLst>'
-                f'</p:cTn></p:par>')
+        anim = lambda attr, end: (
+            f'<p:anim calcmode="lin" valueType="num"><p:cBhvr additive="base"><p:cTn id="{next(ids)}" '
+            f'dur="{FLY_MS}"/><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst><p:attrName>{attr}</p:attrName>'
+            f'</p:attrNameLst></p:cBhvr><p:tavLst><p:tav tm="0"><p:val><p:strVal val="{attr}"/></p:val>'
+            f'</p:tav><p:tav tm="100000"><p:val><p:strVal val="{end}"/></p:val></p:tav></p:tavLst></p:anim>')
+        return (f'<p:par><p:cTn id="{next(ids)}" presetID="2" presetClass="exit" presetSubtype="1" '
+                f'fill="hold" grpId="0" nodeType="clickEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst>'
+                f'<p:childTnLst>{anim("ppt_x", "ppt_x")}{anim("ppt_y", "0-ppt_h/2")}<p:set><p:cBhvr>'
+                f'<p:cTn id="{next(ids)}" dur="1" fill="hold"><p:stCondLst><p:cond delay="{FLY_MS - 1}"/>'
+                f'</p:stCondLst></p:cTn><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst><p:attrName>style.visibility'
+                f'</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="hidden"/></p:to></p:set>'
+                f'</p:childTnLst></p:cTn></p:par>')
 
     def effect(spid, pars, delay, node):
         tgt = (f'<p:spTgt spid="{spid}">'
@@ -291,10 +294,12 @@ def animate(slide, clicks, move=None):
     seq = []
     for c, (targets, stagger) in enumerate(clicks):
         effs, base = [], 0
-        if move and c == 0:
-            effs.append(motion(move[0].shape_id, move[1], move[2]))
-            build[move[0].shape_id] = 'animBg="1"'
-            base = MOVE_MS - 100
+        if intro and c == 0:
+            copy_, title_ = intro
+            effs.append(fly_out_top(copy_.shape_id))
+            effs.append(effect(title_.shape_id, None, 200, "withEffect"))
+            build[copy_.shape_id] = build[title_.shape_id] = 'animBg="1"'
+            base = FLY_MS + 100
         for k, t in enumerate(targets):
             shp, pars = (t[0], t[1:]) if isinstance(t, tuple) else (t, None)
             node = "clickEffect" if k == 0 and not effs else "withEffect"
@@ -363,7 +368,7 @@ def build():
         ("Separate visual and language learning (FLa-LLM)", {"bullet": True}),
         ("In speech: continuous prompts and CTC token embeddings (Wav2Prompt, LegoSLM)", {"bullet": True}),
     ], size=18, space_after=6)
-    animate(s, [([f[0]], 0), (f[1:3], 250), (f[3:5], 250), ([t], 0)], move=center_title(s, prs))
+    animate(s, [([f[0]], 0), (f[1:3], 250), (f[3:5], 250), ([t], 0)], intro=title_intro(s, prs))
 
     # 3 · History: the original Imitator ---------------------------------------
     s = new("WAIMLAp Content", NOTES["history"])
@@ -383,7 +388,7 @@ def build():
          {"bullet": True, "bold": True, "color": PURPLE}),
     ], size=20, space_after=10)
     animate(s, [(f[0:3], 300), (f[3:5], 250), (f[5:7], 250), ([(t, 0, 1)], 0), ([(t, 2, 2)], 0)],
-            move=center_title(s, prs))
+            intro=title_intro(s, prs))
 
     # 4 · Turning point --------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[2])
@@ -437,7 +442,7 @@ def build():
                   "121 output rows map one-to-one back to the original Gemma IDs",
                   "Transcription is scored before the LLM, so fluent output cannot hide visual errors"],
               size=18, bullets=True, space_after=8)
-    animate(s, [(f, 250), (brackets, 0), ([t], 0)], move=center_title(s, prs))
+    animate(s, [(f, 250), (brackets, 0), ([t], 0)], intro=title_intro(s, prs))
 
     # 4 · Protocol ------------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[4])
