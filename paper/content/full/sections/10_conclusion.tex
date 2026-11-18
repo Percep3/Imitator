@@ -1,10 +1,8 @@
 \section{Conclusion}
 
-\system{} keeps the original goal of learning a lightweight bridge from sign motion
-to a pretrained language model, but replaces approximate embedding imitation with
-exact token-ID prediction.  This change makes the bridge directly decodable,
-measurable, and compatible with an unchanged \Gemma{} text interface.  In the
-seed-23 evaluation, signer-held-out tests of synthetic two-to-eight-sign LSA64
-streams show improved ordered token transcription.  The correction audit covers
-isolated labels at the tested substitution rates and finds no recovery at nonzero
-rates; sentence-level correction remains untested.
+\system{} predicts \Gemma{} IDs directly from sign motion.  This interface makes
+it possible to score one isolated sign and then test the additional demands of
+ordered transcription.  On synthetic streams of two to eight LSA64 signs, the
+original checkpoints improve strict transcription on held-out signers.  The
+exploratory correction audit found no exact recovery at the tested nonzero rates
+for isolated labels.  Natural sentence translation and correction remain open.

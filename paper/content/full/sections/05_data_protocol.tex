@@ -2,20 +2,20 @@
 
 LSA64 has 3,200 videos of 64 Argentinian Sign Language signs, performed five times
 by ten subjects \citep{ronchetti2016lsa64}.  We normalize 111 upper-body, hand,
-and facial 2D keypoints per frame.  Each example concatenates two to eight clips
-with optional neutral gaps; its target concatenates the \Gemma{} tokenizations of
-their Spanish labels.  For each example, clip IDs are drawn at random with
-replacement from the pool assigned to that split, so a source clip may recur
-across examples or more than once in one example.  The pools are partitioned by
-signer, so no source clip is shared across train, validation, and test within a
-fold.  Random order prevents a linguistic next-sign prior but contains neither
-syntax nor coarticulation.  The task is controlled token transcription, not
-continuous SLT.
+and facial 2D keypoints per frame.  The exploratory isolated-sign evaluation
+uses all 320 clips of each outer signer in folds 7--8, once per clip, with the
+\Gemma{} tokenization of its Spanish label as the target.  It uses separately
+retrained \ImitatorEOne{} models with the same signer splits and sequence
+training protocol.  For sequence training and evaluation, each example
+concatenates two to eight clips drawn with replacement from its split, with
+optional neutral gaps.  The target concatenates the label tokenizations.
+Signer-disjoint pools prevent clip sharing across splits.  Random order removes
+a linguistic next-sign prior and the concatenations lack syntax and coarticulation.
 
 Each LOSO fold excludes an outer-test signer, uses another for inner validation,
 and trains on the rest.  Folds 1--6 are development, 7--8 prospective confirmation,
 and 9--10 reserved.  \ImitatorEOne{} uses seed 23, 2,048 training examples per
-epoch, 512 fixed inner-validation examples, 30 epochs, and 896 outer examples.
+epoch, 512 fixed inner-validation examples, 30 epochs, and 896 outer sequences.
 Checkpoint selection uses inner-validation edit similarity, then strict accuracy;
 outer results select nothing.
 

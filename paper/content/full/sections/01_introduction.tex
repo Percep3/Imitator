@@ -10,14 +10,14 @@ guarantee the intended token, particularly in anisotropic contextual spaces
 
 We preserve the premise---a compact model learns the input language of a frozen
 LLM---but predict exact \Gemma{} tokenizer IDs.  Outputs are directly measurable
-and can enter the ordinary \Gemma{} 3n text interface \citep{gemma3n}.  \system{}
-performs visually grounded transcription; \Gemma{} performs linguistic realization
-only when sufficient context exists.
+and can enter the ordinary \Gemma{} 3n text interface \citep{gemma3n} for
+downstream linguistic realization.
 
-Our synthetic streams contain isolated signs in random order.  This prevents a
-language-order shortcut but leaves little context for correcting a replaced word.
-We therefore score visual transcription and downstream correction separately.
-Our contributions are: (1) direct autoregressive prediction of \Gemma{} IDs;
-(2) signer-disjoint LOSO evaluation with two prospectively held-out signers;
-(3) an explicit corruption audit showing no recovery at tested nonzero rates; and
-(4) causal validation of visual ordering through segment permutation.
+We first ask whether the visual model recognizes one isolated sign and emits
+its exact \Gemma{} IDs.  As a step toward the original goal of sentence
+translation, we then ask how much of that ability carries over to ordered
+transcription of two to eight signs.  Randomly concatenating clips lets us test
+visual ordering without a linguistic next-sign prior.  The sequence benchmark
+uses signer-disjoint folds, two prospectively held-out signers, and segment
+permutation as a control for visual order.  A separate exploratory audit asks
+whether \Gemma{} can recover a corrupted label without sentence context.

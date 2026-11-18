@@ -1,21 +1,15 @@
-We present \system, a sign-transcription architecture designed to connect a
-lightweight visual model to a pretrained language model through its native token
-interface.  The original \system{} proposal imitated continuous language-model
-embeddings.  We instead predict explicit \Gemma{} token IDs: this removes the
-ambiguity of decoding an approximate vector, permits exact sequence evaluation,
-and gives a downstream \Gemma{} model a standard textual input that it can
-punctuate, normalize, or---when context permits---correct.  A spatial--temporal
-keypoint encoder and autoregressive decoder are trained on synthetic streams of
-two to eight LSA64 signs and evaluated with signer-held-out splits.  On three
-development signers, the selected model improves strict token-sequence accuracy
-from 1.8--2.3\% for the initial autoregressive decoder to 16.9--19.8\% while
-preserving the exact \Gemma{} IDs.  Prospectively registered evaluation on two
-additional signers obtains \FoldSevenExact\% and \FoldEightExact\% strict
-accuracy.  We also audit the complete token-to-language interface.  \Gemma{} 3n
-preserves 95\% of clean isolated-label inputs, but recovers no exact sequence at
-any tested nonzero substitution rate and slightly decreases chrF.  This negative
-result identifies a current boundary: random isolated signs contain little
-sentence context from which to infer a corrupted word. These findings are limited
-to this seed-23 evaluation of synthetic, two-to-eight-sign LSA64 streams and two
-prospectively held-out signers. The isolated-label audit does not establish
-correction in natural sentences.
+\system{} connects a lightweight visual model to a pretrained language model
+by predicting explicit \Gemma{} token IDs in place of the original system's
+continuous embeddings.  We first ask whether this interface can recover the
+exact tokens of one isolated LSA64 sign from an unseen signer.  Strict accuracy
+for the separately retrained models is \pending{} for folds 7 and 8.  Toward
+the original goal of sentence translation, we then test how well the interface
+transcribes synthetic streams of two to eight signs in order.  On three
+development signers, strict accuracy improves from 1.8--2.3\% for the initial
+autoregressive decoder to 16.9--19.8\%.  The original checkpoints achieve
+\FoldSevenExact\% and \FoldEightExact\% on the two prospectively held-out
+signers.  In a separate exploratory audit without sentence context, \Gemma{} 3n
+preserves 95\% of clean isolated labels, recovers no exact sequence at the
+tested nonzero substitution rates, and slightly decreases chrF.  The experiments
+address controlled sign transcription. Natural sentence translation remains
+untested.

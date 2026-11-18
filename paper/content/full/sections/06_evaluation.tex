@@ -1,8 +1,8 @@
 \section{Evaluation}
 
 \paragraph{Upstream transcription.}
-Strict accuracy is one only when all content IDs match and EOS is emitted.  Token
-edit similarity is
+A clip or sequence counts as a strict match only when all content IDs match
+and EOS is emitted.  Token edit similarity is
 \begin{equation}
   \operatorname{EditSim}(\hat{Y},Y)=
   \max\left(0,1-\frac{d_{\mathrm{Lev}}(\hat{Y},Y)}{|Y|}\right).
@@ -28,15 +28,16 @@ in target log-probability is measured.  Gradients describe local sensitivity;
 ablation tests whether the region is functionally necessary for that example.
 
 \paragraph{Downstream correction audit.}
-To isolate the language stage from visual errors, we corrupt gold tokenizer
-sequences at fixed rates and submit the decoded inputs to \Gemma{} with an explicit
-correction prompt.  The corrected protocol substitutes complete one-token labels
-with other real labels; it does not insert arbitrary subword fragments.  Labels
-that tokenize to one ID are excluded because replacing their sole ID destroys all
-recoverable information.  The audit contains 120 rows at each rate.  Importantly,
-most remaining multi-token labels are single words split by the tokenizer; only
-five of the 64 labels are genuine multiword expressions.  We measure exact decoded
-text and chrF before and after \Gemma{}.
+We ask whether \Gemma{} can recover an isolated label from its surviving token
+pieces. For illustration, replacing the middle piece in
+\texttt{per\,/\,fu\,/\,me} with \texttt{ma} gives \emph{permame} for
+\emph{perfume}. These pieces are schematic.
+We substitute IDs at selected positions in gold labels with at least two IDs.
+Replacement IDs come from real LSA64 labels that tokenize to one ID. At each
+nominal rate, we decode 60 sampled label instances with two corruption seeds each
+and give \Gemma{} the resulting text with an explicit correction prompt.
+We compare exact decoded text and chrF before and after correction. Most eligible
+labels are single words, so the prompt provides no surrounding sentence.
 
 An oracle control on uncorrupted continuous Spanish reaches chrF 92.86 and
 content-word F1 0.985 after surface realization.  It verifies preservation of

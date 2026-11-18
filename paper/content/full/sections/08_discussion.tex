@@ -1,20 +1,17 @@
 \section{Discussion}
 
-The main result is an interface result.  Predicting tokenizer IDs turns the original
-embedding-imitation idea into an explicit communication channel between the visual
-encoder and the LLM.  It also separates two sources of success: \system{} must first
-place the correct IDs on that channel; only then can \Gemma{} contribute language
-knowledge.  Fluency from the downstream model cannot conceal an incorrect visual
-sequence because upstream exact and edit metrics are reported independently.
+Explicit token IDs allow separate tests of lexical recognition, ordered
+transcription, and downstream correction.  The isolated-sign evaluation tests
+whether the visual input suffices to recover one label.  The sequence benchmark
+adds the need to recognize several labels, emit them in order, and stop at the
+right point.  Its results support ordered transcription on controlled streams
+from held-out signers.  The two evaluations use different checkpoints, so the
+gap in accuracy cannot isolate the effect of sequence length.
 
-The current evidence does not yet support the strongest product story---that
-\Gemma{} repairs imperfect sign transcription.  It supports the prerequisite:
-sign streams from held-out signers can be mapped directly into ordered, valid
-\Gemma{} IDs with
-substantially higher sequence accuracy than the initial decoder.  The negative
-corruption audit explains why correction is absent here and produces a concrete
-data requirement for the next stage: natural multiword sentences, multiple
-plausible contexts, and enough redundancy that a corrupted token is inferable.
+The exploratory corruption audit gives no evidence of exact recovery at the
+tested rates without sentence context.  Assessing correction for sentence
+translation requires natural sentences with enough linguistic evidence to make
+the intended word recoverable.
 
 Discrete IDs trade flexibility for auditability.  Unlike continuous prompts, they
 do not communicate a calibrated posterior over alternative tokens.  Future work

@@ -1,6 +1,13 @@
 \section{Results}
 
-\subsection{Token-ID transcription}
+\subsection{Isolated-sign transcription}
+
+On 320 clips per signer, the retrained models obtain strict accuracy and token
+edit similarity of \pending{} and \pending{} on fold~7, and \pending{} and
+\pending{} on fold~8, respectively.  This exploratory test is separate from
+the registered sequence confirmation.
+
+\subsection{Transcription of two to eight signs}
 
 On development folds 4--6, \ImitatorEOne{} obtains 18.1, 19.8, and 16.9\% strict
 accuracy, versus 2.2, 2.3, and 1.8\% for the initial autoregressive model. This
@@ -8,18 +15,16 @@ baseline paired a two-layer causal Transformer decoder (128 hidden units, four
 attention heads, and a 512-unit feed-forward layer) with tied token input and
 output embeddings. Its visual encoder used an ST-GCN, temporal convolutions, and
 a Transformer, but lacked global temporal positional encoding. The decoder used
-Gemma's full 262,400-token vocabulary and teacher-forced cross-entropy. Direct
-token-ID prediction is therefore viable but not solved:
-\ImitatorEOne{} improves
-strict sequence accuracy by roughly an order of magnitude over the initial
-autoregressive decoder,
-yet most complete sequences still contain at least one error.  The positional
-intervention changes pairwise label order from near chance to approximately 0.99,
-supporting the claim that the emitted sequence is visually ordered.
+Gemma's full 262,400-token vocabulary and teacher-forced cross-entropy.  Strict
+sequence accuracy improves by roughly an order of magnitude, and the fraction
+of sequences containing at least one error remains high.  The positional
+intervention raises pairwise label-order agreement from near chance to about
+0.99.
 
 \begin{table}[t]
 \centering\scriptsize
-\caption{Prospectively registered signer-held-out confirmation.  The CIF column
+\caption{Prospectively registered confirmation on synthetic sign sequences
+from held-out signers.  The CIF column
 is the frozen historical comparator, not a candidate \system{} architecture.}
 \label{tab:confirmation}
 \begin{tabular}{rrrrrrrr}
@@ -70,16 +75,13 @@ is comparatively insensitive to all four coarse removals.  The agreement between
 hand saliency and hand ablation supports a manually grounded decision in this
 example, but one selected sequence cannot establish a dataset-wide anatomy claim.
 
-\subsection{Can \Gemma{} repair token errors?}
+\subsection{Exploratory token correction without sentence context}
 
-Table~\ref{tab:gemma-tolerance} answers this question for the current isolated-label
-regime.  At zero corruption, \Gemma{} preserves exact content in 95\% of rows and
-keeps chrF near 100.  At every tested nonzero rate, exact accuracy is already zero
-before correction and remains zero afterward.  chrF decreases rather than improves.
-Thus, no nonzero error tolerance is demonstrated: there is no tested nonzero
-corruption level at which the language stage recovers exact content.  Because the
-short sequences quantize every nonzero nominal rate to at least one substitution,
-this experiment does not locate a continuous threshold between 0 and 0.10.
+Table~\ref{tab:gemma-tolerance} shows that \Gemma{} preserves exact content in
+95\% of clean rows.  Exact accuracy is zero before and after correction at each
+tested nonzero substitution rate, and chrF decreases.  Even the lowest nonzero
+nominal rate yields at least one substitution per label, limiting what this
+experiment can establish about milder corruption.
 
 \begin{table}[t]
 \centering\small
@@ -101,9 +103,6 @@ Substitution rate & Exact before & Exact after & chrF before & chrF after & $\De
 \end{tabular}
 \end{table}
 
-This experiment does not test whether language models can correct sign
-transcription in context: it evaluates only isolated labels, where a substitution
-such as ``photo'' $\rightarrow$ ``green'' has no surrounding syntax or semantics
-that identifies the original word.  The appropriate next experiment is therefore
-not another prompt sweep on LSA64, but a pre-registered sentence corpus in which
-controlled token errors leave genuine contextual redundancy.
+The unaltered tokens can provide lexical cues within a label.  This audit
+estimates recovery for the tested synthetic substitutions.  Measured visual
+decoder errors and sentence-level cues require separate evaluations.
