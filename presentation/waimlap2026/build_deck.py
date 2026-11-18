@@ -1,7 +1,7 @@
 """Build the WAIMLAp 2026 talk for the Imitator paper from the official template.
 
-Every number comes from the camera-ready paper (springer_submission/, sha256 6f93...896d7):
-results_macros.tex (folds 7-8) and sections/07_results.tex (folds 4-6, Gemma audit table).
+Follows the draft in paper/content/full. Historical results come from the paper;
+isolated-sign results are marked pending while the folds 7–8 replicas run.
 
 Run:  ~/miniconda3/envs/deck-tools/bin/python build_deck.py
 """
@@ -106,12 +106,12 @@ def make_figures():
                     textcoords="offset points", ha="center", color="#" + PURPLE, fontweight="bold")
     a1.set_ylim(0, 105)
     a1.set_title("Exact match after Gemma (%)", color="#" + TEXT, fontsize=15)
-    a1.set_xlabel("Substitution rate")
+    a1.set_xlabel("Nominal substitution rate")
     a2.plot(rates, chrf_before, "o-", color="#" + CONTEXT, linewidth=2.5, label="Before Gemma")
     a2.plot(rates, chrf_after, "o-", color="#" + PURPLE, linewidth=2.5, label="After Gemma")
     a2.set_ylim(0, 105)
     a2.set_title("chrF (0–100)", color="#" + TEXT, fontsize=15)
-    a2.set_xlabel("Substitution rate")
+    a2.set_xlabel("Nominal substitution rate")
     a2.legend(frameon=False, loc="upper right")
     for a in (a1, a2):
         a.yaxis.grid(True, color="#E3E5E9", linewidth=0.8)
@@ -122,7 +122,7 @@ def make_figures():
 
     # Paper figure for the backup slide
     subprocess.run(["pdftoppm", "-png", "-r", "220", "-singlefile",
-                    str(REPO / "springer_submission/figures/keypoint_interpretability.pdf"),
+                    str(REPO / "paper/figures/keypoint_interpretability.pdf"),
                     str(FIG / "keypoint_interpretability")], check=True)
 
 
@@ -462,14 +462,13 @@ def build():
 
     # 4 · Protocol ------------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[4])
-    title(s, "Test signers are unseen; confirmation was preregistered")
+    title(s, "From one isolated sign to ordered sign sequences")
     fill_text(ph(s, 104), [
         ("Data: LSA64", {"bold": True, "size": 22, "color": PURPLE, "space_after": 12}),
         ("3,200 videos · 64 signs · 10 signers", {"bullet": True}),
-        ("Streams of 2–8 isolated clips, random order", {"bullet": True}),
+        ("One clip first, then 2–8 clips in random order", {"bullet": True}),
         ("Target: Gemma tokens of the Spanish labels", {"bullet": True}),
-        ("Random order blocks a language shortcut — but there is no syntax to exploit either",
-         {"bullet": True, "color": GREY}),
+        ("Synthetic streams test order without sentence syntax", {"bullet": True, "color": GREY}),
     ], size=20, space_after=12)
     drop(s, 105)
     xr = 6.7
@@ -491,16 +490,33 @@ def build():
     folds = list(s.shapes)[n0:]
     t = s.shapes.add_textbox(Inches(xr), Inches(3.45), Inches(6), Inches(2.6))
     fill_text(t, [
-        ("Preregistered, on each confirmation signer:", {"bold": True, "size": 18, "color": NAVY}),
+        ("Preregistered sequence criteria:", {"bold": True, "size": 18, "color": NAVY}),
         ("H1  beat historical CIF (sign test p < .01)", {"bullet": True}),
         ("H2  strict accuracy ≥ 11.9%", {"bullet": True}),
         ("H3  label order ≥ .90 and permutation drop ≥ .15", {"bullet": True}),
     ], size=18, space_after=8)
     animate(s, [(folds, 0), ([t], 0)])
 
+    # Isolated signs ---------------------------------------------------------
+    s = new("WAIMLAp Two Columns", NOTES["isolated"])
+    title(s, "Can Imitator recover the exact IDs of one sign?")
+    fill_text(ph(s, 104), [
+        ("One clip → one Spanish label", {"bold": True, "size": 22, "color": PURPLE}),
+        ("320 clips per held-out signer · 64 signs", {"bullet": True}),
+        ("Strict match: all Gemma IDs plus EOS", {"bullet": True}),
+        ("Token edit similarity measures partial matches", {"bullet": True}),
+    ], size=20, space_after=14)
+    fill_text(ph(s, 105), [
+        ("Exploratory evaluation · retrained E1", {"bold": True, "size": 21, "color": PURPLE}),
+        ("Fold 7", {"bold": True, "size": 19}),
+        ("Strict accuracy: pending · Edit similarity: pending", {"size": 18, "space_after": 14}),
+        ("Fold 8", {"bold": True, "size": 19}),
+        ("Strict accuracy: pending · Edit similarity: pending", {"size": 18}),
+    ], size=19)
+
     # 5 · Result: development -------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[5])
-    title(s, "Token IDs raise strict accuracy ~10× on development signers")
+    title(s, "On 2–8 signs, strict accuracy rises about tenfold")
     picture_in(s, 104, FIG / "dev_accuracy.png")
     fill_text(ph(s, 105), [
         ("Key result", {"bold": True, "size": 20, "color": TEAL}),
@@ -531,30 +547,30 @@ def build():
 
     # 7 · Result: Gemma audit -------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[7])
-    title(s, "Without sentence context, Gemma cannot repair substitutions")
+    title(s, "Gemma recovered no exact label at tested nonzero rates")
     picture_in(s, 104, FIG / "gemma_audit.png")
     fill_text(ph(s, 105), [
-        ("Negative result", {"bold": True, "size": 20, "color": TEAL}),
+        ("Exploratory audit", {"bold": True, "size": 20, "color": TEAL}),
         ("Clean input: 95% kept exact", {"size": 18, "space_after": 12}),
-        ("Any substitution: 0% exact, before and after Gemma", {"bold": True, "size": 18, "color": PURPLE,
-                                                               "space_after": 12}),
+        ("Tested nonzero rates: 0% exact before and after", {"bold": True, "size": 18, "color": PURPLE,
+                                                             "space_after": 12}),
         ("chrF drops 0.8–2.1 points", {"size": 18, "space_after": 12}),
-        ("“photo” → “green”: isolated labels leave nothing to infer from", {"size": 18, "color": GREY}),
+        ("Illustration: per / ma / me → perfume?", {"size": 18, "color": GREY}),
     ])
     side = ph(s, 105)
     animate(s, [([(side, 0, 1)], 0), ([(side, 2, 2)], 0), ([(side, 3, 4)], 0)])
 
     # 8 · Conclusions ---------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[8])
-    title(s, "Exact IDs make the bridge measurable; correction needs context")
+    title(s, "Exact IDs make the visual bridge measurable")
     for idx, fill, line, head, lines in (
         (104, LT_TEAL, TEAL_LINE, "What we showed",
-         ["Exact Gemma IDs replace approximate embeddings with a checkable contract",
-          "Unseen signers: 12.5–14.1% strict accuracy, ordered by the video",
-          "Isolated labels give Gemma nothing to correct"]),
+         ["One sign: strict accuracy and edit similarity pending",
+          "2–8 signs: 12.5–14.1% strict accuracy on held-out signers",
+          "Gemma: zero exact recoveries at tested nonzero rates"]),
         (105, CARD_GREY, None, "Limits → next step",
-         ["One seed (23), synthetic LSA64 streams, two confirmation signers",
-          "Next: preregistered sentence corpus with real context",
+         ["One seed (23) and two confirmation signers",
+          "Next: natural sentences with syntax and real context",
           "Pass top-k / posterior alternatives, still scoring the transcript"]),
     ):
         p = ph(s, idx)
@@ -618,12 +634,16 @@ NOTES = {
        "uses 118 Gemma content IDs, so the output layer has 121 rows that map one-to-one back to the real "
        "IDs. Important: we score this transcription on its own, before Gemma, so a fluent LLM cannot hide "
        "a visual error. Gemma 3n is frozen and audited separately. Next, how we evaluated it.",
-    4: "We use LSA64: 64 Argentinian signs, ten signers. We build streams of two to eight clips in random "
-       "order, and the target is the Gemma tokenization of their Spanish labels. Random order prevents a "
-       "language shortcut, but it also means there is no syntax. Every fold leaves one signer out. Folds 1 "
-       "to 6 were for development, 7 and 8 were held back for confirmation, and before testing them we "
-       "registered three criteria: beat the historical CIF model, reach 11.9 percent strict accuracy, and "
-       "show that output order follows the video. First, development.",
+    4: "We use LSA64: 64 Argentinian signs from ten signers. The target is the Gemma tokenization "
+       "of each Spanish label. First we ask whether the visual bridge can recognize one sign. Then, "
+       "as a step toward our original goal of translating sentences, we test two to eight signs in "
+       "random order. This tests ordered transcription without sentence syntax. For that sequence "
+       "benchmark, folds 7 and 8 were held back for preregistered confirmation.",
+    "isolated": "For the isolated test, we evaluate all 320 clips of each held-out signer. A strict "
+                "match requires every Gemma ID and an end-of-sequence token. Edit similarity measures "
+                "partial matches. The retrained folds use the same signer splits and sequence training "
+                "protocol. These isolated results are pending. Next, the original sequence benchmark "
+                "asks how far the approach carries over to two to eight signs.",
     5: "On the development signers, strict accuracy, meaning the whole sequence exactly right, goes from about "
        "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
        "positional encoding moved pairwise label order from chance to about 0.99. But to be clear: most "
@@ -632,15 +652,18 @@ NOTES = {
        "pre-registered 11.9 threshold, against 1.8 and 2.7 for CIF. Paired, it wins 99 times and loses 3 on "
        "signer 7, and 108 to 6 on signer 8. Edit similarity is 53 and 59 percent. And if we shuffle the "
        "sign segments while keeping the target, edit similarity drops by about 0.35: the order really comes "
-       "from the video. All three criteria pass. Now the second half: can Gemma fix the remaining errors?",
-    7: "We corrupted gold token sequences by replacing whole labels and asked Gemma 3n to correct them, "
-       "120 rows per rate. With clean input Gemma keeps 95 percent exact. With any substitution, exact "
-       "match is zero before and zero after, and chrF actually goes down slightly. The reason is "
-       "structural: if 'photo' became 'green' in a list of random signs, nothing tells you it was 'photo'. "
-       "So this is not evidence that LLMs cannot correct signs; it shows our data has no context to correct with.",
+       "from the video. All three criteria pass. In a separate audit, we asked whether Gemma could recover "
+       "an isolated word when some of its tokens are wrong.",
+    7: "For illustration, if per, fu, me became per, ma, me, could the surviving pieces still suggest "
+       "perfume? Those pieces are schematic. In the audit, we replaced IDs at selected positions in "
+       "reference labels of at least two IDs. Replacements came from real one-ID LSA64 labels. At each "
+       "nominal rate, Gemma received 120 decoded inputs and an explicit correction prompt. It preserved "
+       "95 percent of clean inputs. At the tested nonzero rates, exact match stayed at zero and chrF "
+       "decreased. This measures recovery for synthetic substitutions in isolated labels.",
     8: "To summarise: predicting exact token IDs turns the bridge into something we can measure. On unseen "
-       "signers it gives 12 to 14 percent fully correct, visually ordered sequences. And correction needs "
-       "context that isolated labels do not have. Limits: one training seed, synthetic streams and two "
+       "signers the original checkpoints give 12 to 14 percent fully correct, visually ordered sequences. "
+       "The isolated-sign metrics are pending. In the exploratory audit, Gemma did not recover an exact "
+       "label at the tested nonzero rates. Limits: one training seed, synthetic streams and two "
        "confirmation signers. Next, we want a pre-registered sentence corpus, and passing top-k "
        "alternatives to the LLM while still scoring the transcript.",
     9: "Thank you. I am happy to take questions.",
