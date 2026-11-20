@@ -320,6 +320,10 @@ def animate(slide, clicks, intro=None):
                    f'<p:cond delay="0"/></p:stCondLst><p:childTnLst>{"".join(effs)}</p:childTnLst></p:cTn>'
                    f'</p:par></p:childTnLst></p:cTn></p:par>')
     bld = "".join(f'<p:bldP spid="{i}" grpId="0" {a}/>' for i, a in build.items())
+    old = slide._element.find(f"{{{P_NS}}}timing")  # add_movie() already wrote a timing tree
+    videos = [] if old is None else old.findall(f".//{{{P_NS}}}video")
+    if old is not None:
+        slide._element.remove(old)
     xml = (f'<p:timing xmlns:p="{P_NS}"><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" '
            f'nodeType="tmRoot"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" '
            f'dur="indefinite" nodeType="mainSeq"><p:childTnLst>{"".join(seq)}</p:childTnLst></p:cTn>'
@@ -327,7 +331,11 @@ def animate(slide, clicks, intro=None):
            f'</p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl>'
            f'</p:cond></p:nextCondLst></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst>'
            f'<p:bldLst>{bld}</p:bldLst></p:timing>')
-    slide._element.append(etree.fromstring(xml))
+    timing = etree.fromstring(xml)
+    for v in videos:  # click the clip to play; it loops until the slide advances
+        v.find(f".//{{{P_NS}}}cTn").attrib.update({"id": str(next(ids)), "repeatCount": "indefinite"})
+        timing.find(f".//{{{P_NS}}}childTnLst").append(v)
+    slide._element.append(timing)
 
 
 # ---------------------------------------------------------------- slides
@@ -361,9 +369,28 @@ def build():
     fill_text(ph(s, 105), [("Oral Session 10  ·  Paper ID 58",
                             {"bold": True, "size": 14, "color": TEAL, "align": PP_ALIGN.RIGHT})])
 
-    # 2 · Context: the interface problem ---------------------------------------
+    # 2 · Hook: a sign the audience cannot read --------------------------------
+    s = new("WAIMLAp Content", NOTES["hook"])
+    title(s, "What did this person just say?")
+    drop(s, 104)
+    vw, vh = Inches(6.6), Inches(6.6 * 9 / 16)
+    s.shapes.add_movie(str(FIG / "hook_sign.mp4"), Inches(0.6), Inches(1.7), vw, vh,
+                       poster_frame_image=str(FIG / "hook_sign.png"), mime_type="video/mp4")
+    cap = s.shapes.add_textbox(Inches(0.6), Inches(5.5), Inches(6.6), Inches(0.4))
+    fill_text(cap, [("Clip: LSA64 dataset (Ronchetti et al., 2016) · click to play",
+                     {"size": 13, "color": GREY})])
+    t = s.shapes.add_textbox(Inches(7.6), Inches(1.9), Inches(5.1), Inches(3.6))
+    fill_text(t, [
+        ("Have you ever asked an AI model to describe a video?", {"size": 24, "space_after": 26}),
+        ("Could it understand this one?", {"size": 24, "bold": True, "color": PURPLE, "space_after": 26}),
+        ("“Perfume”", {"size": 30, "bold": True, "color": NAVY, "space_after": 2}),
+        ("in Argentinian Sign Language", {"size": 20, "color": GREY}),
+    ])
+    animate(s, [([(t, 1, 1)], 0), ([(t, 2, 3)], 0)])
+
+    # 3 · Context: the interface problem ---------------------------------------
     s = new("WAIMLAp Content", NOTES["context"])
-    title(s, "The LLM can write Spanish. How can it read a sign?")
+    title(s, "The LLM knows language. It does not know sign language.")
     drop(s, 104)
     f = flow(s, [
         ("A signer moves", "video → body, face\nand hand keypoints", CARD_GREY, None),
@@ -469,15 +496,13 @@ def build():
     hd = s.shapes.add_textbox(Inches(xr), Inches(1.6), Inches(6), Inches(0.5))
     fill_text(hd, [("Leave-one-signer-out folds", {"bold": True, "size": 22, "color": PURPLE})])
     sq, gp = 0.5, 0.08
-    for k in range(10):
-        fill, line, fc = ((CARD_GREY, None, TEXT) if k < 6 else
-                          (PURPLE, None, "FFFFFF") if k < 8 else ("FFFFFF", CONTEXT, GREY))
+    for k in range(8):  # folds 9-10 are reserved and produced no result, so they are not drawn
+        fill, line, fc = (CARD_GREY, None, TEXT) if k < 6 else (PURPLE, None, "FFFFFF")
         b = box(s, xr + k * (sq + gp), 2.3, sq, sq, fill, line, shape=MSO_SHAPE.RECTANGLE)
         b.text_frame.margin_left = b.text_frame.margin_right = 0
         fill_text(b, [(str(k + 1), {"bold": True, "size": 16, "color": fc, "align": PP_ALIGN.CENTER})], space_after=0)
     for x, wdt, lab, col in ((xr, 6 * sq + 5 * gp, "development", GREY),
-                             (xr + 6 * (sq + gp), 2 * sq + gp, "confirmation", PURPLE),
-                             (xr + 8 * (sq + gp), 2 * sq + gp, "reserved", GREY)):
+                             (xr + 6 * (sq + gp), 2 * sq + gp, "confirmation", PURPLE)):
         t = s.shapes.add_textbox(Inches(x - 0.3), Inches(2.85), Inches(wdt + 0.6), Inches(0.35))
         fill_text(t, [(lab, {"size": 14, "bold": col == PURPLE, "color": col, "align": PP_ALIGN.CENTER})])
     folds = list(s.shapes)[n0:]
@@ -595,11 +620,16 @@ def build():
 # ---------------------------------------------------------------- speaker notes (≈10 min)
 NOTES = {
     1: "Good morning. I am Christian Velasquez, from UPC, presenting joint work with Giorgio Mancusi "
-       "and Rody Vilchez. Imagine someone looks into a camera and signs something they want you to know. "
-       "The message is right there in the movement. The language model already knows how to write it "
-       "in Spanish, if we can give it what the person said. That is where Imitator began.",
-    "context": "The idea was to take advantage of something the LLM already knows how to do: write "
-       "fluent language. A small adapter would learn to read the movement and express what it saw in "
+       "and Rody Vilchez. Before the method, let me show you a short video.",
+    "hook": "Many of us have tried this: you give an AI model a video, you ask what is happening, and it "
+       "describes the scene. So here is a short one. [click the clip to play] What did this person just "
+       "say? [pause, let the room look] [click] Would a model understand it? Have you ever wondered whether "
+       "a model can understand sign language? [click] This is the sign for perfume in Argentinian Sign "
+       "Language. The message is right there in the movement, and most of us in this room could not read "
+       "it. That is where Imitator began.",
+    "context": "Here is the starting point. The LLM already knows language: it writes fluent Spanish. "
+       "What it does not know is sign language. So the idea was to take advantage of what it already "
+       "does well. A small adapter would learn to read the movement and express what it saw in "
        "the LLM's own input format. A prompt could then ask the LLM to refine that draft. The question "
        "that mattered first was what the adapter should produce. [pause] We started with embeddings.",
     "history": "In our earlier, published Imitator, a small visual model read 2D keypoints and produced "
@@ -624,7 +654,8 @@ NOTES = {
        "as a step toward our original goal of translating sentences, we test two to eight signs in "
        "random order by joining videos that each contain one sign. It is a controlled step toward "
        "video with several signs. The clips have no natural sentence syntax. For that sequence "
-       "benchmark, folds 7 and 8 were held back for preregistered confirmation.",
+       "benchmark, folds 1 to 6 were for development and folds 7 and 8 were held back for "
+       "preregistered confirmation.",
     "isolated": "Same test on both replicas: does the output start with every token of the correct "
                 "label? It does on 229 of 320 clips on fold 7 and 220 of 320 on fold 8. The whiskers "
                 "show 95 percent bootstrap intervals from resampling glosses within each signer. "
