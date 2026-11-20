@@ -309,6 +309,10 @@ def animate(slide, clicks, intro=None):
             title_, dy = intro
             effs.append(glide(title_.shape_id, dy))
             base = MOVE_MS
+        # One effect per paragraph: a multi-paragraph range hides only its first paragraph
+        # in some viewers, which left a bullet on screen before its click.
+        targets = [x for t in targets for x in
+                   ([(t[0], i, i) for i in range(t[1], t[2] + 1)] if isinstance(t, tuple) else [t])]
         for k, t in enumerate(targets):
             shp, pars = (t[0], t[1:]) if isinstance(t, tuple) else (t, None)
             node = "clickEffect" if k == 0 and not effs else "withEffect"
@@ -388,55 +392,64 @@ def build():
     ])
     animate(s, [([(t, 1, 1)], 0), ([(t, 2, 3)], 0)])
 
-    # 3 · Context: the interface problem ---------------------------------------
+    # 3 · The LLM knows language; do we need a translator from scratch? ---------
     s = new("WAIMLAp Content", NOTES["context"])
     title(s, "The LLM knows language. It does not know sign language.")
     drop(s, 104)
     f = flow(s, [
         ("A signer moves", "video → body, face\nand hand keypoints", CARD_GREY, None),
-        ("Imitator", "a small model learns\nthe LLM’s input format", LT_TEAL, TEAL_LINE),
-        ("The LLM writes", "a prompt asks it to refine\nthe draft in Spanish", CARD_GREY, None),
+        ("A small adapter?", "learns to write in\nthe LLM’s input format", LT_TEAL, TEAL_LINE),
+        ("The LLM writes", "fluent Spanish;\nit stays frozen", CARD_GREY, None),
     ], y0=2.0, h=1.9, gap=0.9)
-    t = s.shapes.add_textbox(Inches(0.6), Inches(4.4), Inches(12.1), Inches(2.0))
-    fill_text(t, [
-        ("The idea behind Imitator", {"bold": True, "size": 20, "color": PURPLE, "space_after": 8}),
-        ("Can a small visual model give a frozen LLM enough information to write the intended message?",
-         {"size": 21}),
-    ], size=20)
-    animate(s, [([f[0]], 0), (f[1:3], 250), (f[3:5], 250), ([t], 0)], intro=title_intro(s, prs))
+    q = s.shapes.add_textbox(Inches(0.6), Inches(4.5), Inches(12.1), Inches(0.8))
+    fill_text(q, [("Do we have to train a sign translator from scratch?",
+                   {"bold": True, "size": 24, "color": PURPLE, "align": PP_ALIGN.CENTER})])
+    animate(s, [([f[0]], 0), ([f[4]], 0), ([q], 0), ([f[1], f[3], f[2]], 250)], intro=title_intro(s, prs))
 
-    # 3 · History: the original Imitator ---------------------------------------
+    # 4 · Embeddings or token IDs? ---------------------------------------------
     s = new("WAIMLAp Content", NOTES["history"])
-    title(s, "First attempt: imitate the embeddings")
+    title(s, "What should the adapter output: embeddings or token IDs?")
     drop(s, 104)
+    x0, gap, total, y0, h = 0.6, 0.45, 12.1, 1.75, 1.45
     f = flow(s, [
-        ("2D keypoints", "sign video", CARD_GREY, None),
-        ("Small visual model", "lightweight\nST-GCN encoder", LT_TEAL, TEAL_LINE),
-        ("Vectors ≈ embeddings", "close to the frozen\nLLM's embeddings", PURPLE, None),
-        ("Frozen LLM", "reads the vectors\nas its input", CARD_GREY, None),
-    ], y0=2.0, h=1.9)
-    t = s.shapes.add_textbox(Inches(0.6), Inches(4.4), Inches(12.1), Inches(2.0))
+        ("Text", "“perfume”", CARD_GREY, None),
+        ("Token IDs", "whole numbers,\none per word piece", CARD_GREY, None),
+        ("Embeddings", "one vector\nper token ID", CARD_GREY, None),
+        ("Frozen LLM", "writes the text", CARD_GREY, None),
+    ], y0=y0, h=h, x0=x0, total=total, gap=gap)
+    w = (total - 3 * gap) / 4
+    opts = []
+    for col, head, sub, fill, line in (
+        (1, "Option: token IDs?", "the adapter writes\nthe exact numbers", "FFFFFF", PURPLE),
+        (2, "Option: embeddings?", "the adapter imitates\nthe vectors", "FFFFFF", PURPLE),
+    ):
+        x = x0 + col * (w + gap)
+        ob = box(s, x, 4.0, w, 1.25, fill, line)
+        ob.line.dash_style, ob.line.width = MSO_LINE.DASH, Pt(2.25)
+        fill_text(ob, [(head, {"bold": True, "size": 18, "color": PURPLE, "align": PP_ALIGN.CENTER,
+                               "space_after": 4}),
+                       (sub, {"size": 15, "align": PP_ALIGN.CENTER})])
+        opts += [ob, arrow(s, x + w / 2, 3.94, x + w / 2, y0 + h + 0.06, PURPLE)]
+    t = s.shapes.add_textbox(Inches(0.6), Inches(5.45), Inches(12.1), Inches(0.9))
     fill_text(t, [
-        ("Premise: a compact model learns the input language of a frozen LLM", {"bullet": True}),
-        ("Trained with MSE + cosine distance; reported loss ≈ 8×10⁻⁴ (preliminary)", {"bullet": True}),
-        ("Open question: does the LLM read those vectors as the intended words?",
-         {"bullet": True, "bold": True, "color": PURPLE}),
-    ], size=20, space_after=10)
-    animate(s, [(f[0:3], 300), (f[3:5], 250), (f[5:7], 250), ([(t, 0, 1)], 0), ([(t, 2, 2)], 0)],
-            intro=title_intro(s, prs))
+        ("The first Imitator (published, 2025) imitated the embeddings.", {"bold": True, "color": NAVY,
+                                                                          "space_after": 2}),
+        ("Reported loss ≈ 8×10⁻⁴ (preliminary). Tiny. Did the LLM get the right words?", {}),
+    ], size=20)
+    animate(s, [(f, 200), (opts, 0), ([t], 0)], intro=title_intro(s, prs))
 
-    # 4 · Turning point --------------------------------------------------------
+    # 5 · What embeddings left open; the switch ---------------------------------
     s = new("WAIMLAp Two Columns", NOTES[2])
-    title(s, "This time, Imitator learns to emit Gemma’s token IDs")
+    title(s, "A low loss could not tell us what the LLM would read")
     for idx, fill, line, head, head_col, lines in (
-        (104, CARD_GREY, None, "Limits of embedding imitation", GREY,
-         ["A nearby vector may not be the intended token, especially in anisotropic spaces",
-          "No exact way to check what the LLM receives",
-          "Splits were not signer-exclusive"]),
-        (105, LT_TEAL, TEAL_LINE, "This work: predict the token IDs", PURPLE,
-         ["Keypoints → exact Gemma tokenizer IDs + EOS",
-          "Correct only if every ID matches: measurable, falsifiable",
-          "Gemma 3n receives ordinary text tokens"]),
+        (104, CARD_GREY, None, "Embedding imitation left open", GREY,
+         ["A nearby vector may not be the intended token",
+          "No exact way to check what the LLM would receive",
+          "Test signers had also appeared in training"]),
+        (105, LT_TEAL, TEAL_LINE, "This work: write the token IDs", PURPLE,
+         ["Each ID is either right or wrong",
+          "A label counts only if every ID matches",
+          "Gemma 3n, our LLM, would receive ordinary text"]),
     ):
         p = ph(s, idx)
         p.fill.solid()
@@ -450,51 +463,52 @@ def build():
                   + [(t, {"bullet": True}) for t in lines], size=20, space_after=14)
     animate(s, [([ph(s, 105)], 0)])
 
-    # 3 · Pipeline ------------------------------------------------------------
+    # 6 · Pipeline ------------------------------------------------------------
     s = new("WAIMLAp Content", NOTES[3])
-    title(s, "Imitator drafts from signs. Gemma gets a correction prompt.")
+    title(s, "Imitator now writes Gemma’s own token IDs")
     drop(s, 104)
     stages = [
-        ("2D keypoints", "111 per frame\n(pose, face, hands)", CARD_GREY, None),
-        ("Visual encoder", "ST-GCN + temporal conv\n+ Transformer\n+ positional encoding", LT_TEAL, TEAL_LINE),
-        ("Token decoder", "2-layer causal\nTransformer\n121-row softmax", LT_TEAL, TEAL_LINE),
-        ("Exact Gemma IDs", "content IDs\n+ EOS", PURPLE, None),
-        ("Gemma 3n", "correction prompt\n+ decoded draft\n→ text output", CARD_GREY, None),
+        ("Sign video", "111 keypoints per frame\n(pose, face, hands)", CARD_GREY, None),
+        ("Encoder", "reads the movement\nand keeps the order", LT_TEAL, TEAL_LINE),
+        ("Decoder", "writes one token ID\nat a time, then stops", LT_TEAL, TEAL_LINE),
+        ("Gemma token IDs", "the label’s IDs\n+ end marker", PURPLE, None),
+        ("Gemma 3n", "frozen LLM; reads\nthe IDs as text", CARD_GREY, None),
     ]
     x0, y0, w, h, gap = 0.6, 2.35, 2.05, 1.9, 0.45
     f = flow(s, stages, y0, h, x0=x0, total=5 * w + 4 * gap, gap=gap, sub_size=14)
-    # brackets: what is scored where
     brackets = []
-    for xs, xe, label, col in ((x0, x0 + 4 * w + 3 * gap, "Imitator · scored on its own: strict accuracy, edit similarity", PURPLE),
+    for xs, xe, label, col in ((x0, x0 + 4 * w + 3 * gap, "Imitator · scored on its own: every ID must match", PURPLE),
                                (x0 + 4 * (w + gap), x0 + 5 * w + 4 * gap, "Audited separately", GREY)):
         ln = s.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Inches(xs), Inches(y0 - 0.25), Inches(xe), Inches(y0 - 0.25))
         ln.line.color.rgb, ln.line.width = rgb(col), Pt(2)
         t = s.shapes.add_textbox(Inches(xs), Inches(y0 - 0.72), Inches(xe - xs), Inches(0.4))
         fill_text(t, [(label, {"bold": True, "size": 15, "color": col, "align": PP_ALIGN.CENTER})])
         brackets += [ln, t]
-    t = s.shapes.add_textbox(Inches(0.6), Inches(4.5), Inches(12.1), Inches(1.6))
+    t = s.shapes.add_textbox(Inches(0.6), Inches(4.6), Inches(12.1), Inches(1.2))
     fill_text(t, [
-        ("Example correction instruction", {"bold": True, "color": PURPLE, "space_after": 4}),
-        ("“This draft comes from sign language and may contain recognition errors. "
-         "Correct it where the evidence supports a change.”", {"size": 18}),
+        ("We score the draft before any LLM touches it, so fluent text cannot hide a visual error.",
+         {"size": 20}),
+        ("In this paper Gemma is tested apart, on labels with synthetic errors. "
+         "It has not yet read Imitator’s own drafts.", {"size": 18, "color": GREY}),
     ], size=18)
     animate(s, [(f, 250), (brackets, 0), ([t], 0)], intro=title_intro(s, prs))
 
-    # 4 · Protocol ------------------------------------------------------------
+    # 7 · Protocol ------------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[4])
     title(s, "One sign first. Then several signs in order.")
     fill_text(ph(s, 104), [
         ("Data: LSA64", {"bold": True, "size": 22, "color": PURPLE, "space_after": 12}),
         ("3,200 videos · 64 signs · 10 signers", {"bullet": True}),
-        ("One clip first, then 2–8 clips in random order", {"bullet": True}),
-        ("Target: Gemma tokens of the Spanish labels", {"bullet": True}),
-        ("Synthetic streams test order without sentence syntax", {"bullet": True, "color": GREY}),
+        ("One sign: one clip → its Spanish label", {"bullet": True, "bold": True}),
+        ("Several signs: 2–8 clips joined in random order → the labels, in order",
+         {"bullet": True, "bold": True}),
+        ("Joined clips, not real sentences", {"bullet": True, "color": GREY}),
     ], size=20, space_after=12)
     drop(s, 105)
     xr = 6.7
     n0 = len(s.shapes)
     hd = s.shapes.add_textbox(Inches(xr), Inches(1.6), Inches(6), Inches(0.5))
-    fill_text(hd, [("Leave-one-signer-out folds", {"bold": True, "size": 22, "color": PURPLE})])
+    fill_text(hd, [("Each fold tests on one unseen signer", {"bold": True, "size": 22, "color": PURPLE})])
     sq, gp = 0.5, 0.08
     for k in range(8):  # folds 9-10 are reserved and produced no result, so they are not drawn
         fill, line, fc = (CARD_GREY, None, TEXT) if k < 6 else (PURPLE, None, "FFFFFF")
@@ -508,10 +522,9 @@ def build():
     folds = list(s.shapes)[n0:]
     t = s.shapes.add_textbox(Inches(xr), Inches(3.45), Inches(6), Inches(2.6))
     fill_text(t, [
-        ("Preregistered sequence criteria:", {"bold": True, "size": 18, "color": NAVY}),
-        ("H1  beat historical CIF (sign test p < .01)", {"bullet": True}),
-        ("H2  strict accuracy ≥ 11.9%", {"bullet": True}),
-        ("H3  label order ≥ .90 and permutation drop ≥ .15", {"bullet": True}),
+        ("The test signer never appears in training", {"bullet": True}),
+        ("Signers 7–8: pass marks written down before testing", {"bullet": True}),
+        ("A sequence counts only if every token ID is right", {"bullet": True}),
     ], size=18, space_after=8)
     animate(s, [(folds, 0), ([t], 0)])
 
@@ -623,39 +636,39 @@ NOTES = {
        "and Rody Vilchez. Before the method, let me show you a short video.",
     "hook": "Many of us have tried this: you give an AI model a video, you ask what is happening, and it "
        "describes the scene. So here is a short one. [click the clip to play] What did this person just "
-       "say? [pause, let the room look] [click] Would a model understand it? Have you ever wondered whether "
-       "a model can understand sign language? [click] This is the sign for perfume in Argentinian Sign "
-       "Language. The message is right there in the movement, and most of us in this room could not read "
-       "it. That is where Imitator began.",
-    "context": "Here is the starting point. The LLM already knows language: it writes fluent Spanish. "
-       "What it does not know is sign language. So the idea was to take advantage of what it already "
-       "does well. A small adapter would learn to read the movement and express what it saw in "
-       "the LLM's own input format. A prompt could then ask the LLM to refine that draft. The question "
-       "that mattered first was what the adapter should produce. [pause] We started with embeddings.",
-    "history": "In our earlier, published Imitator, a small visual model read 2D keypoints and produced "
-       "continuous vectors meant to sit close to the frozen LLM's own input embeddings. The idea is that a "
-       "compact model can learn the input language of a large one. Training used mean-squared and cosine "
-       "distance, and the preliminary loss was very low, about 8 times 10 to the minus 4. But a low loss "
-       "leaves one question open: does the LLM actually read those vectors as the intended words?",
-    2: "And the answer is: not necessarily. Being geometrically close does not guarantee the intended "
-       "token, especially because these embedding spaces are anisotropic. There was also no exact way to "
-       "check what the LLM received, and the splits were not signer-exclusive. So in this work we keep the "
-       "premise, but we predict the exact Gemma token IDs. A prediction is right only if every ID matches, "
-       "and Gemma receives ordinary text. [pause] Let me show the pipeline.",
-    3: "From 2D keypoints, 111 per frame, a spatial-temporal graph encoder with positional encoding builds "
-       "visual memory. A small causal Transformer decoder emits Gemma IDs until end-of-sequence. The task "
-       "uses 118 Gemma content IDs, so the output layer has 121 rows that map one-to-one back to the real "
-       "IDs. Downstream, the decoded draft can go to frozen Gemma with an instruction such as: "
-       "this came from sign language recognition and may contain errors; correct it when the evidence "
-       "supports a change. That is an illustrative instruction. We score the visual draft before the "
-       "prompt stage. [pause] Can Imitator even give Gemma one correct label?",
-    4: "We use LSA64: 64 Argentinian signs from ten signers. The target is the Gemma tokenization "
-       "of each Spanish label. First we ask whether the visual bridge can recognize one sign. Then, "
-       "as a step toward our original goal of translating sentences, we test two to eight signs in "
-       "random order by joining videos that each contain one sign. It is a controlled step toward "
-       "video with several signs. The clips have no natural sentence syntax. For that sequence "
-       "benchmark, folds 1 to 6 were for development and folds 7 and 8 were held back for "
-       "preregistered confirmation.",
+       "say? [pause, let the room look] [click] Could a model understand it? [click] It is the sign for "
+       "perfume in Argentinian Sign Language. Most of us in this room could not read it. An LLM can write "
+       "a whole paragraph about perfume. But its input is text, and this is movement.",
+    "context": "So this is our starting point. [click] On one side a signer moves. [click] On the other side "
+       "the LLM already knows language: it writes fluent Spanish. What it does not know is sign language. "
+       "[click] So do we have to train a sign translator from scratch? [click] Our bet is no: maybe a "
+       "small adapter is enough. A small visual model that learns to write in the LLM's own input format, "
+       "while the LLM stays frozen. That is the idea we call Imitator. [pause] But if a small adapter "
+       "talks to the LLM, what exactly should it hand over?",
+    "history": "When you type the word perfume, the LLM first turns it into token IDs, whole numbers, one per "
+       "word piece. Then each ID becomes an embedding, a vector, and the LLM works with those vectors. "
+       "[click] So the adapter has two doors: write the token IDs, or imitate the embeddings. [click] Our "
+       "first, published Imitator took the embedding door. It produced vectors meant to sit close to the "
+       "LLM's own embeddings, and the preliminary loss was very low, about 8 times 10 to the minus 4. "
+       "But a tiny loss leaves one question: would the LLM read those vectors as the intended words?",
+    2: "And the honest answer is: we could not tell. Being close in distance does not guarantee the "
+       "intended token, especially when the embedding space is anisotropic, meaning unevenly spread, as "
+       "reported for language-model representations. There was no exact way to check what the LLM would "
+       "receive, and the test signers had also appeared in training. [click] So in this work we keep the "
+       "idea of a small model that learns the LLM's input, but it writes the exact Gemma token IDs. Each "
+       "ID is right or wrong, and Gemma would receive ordinary text. [pause] Here is how.",
+    3: "From the video we take 2D keypoints, 111 per frame. An encoder reads the movement and keeps the "
+       "order of what it saw. A small decoder then writes Gemma token IDs one at a time until an end "
+       "marker. Those IDs are ordinary text for Gemma 3n, our frozen LLM. [click] We score Imitator on its "
+       "own, before any LLM touches the draft, so fluent text cannot hide a visual error. [click] In this "
+       "paper Gemma is tested apart, on labels where we inject errors. It has not yet read Imitator's own "
+       "drafts. [pause] Every ID must match. So we start with the easiest case: one sign.",
+    4: "We use LSA64: 64 Argentinian signs from ten signers. The target is the Gemma tokenization of "
+       "each sign's Spanish label. First, one clip with one sign. Then, as a step toward our original goal "
+       "of sentences, we join two to eight clips in random order and ask for the labels in order. These "
+       "are joined clips, not real sentences: there is no sentence syntax. [click] Every fold tests on a "
+       "signer the model never saw. [click] For signers 7 and 8 we wrote the pass marks down before "
+       "testing. [pause] So: one sign, an unseen signer. Does Imitator write the right label?",
     "isolated": "Same test on both replicas: does the output start with every token of the correct "
                 "label? It does on 229 of 320 clips on fold 7 and 220 of 320 on fold 8. The whiskers "
                 "show 95 percent bootstrap intervals from resampling glosses within each signer. "

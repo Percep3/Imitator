@@ -13,12 +13,12 @@ streams of 2–8 signs. End by asking how much a correction prompt can recover f
 | # | Claim (title) | Evidence on slide | Look first at | Transition | ~time |
 |---|---|---|---|---|---|
 | 1 | — (title) | — | — | "Let me show you a short video" | 0:10 |
-| 2 | What did this person just say? | LSA64 clip of the sign "Perfume" (signer 7); video-understanding question | The clip | "That is where Imitator began" | 0:40 |
-| 3 | The LLM knows language. It does not know sign language. | Signer → small adapter → LLM | Imitator | "We started with embeddings" | 0:50 |
-| 4 | First attempt: imitate the embeddings | Original pipeline; loss ≈ 8×10⁻⁴ (Sec. 1, 3) | Purple "Vectors ≈ embeddings" box | "Does the LLM read them as the intended words?" | 0:50 |
-| 5 | This time, Imitator learns to emit Gemma’s token IDs | Limits of embeddings and exact Gemma IDs | Teal card | "Let me show the pipeline" | 0:50 |
-| 6 | Imitator drafts from signs. Gemma gets a correction prompt. | Keypoints → token IDs → decoded draft with an illustrative correction instruction | Gemma box | "Can we give Gemma one correct label?" | 1:00 |
-| 7 | One sign first. Then several signs in order. | LSA64, folds 1–8 (reserved folds 9–10 not drawn), sequence criteria | Purple folds 7–8 | "Start with one sign" | 0:50 |
+| 2 | What did this person just say? | LSA64 clip of the sign "Perfume" (signer 7); video-understanding question | The clip | "Its input is text, and this is movement" | 0:40 |
+| 3 | The LLM knows language. It does not know sign language. | Signer … LLM, the question "train a translator from scratch?", then the small adapter | The question | "What should the adapter hand over?" | 0:50 |
+| 4 | What should the adapter output: embeddings or token IDs? | The LLM's input path (text → token IDs → embeddings → LLM) with the two options; first Imitator, loss ≈ 8×10⁻⁴ | The two dashed option boxes | "Did the LLM get the right words?" | 0:55 |
+| 5 | A low loss could not tell us what the LLM would read | What embedding imitation left open vs. exact token IDs | Teal card | "Here is how" | 0:50 |
+| 6 | Imitator now writes Gemma’s own token IDs | Video → encoder → decoder → Gemma IDs → Gemma 3n; scored before the LLM | Purple "Gemma token IDs" box | "Start with the easiest case: one sign" | 0:55 |
+| 7 | One sign first. Then several signs in order. | LSA64, the two tasks, folds 1–8 (reserved folds 9–10 not drawn) | Purple folds 7–8 | "Does Imitator write the right label?" | 0:50 |
 | 8 | On one sign, does the output start with the right label? | Correct prefix on 229/320 and 220/320 clips, with 95% intervals | Comparison of folds 7 and 8 | "What happens when the video has several signs?" | 0:30 |
 | 9 | On 2–8 signs, strict accuracy rises about tenfold | Bars folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | Purple bars | "Does it hold on new signers?" | 0:50 |
 | 10 | Both held-out signers pass all three criteria | Bars folds 7–8 vs CIF + 11.9% line; H1–H3 | Purple bars above dashed line | "Could Gemma recover a corrupted label?" | 1:10 |
@@ -50,17 +50,23 @@ Visual choices:
 - **Natural signing / continuous SLT?** Not evaluated. The streams are synthetic, with no coarticulation and no LSA grammar.
 - **Does this show LLMs can't correct sign errors?** The evidence covers one model and prompt on synthetic token substitutions in isolated labels. The schematic perfume example motivates the audit. Actual visual decoder errors and sentence-level context require separate evaluation.
 - **Why does the fold strip stop at 8?** Folds 9–10 are reserved in the protocol and produced no result. Their signers are still training data for the other folds.
+- **Did embeddings fail?** The paper does not claim that. It says a low distance does not guarantee the intended token, there was no exact check, and the earlier splits were not signer-exclusive. There is no head-to-head comparison of embeddings and token IDs.
+- **Did you give Gemma the video, or test another video model on signs?** Not evaluated. "The LLM does not know sign language" is our starting premise, not a measured result.
+- **Does Gemma read Imitator's output?** Not in this paper. Imitator is scored on its own. The Gemma audit used reference labels with synthetic substitutions.
+- **Is Imitator trained from scratch? How big is it?** The encoder's ST-GCN and projection are initialised from our earlier CIF model and kept frozen; there is no external pretraining. The paper does not state parameter counts.
+- **Which Gemma, and what is the end marker?** Gemma 3n E2B, frozen. The end marker is implemented with Gemma's end-of-turn ID.
+- **What prompt did the audit use?** A fixed few-shot correction prompt in Spanish. The slides no longer quote an instruction.
 - **Why did the order become correct?** Sinusoidal positional encoding. Without it, permuting segments left 86.3% of predictions unchanged. With it, shuffling drops edit similarity by 0.34–0.38.
 - If a question goes beyond this: say "we have not evaluated that".
 
 ## Animations (click order)
 Supporting elements use a 0.5 s fade-in. On slides 3, 4 and 6, a single centred title is visible at first. Click ① moves that title straight up to the header over 1 second. The first group of content begins to appear once the title arrives. Present from PowerPoint to play the motion path.
 - **2 Hook:** click the clip itself to play it (it loops). Then ① "Could it understand this one?" ② the answer, "Perfume".
-- **3 Context:** ① "A signer moves" ② arrow + "Imitator" ③ arrow + "The LLM writes" ④ the research question.
-- **4 History:** ① keypoints → visual model ② vectors ≈ embeddings ③ frozen LLM ④ premise + loss ⑤ open question.
+- **3 Context:** ① "A signer moves" ② "The LLM writes" ③ the question "train a sign translator from scratch?" ④ arrows + "A small adapter?".
+- **4 Embeddings or token IDs:** ① the LLM's input path ② the two option boxes ③ the first Imitator and its loss.
 - **5 Turning point:** ① "This work" card.
-- **6 Pipeline:** ① the five boxes left to right ② scoring brackets ③ illustrative correction instruction.
-- **7 Protocol:** ① fold strip ② preregistered criteria.
+- **6 Pipeline:** ① the five boxes left to right ② scoring brackets ③ why we score before the LLM.
+- **7 Protocol:** ① fold strip ② the three rules.
 - **9 Development:** ① key result ② positional encoding ③ remaining sequence errors.
 - **10 Confirmation:** ① H1 ② H2 ③ H3.
 - **11 Gemma audit:** ① clean input ② tested nonzero rates ③ chrF and the schematic example.
