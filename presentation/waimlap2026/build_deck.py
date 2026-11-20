@@ -1,7 +1,7 @@
 """Build the WAIMLAp 2026 talk for the Imitator paper from the official template.
 
-Follows the draft in paper/content/full. Historical results come from the paper;
-isolated-sign results are marked pending while the folds 7–8 replicas run.
+Follows the draft in paper/content/full, including the exploratory
+isolated-sign results from the retrained folds 7–8.
 
 Run:  ~/miniconda3/envs/deck-tools/bin/python build_deck.py
 """
@@ -509,9 +509,9 @@ def build():
     fill_text(ph(s, 105), [
         ("Exploratory evaluation · retrained E1", {"bold": True, "size": 21, "color": PURPLE}),
         ("Fold 7", {"bold": True, "size": 19}),
-        ("Strict accuracy: pending · Edit similarity: pending", {"size": 18, "space_after": 14}),
+        ("13.75% strict (44/320) · 18.28% edit similarity", {"size": 18, "space_after": 14}),
         ("Fold 8", {"bold": True, "size": 19}),
-        ("Strict accuracy: pending · Edit similarity: pending", {"size": 18}),
+        ("10.94% strict (35/320) · 14.38% edit similarity", {"size": 18}),
     ], size=19)
 
     # 5 · Result: development -------------------------------------------------
@@ -565,7 +565,7 @@ def build():
     title(s, "Exact IDs make the visual bridge measurable")
     for idx, fill, line, head, lines in (
         (104, LT_TEAL, TEAL_LINE, "What we showed",
-         ["One sign: strict accuracy and edit similarity pending",
+         ["One sign: 10.94–13.75% strict accuracy on replicas",
           "2–8 signs: 12.5–14.1% strict accuracy on held-out signers",
           "Gemma: zero exact recoveries at tested nonzero rates"]),
         (105, CARD_GREY, None, "Limits → next step",
@@ -642,7 +642,8 @@ NOTES = {
     "isolated": "For the isolated test, we evaluate all 320 clips of each held-out signer. A strict "
                 "match requires every Gemma ID and an end-of-sequence token. Edit similarity measures "
                 "partial matches. The retrained folds use the same signer splits and sequence training "
-                "protocol. These isolated results are pending. Next, the original sequence benchmark "
+                "protocol. The replicas correctly transcribe 44 of 320 clips on fold 7 and 35 of 320 "
+                "on fold 8. The decoder emits EOS on every clip. Next, the original sequence benchmark "
                 "asks how far the approach carries over to two to eight signs.",
     5: "On the development signers, strict accuracy, meaning the whole sequence exactly right, goes from about "
        "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
@@ -662,7 +663,8 @@ NOTES = {
        "decreased. This measures recovery for synthetic substitutions in isolated labels.",
     8: "To summarise: predicting exact token IDs turns the bridge into something we can measure. On unseen "
        "signers the original checkpoints give 12 to 14 percent fully correct, visually ordered sequences. "
-       "The isolated-sign metrics are pending. In the exploratory audit, Gemma did not recover an exact "
+       "The replicas give about 11 to 14 percent strict accuracy on isolated signs. In the exploratory "
+       "audit, Gemma did not recover an exact "
        "label at the tested nonzero rates. Limits: one training seed, synthetic streams and two "
        "confirmation signers. Next, we want a pre-registered sentence corpus, and passing top-k "
        "alternatives to the LLM while still scoring the transcript.",

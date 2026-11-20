@@ -1,7 +1,7 @@
 # WAIMLAp 2026 — Imitator talk: slide cards and Q&A prep
 
 Deck: `imitator_waimlap2026.pptx` (rebuild: `~/miniconda3/envs/deck-tools/bin/python build_deck.py`).
-Source: the draft in `paper/content/full/`. The isolated-sign metrics for the retrained folds 7–8 are pending.
+Source: the draft in `paper/content/full/`. Isolated-sign metrics come from the retrained folds 7–8.
 Format: 10 min talk + 5 min questions. 12 slides plus 1 backup. The word-for-word script is in each slide's PowerPoint notes.
 
 **Goal:** explain how exact Gemma IDs let us measure the visual bridge. Start with one isolated sign,
@@ -16,7 +16,7 @@ End with a separate exploratory audit of Gemma's ability to recover corrupted is
 | 4 | Close to the right embedding is not the right token | Limits vs this work (grey vs teal card) | Teal card | "Let me show the pipeline" | 0:50 |
 | 5 | Imitator writes exact Gemma IDs; Gemma only reads text | Pipeline diagram, scoring brackets | Purple "Exact Gemma IDs" box | "How we evaluated it" | 1:00 |
 | 6 | From one isolated sign to ordered sign sequences | LSA64, signer splits, sequence criteria | Purple folds 7–8 | "Start with one sign" | 0:50 |
-| 7 | Can Imitator recover the exact IDs of one sign? | 320 clips per signer; exact IDs + EOS and edit similarity pending | Folds 7–8 | "Next, two to eight signs" | 0:30 |
+| 7 | Can Imitator recover the exact IDs of one sign? | 44/320 (13.75%) and 35/320 (10.94%) strict accuracy | Folds 7–8 | "Next, two to eight signs" | 0:30 |
 | 8 | On 2–8 signs, strict accuracy rises about tenfold | Bars folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | Purple bars | "Does it hold on new signers?" | 0:50 |
 | 9 | Both held-out signers pass all three criteria | Bars folds 7–8 vs CIF + 11.9% line; H1–H3 | Purple bars above dashed line | "Could Gemma recover a corrupted label?" | 1:10 |
 | 10 | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | 0% bars | "To summarise" | 1:00 |
@@ -31,7 +31,6 @@ Visual choices:
 - **Gemma audit:** shown as two small panels (exact match, then chrF). This avoids a dual-axis chart.
 
 ## Fill in before the talk
-- Replace the isolated-sign placeholders once the verified results for the retrained folds are available.
 - Session and Paper ID are filled in: Oral Session 10 · Paper ID 58.
 - Contact email or repository on slide 12, if you want them shown.
 
