@@ -370,25 +370,24 @@ def build():
 
     # 2 · Context: the interface problem ---------------------------------------
     s = new("WAIMLAp Content", NOTES["context"])
-    title(s, "Sign-to-text needs a bridge between vision and language")
+    title(s, "The LLM can write Spanish. How can it read a sign?")
     drop(s, 104)
     f = flow(s, [
-        ("See the signs", "motion → linguistic evidence\n(video → 2D keypoints)", CARD_GREY, None),
-        ("Interface ?", "what should the visual model\nhand to the language model?", "FFFFFF", PURPLE, True),
-        ("Write the language", "pretrained LLMs already\nturn tokens into fluent text", CARD_GREY, None),
+        ("A signer moves", "video → body, face\nand hand keypoints", CARD_GREY, None),
+        ("Imitator", "a small model learns\nthe LLM’s input format", LT_TEAL, TEAL_LINE),
+        ("The LLM writes", "a prompt asks it to refine\nthe draft in Spanish", CARD_GREY, None),
     ], y0=2.0, h=1.9, gap=0.9)
     t = s.shapes.add_textbox(Inches(0.6), Inches(4.4), Inches(12.1), Inches(2.0))
     fill_text(t, [
-        ("Bridges explored so far", {"bold": True, "size": 20, "color": PURPLE, "space_after": 8}),
-        ("Pseudo-gloss pretraining (Sign2GPT) · hierarchical sign tokens (SignLLM)", {"bullet": True}),
-        ("Separate visual and language learning (FLa-LLM)", {"bullet": True}),
-        ("In speech: continuous prompts and CTC token embeddings (Wav2Prompt, LegoSLM)", {"bullet": True}),
-    ], size=18, space_after=6)
+        ("The idea behind Imitator", {"bold": True, "size": 20, "color": PURPLE, "space_after": 8}),
+        ("Can a small visual model give a frozen LLM enough information to write the intended message?",
+         {"size": 21}),
+    ], size=20)
     animate(s, [([f[0]], 0), (f[1:3], 250), (f[3:5], 250), ([t], 0)], intro=title_intro(s, prs))
 
     # 3 · History: the original Imitator ---------------------------------------
     s = new("WAIMLAp Content", NOTES["history"])
-    title(s, "Our first Imitator imitated the LLM's input embeddings")
+    title(s, "First attempt: imitate the embeddings")
     drop(s, 104)
     f = flow(s, [
         ("2D keypoints", "sign video", CARD_GREY, None),
@@ -408,7 +407,7 @@ def build():
 
     # 4 · Turning point --------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[2])
-    title(s, "Close to the right embedding is not the right token")
+    title(s, "This time, Imitator learns to emit Gemma’s token IDs")
     for idx, fill, line, head, head_col, lines in (
         (104, CARD_GREY, None, "Limits of embedding imitation", GREY,
          ["A nearby vector may not be the intended token, especially in anisotropic spaces",
@@ -433,14 +432,14 @@ def build():
 
     # 3 · Pipeline ------------------------------------------------------------
     s = new("WAIMLAp Content", NOTES[3])
-    title(s, "Imitator writes exact Gemma IDs; Gemma only reads text")
+    title(s, "Imitator drafts from signs. Gemma gets a correction prompt.")
     drop(s, 104)
     stages = [
         ("2D keypoints", "111 per frame\n(pose, face, hands)", CARD_GREY, None),
         ("Visual encoder", "ST-GCN + temporal conv\n+ Transformer\n+ positional encoding", LT_TEAL, TEAL_LINE),
         ("Token decoder", "2-layer causal\nTransformer\n121-row softmax", LT_TEAL, TEAL_LINE),
         ("Exact Gemma IDs", "content IDs\n+ EOS", PURPLE, None),
-        ("Gemma 3n", "E2B, frozen;\nreads IDs as text", CARD_GREY, None),
+        ("Gemma 3n", "correction prompt\n+ decoded draft\n→ text output", CARD_GREY, None),
     ]
     x0, y0, w, h, gap = 0.6, 2.35, 2.05, 1.9, 0.45
     f = flow(s, stages, y0, h, x0=x0, total=5 * w + 4 * gap, gap=gap, sub_size=14)
@@ -454,15 +453,16 @@ def build():
         fill_text(t, [(label, {"bold": True, "size": 15, "color": col, "align": PP_ALIGN.CENTER})])
         brackets += [ln, t]
     t = s.shapes.add_textbox(Inches(0.6), Inches(4.5), Inches(12.1), Inches(1.6))
-    fill_text(t, ["No 64-class gloss classifier at inference (targets still come from LSA64 labels)",
-                  "121 output rows map one-to-one back to the original Gemma IDs",
-                  "Transcription is scored before the LLM, so fluent output cannot hide visual errors"],
-              size=18, bullets=True, space_after=8)
+    fill_text(t, [
+        ("Example correction instruction", {"bold": True, "color": PURPLE, "space_after": 4}),
+        ("“This draft comes from sign language and may contain recognition errors. "
+         "Correct it where the evidence supports a change.”", {"size": 18}),
+    ], size=18)
     animate(s, [(f, 250), (brackets, 0), ([t], 0)], intro=title_intro(s, prs))
 
     # 4 · Protocol ------------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[4])
-    title(s, "From one isolated sign to ordered sign sequences")
+    title(s, "One sign first. Then several signs in order.")
     fill_text(ph(s, 104), [
         ("Data: LSA64", {"bold": True, "size": 22, "color": PURPLE, "space_after": 12}),
         ("3,200 videos · 64 signs · 10 signers", {"bullet": True}),
@@ -506,6 +506,7 @@ def build():
         ("Strict match: all Gemma IDs plus EOS", {"bullet": True}),
         ("Extra tokens: output longer than the reference label", {"bullet": True}),
         ("Training used streams of 2–8 signs", {"bullet": True}),
+        ("One clip: “música” → “música música”", {"size": 19, "bold": True, "color": PURPLE}),
     ], size=20, space_after=14)
     fill_text(ph(s, 105), [
         ("Exploratory evaluation · retrained E1", {"bold": True, "size": 21, "color": PURPLE}),
@@ -565,7 +566,7 @@ def build():
 
     # 8 · Conclusions ---------------------------------------------------------
     s = new("WAIMLAp Two Columns", NOTES[8])
-    title(s, "Exact IDs make the visual bridge measurable")
+    title(s, "A small adapter gives Gemma a draft. Can it make a sentence?")
     for idx, fill, line, head, lines in (
         (104, LT_TEAL, TEAL_LINE, "What we showed",
          ["One sign: 10.94–13.75% strict accuracy on replicas",
@@ -614,14 +615,13 @@ def build():
 # ---------------------------------------------------------------- speaker notes (≈10 min)
 NOTES = {
     1: "Good morning. I am Christian Velasquez, from UPC, presenting joint work with Giorgio Mancusi "
-       "and Rody Vilchez. The question behind this paper is simple: how should a small sign-language "
-       "model talk to a large language model? Let me start with why that is the hard part.",
-    "context": "Turning signing into text needs two skills. First, seeing: extracting linguistic evidence "
-       "from motion. Second, writing: turning that evidence into language. Large language models are "
-       "already very good at the second part. The open question is the bridge: what exactly should a "
-       "visual model hand to the language model? Several answers exist: pseudo-glosses as in Sign2GPT, "
-       "hierarchical sign tokens as in SignLLM, or keeping visual and language learning separate. In "
-       "speech, systems pass continuous prompts or token embeddings. [pause] Our own first answer was this.",
+       "and Rody Vilchez. Imagine someone looks into a camera and signs something they want you to know. "
+       "The message is right there in the movement. The language model already knows how to write it "
+       "in Spanish, if we can give it what the person said. That is where Imitator began.",
+    "context": "The idea was to take advantage of something the LLM already knows how to do: write "
+       "fluent language. A small adapter would learn to read the movement and express what it saw in "
+       "the LLM's own input format. A prompt could then ask the LLM to refine that draft. The question "
+       "that mattered first was what the adapter should produce. [pause] We started with embeddings.",
     "history": "In our earlier, published Imitator, a small visual model read 2D keypoints and produced "
        "continuous vectors meant to sit close to the frozen LLM's own input embeddings. The idea is that a "
        "compact model can learn the input language of a large one. Training used mean-squared and cosine "
@@ -635,21 +635,25 @@ NOTES = {
     3: "From 2D keypoints, 111 per frame, a spatial-temporal graph encoder with positional encoding builds "
        "visual memory. A small causal Transformer decoder emits Gemma IDs until end-of-sequence. The task "
        "uses 118 Gemma content IDs, so the output layer has 121 rows that map one-to-one back to the real "
-       "IDs. Important: we score this transcription on its own, before Gemma, so a fluent LLM cannot hide "
-       "a visual error. Gemma 3n is frozen and audited separately. Next, how we evaluated it.",
+       "IDs. Downstream, the decoded draft can go to frozen Gemma with an instruction such as: "
+       "this came from sign language recognition and may contain errors; correct it when the evidence "
+       "supports a change. That is an illustrative instruction. We score the visual draft before the "
+       "prompt stage. [pause] Can Imitator even give Gemma one correct label?",
     4: "We use LSA64: 64 Argentinian signs from ten signers. The target is the Gemma tokenization "
        "of each Spanish label. First we ask whether the visual bridge can recognize one sign. Then, "
        "as a step toward our original goal of translating sentences, we test two to eight signs in "
-       "random order. This tests ordered transcription without sentence syntax. For that sequence "
+       "random order by joining videos that each contain one sign. It is a controlled step toward "
+       "video with several signs. The clips have no natural sentence syntax. For that sequence "
        "benchmark, folds 7 and 8 were held back for preregistered confirmation.",
     "isolated": "For the isolated test, we evaluate all 320 clips of each held-out signer. A strict "
                 "match requires every Gemma ID and an end-of-sequence token. Edit similarity measures "
                 "partial matches. The retrained folds use the same signer splits and sequence training "
                 "protocol. The replicas correctly transcribe 44 of 320 clips on fold 7 and 35 of 320 "
-                "on fold 8. The decoder emits EOS on every clip, but 77.81 and 79.06 percent of the "
+                "on fold 8. In one clip, the signer signed música, and Imitator wrote música música. "
+                "It got the word, then said it again. The decoder emits EOS on every clip, but 77.81 and 79.06 percent of the "
                 "outputs are longer than the reference. E1 trained on sequences of at least two signs, "
-                "so stopping after one sign is a distinct challenge. Next, the original sequence benchmark "
-                "asks how far the approach carries over to two to eight signs.",
+                "so stopping after one sign is a distinct challenge. Now imagine a video has several "
+                "signs. Can we recover their labels in the order they were signed?",
     5: "On the development signers, strict accuracy, meaning the whole sequence exactly right, goes from about "
        "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
        "positional encoding moved pairwise label order from chance to about 0.99. But to be clear: most "
@@ -658,21 +662,23 @@ NOTES = {
        "pre-registered 11.9 threshold, against 1.8 and 2.7 for CIF. Paired, it wins 99 times and loses 3 on "
        "signer 7, and 108 to 6 on signer 8. Edit similarity is 53 and 59 percent. And if we shuffle the "
        "sign segments while keeping the target, edit similarity drops by about 0.35: the order really comes "
-       "from the video. All three criteria pass. In a separate audit, we asked whether Gemma could recover "
-       "an isolated word when some of its tokens are wrong.",
+       "from the video. All three criteria pass. Now back to the idea that started Imitator: could a "
+       "correction prompt help Gemma recover a word when the visual draft gets some tokens wrong?",
     7: "For illustration, if per, fu, me became per, ma, me, could the surviving pieces still suggest "
        "perfume? Those pieces are schematic. In the audit, we replaced IDs at selected positions in "
        "reference labels of at least two IDs. Replacements came from real one-ID LSA64 labels. At each "
        "nominal rate, Gemma received 120 decoded inputs and an explicit correction prompt. It preserved "
        "95 percent of clean inputs. At the tested nonzero rates, exact match stayed at zero and chrF "
        "decreased. This measures recovery for synthetic substitutions in isolated labels.",
-    8: "To summarise: predicting exact token IDs turns the bridge into something we can measure. On unseen "
+    8: "We started with a signer in front of a camera and a model that already knows how to write. "
+       "The adapter gives that model a draft in its own vocabulary. On unseen "
        "signers the original checkpoints give 12 to 14 percent fully correct, visually ordered sequences. "
        "The replicas give about 11 to 14 percent strict accuracy on isolated signs. In the exploratory "
        "audit, Gemma did not recover an exact "
        "label at the tested nonzero rates. Limits: one training seed, synthetic streams and two "
-       "confirmation signers. Next, we want a pre-registered sentence corpus, and passing top-k "
-       "alternatives to the LLM while still scoring the transcript.",
+       "confirmation signers. Think back to the person in front of the camera. We want a reader to "
+       "receive that person's message. The next test is real signed sentences, where we can measure "
+       "how much of the message the adapter preserves and what the correction prompt adds.",
     9: "Thank you. I am happy to take questions.",
     10: "Backup for questions on interpretability. For one unseen-signer sequence, input-times-gradient and "
         "region ablation both point to the left hand for the central subtokens. It is a single example, so "

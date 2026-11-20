@@ -4,23 +4,25 @@ Deck: `imitator_waimlap2026.pptx` (rebuild: `~/miniconda3/envs/deck-tools/bin/py
 Source: the draft in `paper/content/full/`. Isolated-sign metrics come from the retrained folds 7–8.
 Format: 10 min talk + 5 min questions. 12 slides plus 1 backup. The word-for-word script is in each slide's PowerPoint notes.
 
-**Goal:** explain how exact Gemma IDs let us measure the visual bridge. Start with one isolated sign,
-then test ordered transcription on synthetic streams of 2–8 signs as a step toward sentence translation.
-End with a separate exploratory audit of Gemma's ability to recover corrupted isolated labels.
+**Story:** someone signs a message into a camera. An LLM already knows how to write in Spanish.
+Imitator is the small visual adapter that gives it a draft in its own input format. The first
+version imitated embeddings. This version predicts token IDs, which we can check before Gemma
+sees the draft. Start with one isolated sign, then test ordered transcription on synthetic
+streams of 2–8 signs. End by asking how much a correction prompt can recover from a damaged draft.
 
 | # | Claim (title) | Evidence on slide | Look first at | Transition | ~time |
 |---|---|---|---|---|---|
-| 1 | — (title) | — | — | "How should a small sign model talk to an LLM?" | 0:20 |
-| 2 | Sign-to-text needs a bridge between vision and language | See → interface? → write; prior bridges (Sec. 1–2) | Dashed "Interface ?" box | "Our own first answer was this" | 1:00 |
-| 3 | Our first Imitator imitated the LLM's input embeddings | Original pipeline; loss ≈ 8×10⁻⁴ (Sec. 1, 3) | Purple "Vectors ≈ embeddings" box | "Does the LLM read them as the intended words?" | 0:50 |
-| 4 | Close to the right embedding is not the right token | Limits vs this work (grey vs teal card) | Teal card | "Let me show the pipeline" | 0:50 |
-| 5 | Imitator writes exact Gemma IDs; Gemma only reads text | Pipeline diagram, scoring brackets | Purple "Exact Gemma IDs" box | "How we evaluated it" | 1:00 |
-| 6 | From one isolated sign to ordered sign sequences | LSA64, signer splits, sequence criteria | Purple folds 7–8 | "Start with one sign" | 0:50 |
-| 7 | Can Imitator recover the exact IDs of one sign? | 13.75% and 10.94% strict accuracy; 77.81% and 79.06% emit more tokens than the reference | Folds 7–8 | "Next, two to eight signs" | 0:30 |
+| 1 | — (title) | Picture a signer sharing a message into a camera | — | "That is where Imitator began" | 0:20 |
+| 2 | The LLM can write Spanish. How can it read a sign? | Signer → small adapter → LLM | Imitator | "We started with embeddings" | 1:00 |
+| 3 | First attempt: imitate the embeddings | Original pipeline; loss ≈ 8×10⁻⁴ (Sec. 1, 3) | Purple "Vectors ≈ embeddings" box | "Does the LLM read them as the intended words?" | 0:50 |
+| 4 | This time, Imitator learns to emit Gemma’s token IDs | Limits of embeddings and exact Gemma IDs | Teal card | "Let me show the pipeline" | 0:50 |
+| 5 | Imitator drafts from signs. Gemma gets a correction prompt. | Keypoints → token IDs → decoded draft with an illustrative correction instruction | Gemma box | "Can we give Gemma one correct label?" | 1:00 |
+| 6 | One sign first. Then several signs in order. | LSA64, signer splits, sequence criteria | Purple folds 7–8 | "Start with one sign" | 0:50 |
+| 7 | Can Imitator recover the exact IDs of one sign? | “música música”; 13.75% and 10.94% strict accuracy; 77.81% and 79.06% with extra tokens | One clip example | "What happens when the video has several signs?" | 0:30 |
 | 8 | On 2–8 signs, strict accuracy rises about tenfold | Bars folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | Purple bars | "Does it hold on new signers?" | 0:50 |
 | 9 | Both held-out signers pass all three criteria | Bars folds 7–8 vs CIF + 11.9% line; H1–H3 | Purple bars above dashed line | "Could Gemma recover a corrupted label?" | 1:10 |
 | 10 | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | 0% bars | "To summarise" | 1:00 |
-| 11 | Exact IDs make the visual bridge measurable | 3 takeaways and 3 limits/next steps | Teal card | — | 1:00 |
+| 11 | A small adapter gives Gemma a draft. Can it make a sentence? | Three findings and the next test on real signed sentences | Teal card | Return to the person at the camera | 1:00 |
 | 12 | Thank you · Questions? | — | — | — | 0:10 |
 | B | Backup: left hand drives central subtokens (one example) | Paper Fig. 3 | — | only if asked | — |
 
@@ -51,10 +53,10 @@ Visual choices:
 ## Animations (click order)
 Everything uses a 0.5 s fade-in. Titles and charts are visible from the start; only the supporting elements appear on click.
 On slides 2, 3 and 5 the slide opens with the title centred; click ① glides it up to its normal place (1 s, ease in/out) where it stays, then the first content appears. The glide plays in PowerPoint, Keynote and LibreOffice. Google Slides has no motion effect, so there the title snaps to its place on that click (no overlap, no exit). Present from PowerPoint to get the movement.
-- **2 Context:** ① "See the signs" ② arrow + "Interface ?" ③ arrow + "Write the language" ④ prior bridges.
+- **2 Context:** ① "A signer moves" ② arrow + "Imitator" ③ arrow + "The LLM writes" ④ the research question.
 - **3 History:** ① keypoints → visual model ② vectors ≈ embeddings ③ frozen LLM ④ premise + loss ⑤ open question.
 - **4 Turning point:** ① "This work" card.
-- **5 Pipeline:** ① the five boxes left to right ② scoring brackets ③ bullets.
+- **5 Pipeline:** ① the five boxes left to right ② scoring brackets ③ illustrative correction instruction.
 - **6 Protocol:** ① fold strip ② preregistered criteria.
 - **8 Development:** ① key result ② positional encoding ③ remaining sequence errors.
 - **9 Confirmation:** ① H1 ② H2 ③ H3.
