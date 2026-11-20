@@ -3,7 +3,8 @@
 Follows the draft in paper/content/full, including the exploratory
 isolated-sign results from the retrained folds 7–8.
 
-Run:  ~/miniconda3/envs/deck-tools/bin/python build_deck.py
+Run:  PATH=~/miniconda3/envs/deck-tools/bin:$PATH python build_deck.py
+(needs python-pptx, matplotlib, segno and pdftoppm from that env)
 """
 import copy
 import subprocess
