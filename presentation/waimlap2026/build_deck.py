@@ -85,28 +85,27 @@ def make_figures():
     fig.savefig(FIG / "dev_accuracy.png", dpi=220)
     plt.close(fig)
 
-    # Confirmation folds 7-8: whole-video (strict) accuracy by number of signs in the video.
-    # Source: conditions.clean.stratified.by_sign_count in
+    # Confirmation folds 7-8, all 896 videos of 2-8 signs per signer pooled.
+    # Source: conditions.clean.gloss_diagnostics (gloss_recall, pairwise_order_accuracy) in
     # outputs/video_token_decoder/fold{7,8}_seed23/e1_pe_vocab121/outer_test_robustness.json
-    # (same frozen evaluation as the paper's 12.5% / 14.1%; this breakdown is not in the paper).
-    n_signs = list(range(2, 9))
-    by_len = {"Signer 7": [39.8, 20.1, 11.0, 10.8, 2.8, 0.8, 0.0],
-              "Signer 8": [51.7, 20.1, 17.5, 4.7, 0.9, 1.7, 0.0]}
+    # (same frozen evaluation as the paper; the per-sign figure is not in the paper).
+    groups = ["Signs written\ncorrectly", "Recognised sign pairs\nin the right order"]
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    w = 0.38
-    for k, ((name, vals), col) in enumerate(zip(by_len.items(), ("#" + PURPLE, "#A98BD0"))):
-        bars = ax.bar([x + (k - 0.5) * w for x in n_signs], vals, w, color=col, label=name)
+    w = 0.36
+    for k, (name, vals, col) in enumerate((("Signer 7", [53.7, 98.2], "#" + PURPLE),
+                                           ("Signer 8", [58.6, 98.9], "#A98BD0"))):
+        bars = ax.bar([x + (k - 0.5) * w for x in range(2)], vals, w, color=col, label=name)
         for b_ in bars:
-            ax.annotate(f"{b_.get_height():.0f}", (b_.get_x() + b_.get_width() / 2, b_.get_height()),
-                        xytext=(0, 3), textcoords="offset points", ha="center", fontsize=12,
-                        color="#" + TEXT)
-    ax.set(ylim=(0, 60), xticks=n_signs, xlabel="Number of signs in the video",
-           ylabel="Videos with every sign exact (%)")
+            ax.annotate(f"{b_.get_height():.0f}%", (b_.get_x() + b_.get_width() / 2, b_.get_height()),
+                        xytext=(0, 4), textcoords="offset points", ha="center",
+                        color="#" + PURPLE, fontweight="bold")
+    ax.set(ylim=(0, 110), xticks=range(2), xticklabels=groups, yticks=range(0, 101, 20),
+           ylabel="% (videos of 2–8 signs)")
     ax.yaxis.grid(True, color="#E3E5E9", linewidth=0.8)
     ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="upper right")
+    ax.legend(frameon=False, loc="upper left")
     fig.tight_layout()
-    fig.savefig(FIG / "strict_by_signs.png", dpi=220)
+    fig.savefig(FIG / "signs_and_order.png", dpi=220)
     plt.close(fig)
 
     # Same diagnostic on both replicas: the complete reference is an output prefix.
@@ -546,19 +545,18 @@ def build():
 
     # 6 · Result: confirmation ------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[6], section="Results · several signs, unseen signers")
-    title(s, "On unseen signers, Imitator recovers over half of the signs")
-    picture_in(s, 104, FIG / "strict_by_signs.png")
+    title(s, "On unseen signers: over half of the signs, in the right order")
+    picture_in(s, 104, FIG / "signs_and_order.png")
     fill_text(ph(s, 105), [
         ("54–59%", {"bold": True, "size": 32, "color": PURPLE, "space_after": 2}),
-        ("of the signs in the videos are written correctly", {"size": 16, "space_after": 14}),
-        ("12.5% and 14.1%", {"bold": True, "size": 22, "color": PURPLE, "space_after": 2}),
-        ("of videos have every sign exact. One slip fails the whole video, so longer videos are "
-         "harder. Earlier model: 1.8% and 2.7%", {"size": 16, "space_after": 14}),
-        ("Order comes from the video", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
-        ("98–99% of sign pairs in the right order", {"size": 16}),
+        ("of the signs are written correctly, across all videos of 2–8 signs", {"size": 16, "space_after": 16}),
+        ("98–99%", {"bold": True, "size": 32, "color": PURPLE, "space_after": 2}),
+        ("of the sign pairs it recognises come out in the right order", {"size": 16, "space_after": 16}),
+        ("Every sign exact in the whole video: 12.5% and 14.1% (earlier model: 1.8% and 2.7%)",
+         {"size": 14, "color": GREY}),
     ])
     side = ph(s, 105)
-    animate(s, [([(side, 0, 1)], 0), ([(side, 2, 3)], 0), ([(side, 4, 5)], 0)])
+    animate(s, [([(side, 0, 1)], 0), ([(side, 2, 3)], 0), ([(side, 4, 4)], 0)])
 
     # 7 · Result: Gemma audit -------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[7], section="Results · can the LLM repair a draft?")
@@ -584,7 +582,7 @@ def build():
           "(exact, including the stop: 11–14%)",
           "Several signs in one video: 54–59% of the signs written correctly on unseen signers; "
           "every sign exact in 12.5–14.1% of videos, up from 1.8–2.7%",
-          "The order is read from the video: 98–99% of sign pairs in the right order"]),
+          "The order comes from the video: 98–99% of recognised sign pairs in the right order"]),
         (105, CARD_GREY, None, "Limits",
          ["One training seed (23) and two confirmation signers",
           "Joined clips: no sentence syntax, no transitions between signs",
@@ -696,16 +694,14 @@ NOTES = {
        "from about 2 percent with our initial decoder to 17 to 20 percent. Roughly ten times. Adding "
        "positional encoding moved the order of the signs from chance to about 99 percent of pairs. "
        "[pause] Does it hold on new signers?",
-    6: "On the two signers we had never touched, look first at the signs one by one: Imitator writes 54 "
-       "and 59 percent of the signs in the videos correctly. More than half. [click] The strict number is "
-       "lower, 12.5 and 14.1 percent, and it does not mean one sign out of eight. It is the share of "
-       "videos where every single sign is exact. The chart shows why: with two signs, 40 and 52 percent "
-       "of videos are fully exact. With eight signs, none are, because one slip anywhere fails the video. "
-       "Our earlier model, CIF, had 1.8 and 2.7 percent on the same videos. [click] And the order is "
-       "read from the video: 98 to 99 percent of sign pairs come out in the right order, and if we "
-       "shuffle the video segments, edit similarity drops by about 35 points. Now back to the idea that "
-       "started Imitator: could a correction prompt help Gemma recover a word when the draft gets some "
-       "tokens wrong?",
+    6: "On the two signers we had never touched, taking all the videos together, from two to eight "
+       "signs, Imitator writes 54 and 59 percent of the signs correctly. More than half. [click] And "
+       "the order: when it recognises two signs of a video, they come out in the right order 98 to 99 "
+       "percent of the time. If we shuffle the video segments, the output changes with them, so the "
+       "order really comes from the video. [click] The strictest number asks for the whole video with "
+       "every sign exact: 12.5 and 14.1 percent, against 1.8 and 2.7 for our earlier model. It is low "
+       "because one slip anywhere fails the whole video. Now back to the idea that started Imitator: "
+       "could a correction prompt help Gemma recover a word when the draft gets some tokens wrong?",
     7: "For illustration, if per, fu, me became per, ma, me, could the surviving pieces still suggest "
        "perfume? Those pieces are schematic. In the audit, we replaced IDs at selected positions in "
        "reference labels of at least two IDs. Replacements came from real one-ID LSA64 labels. At each "
