@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 import matplotlib
+import segno
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -34,6 +35,7 @@ TEXT, GREY = "464F5E", "6B7380"
 LT_TEAL, TEAL_LINE, LAVENDER = "EAF8F9", "C9ECF0", "D9C8EE"
 CONTEXT = "B4BAC4"  # neutral grey for comparison / context marks
 CARD_GREY = "F1F2F4"
+LINKEDIN = "https://www.linkedin.com/in/christian-velasquez-borasino/"
 
 
 def rgb(h):
@@ -139,6 +141,9 @@ def make_figures():
     fig.tight_layout()
     fig.savefig(FIG / "gemma_audit.png", dpi=220)
     plt.close(fig)
+
+    # QR for the closing slide (white quiet zone so it scans on the dark background)
+    segno.make(LINKEDIN, error="m").save(str(FIG / "linkedin_qr.png"), scale=20, border=3)
 
     # Paper figure for the backup slide
     subprocess.run(["pdftoppm", "-png", "-r", "220", "-singlefile",
@@ -605,6 +610,10 @@ def build():
         ("Christian Velasquez Borasino", {"bold": True, "size": 20, "color": "FFFFFF"}),
         ("Universidad Peruana de Ciencias Aplicadas (UPC)  ·  Paper ID 58", {"size": 18, "color": LAVENDER}),
     ])
+
+    s.shapes.add_picture(str(FIG / "linkedin_qr.png"), Inches(10.3), Inches(3.6), width=Inches(2.3))
+    t = s.shapes.add_textbox(Inches(10.3), Inches(5.95), Inches(2.3), Inches(0.4))
+    fill_text(t, [("LinkedIn", {"bold": True, "size": 16, "color": "FFFFFF", "align": PP_ALIGN.CENTER})])
 
     # 10 · Backup -------------------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[10], section="Backup")

@@ -31,7 +31,7 @@ Visual choices:
 
 ## Fill in before the talk
 - Session and Paper ID are filled in: Oral Session 10 · Paper ID 58.
-- Contact email or repository on slide 13, if you want them shown.
+- Slide 13 shows a QR code to the presenter's LinkedIn profile. Scan it once from the projected slide before the talk.
 
 ## Likely questions (answer only from the paper)
 - **How is one sign scored?** We require the complete token ID sequence for its Spanish label plus EOS. We evaluate 320 clips per held-out signer with retrained models. This is a separate exploratory evaluation from the original 2–8-sign confirmation.
