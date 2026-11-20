@@ -4,33 +4,29 @@ Deck: `imitator_waimlap2026.pptx` (rebuild: `~/miniconda3/envs/deck-tools/bin/py
 Source: the draft in `paper/content/full/`. Isolated-sign metrics come from the retrained folds 7–8.
 Format: 10 min talk + 5 min questions. 13 slides plus 1 backup. The word-for-word script is in each slide's PowerPoint notes.
 
-**Story:** open with a short sign clip the audience cannot read. An LLM already knows language, but not sign language.
-Imitator is the small visual adapter that gives it a draft in its own input format. The first
-version imitated embeddings. This version predicts token IDs, which we can check before Gemma
-sees the draft. Start with one isolated sign, then test ordered transcription on synthetic
-streams of 2–8 signs. End by asking how much a correction prompt can recover from a damaged draft.
+**Story:** open with a short sign clip the audience cannot read. The LLM knows language but not sign language, so do we need a translator from scratch, or just a small adapter? One slide of previous work (embeddings), then the talk is ours: methodology, results, conclusions, future work. A small tag above each title names the section.
 
-| # | Claim (title) | Evidence on slide | Look first at | Transition | ~time |
+| # | Section | Claim (title) | Evidence on slide | Transition | ~time |
 |---|---|---|---|---|---|
-| 1 | — (title) | — | — | "Let me show you a short video" | 0:10 |
-| 2 | What did this person just say? | LSA64 clip of the sign "Perfume" (signer 7); video-understanding question | The clip | "Its input is text, and this is movement" | 0:40 |
-| 3 | The LLM knows language. It does not know sign language. | Signer … LLM, the question "train a translator from scratch?", then the small adapter | The question | "What should the adapter hand over?" | 0:50 |
-| 4 | What should the adapter output: embeddings or token IDs? | The LLM's input path (text → token IDs → embeddings → LLM) with the two options; first Imitator, loss ≈ 8×10⁻⁴ | The two dashed option boxes | "Did the LLM get the right words?" | 0:55 |
-| 5 | A low loss could not tell us what the LLM would read | What embedding imitation left open vs. exact token IDs | Teal card | "Here is how" | 0:50 |
-| 6 | Imitator now writes Gemma’s own token IDs | Video → encoder → decoder → Gemma IDs → Gemma 3n; scored before the LLM | Purple "Gemma token IDs" box | "Start with the easiest case: one sign" | 0:55 |
-| 7 | One sign first. Then several signs in order. | LSA64, the two tasks, folds 1–8 (reserved folds 9–10 not drawn) | Purple folds 7–8 | "Does Imitator write the right label?" | 0:50 |
-| 8 | On one sign, does the output start with the right label? | Correct prefix on 229/320 and 220/320 clips, with 95% intervals | Comparison of folds 7 and 8 | "What happens when the video has several signs?" | 0:30 |
-| 9 | On 2–8 signs, strict accuracy rises about tenfold | Bars folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | Purple bars | "Does it hold on new signers?" | 0:50 |
-| 10 | Both held-out signers pass all three criteria | Bars folds 7–8 vs CIF + 11.9% line; H1–H3 | Purple bars above dashed line | "Could Gemma recover a corrupted label?" | 1:10 |
-| 11 | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | 0% bars | "To summarise" | 1:00 |
-| 12 | A small adapter gives Gemma a draft. Can it make a sentence? | Three findings and the next test on real signed sentences | Teal card | Return to the person at the camera | 1:00 |
-| 13 | Thank you · Questions? | — | — | — | 0:10 |
-| B | Backup: left hand drives central subtokens (one example) | Paper Fig. 3 | — | only if asked | — |
+| 1 | — | (title) | — | "Let me show you a short video" | 0:10 |
+| 2 | Motivation | What did this person just say? | LSA64 clip of the sign "Perfume" (signer 7) | "Its input is text, and this is movement" | 0:40 |
+| 3 | Motivation | The LLM knows language. It does not know sign language. | Signer … LLM, "train a translator from scratch?", then the small adapter | "What should the adapter hand over?" | 0:50 |
+| 4 | Previous work | Before: imitate embeddings. Now: write token IDs. | LLM input path; first Imitator (loss ≈ 8×10⁻⁴) vs. this work | "Here is the model" | 1:00 |
+| 5 | Methodology · model | Imitator now writes Gemma’s own token IDs | Video → encoder → decoder → Gemma IDs → Gemma 3n; scored before the LLM | "Start with the easiest case: one sign" | 0:55 |
+| 6 | Methodology · evaluation | One sign first. Then several signs in order. | LSA64, the two tasks, folds 1–8 | "Does Imitator write the right label?" | 0:50 |
+| 7 | Results · one sign | On one sign, does the output start with the right label? | Correct prefix on 229/320 and 220/320 clips, 95% intervals | "What if the video has several signs?" | 0:45 |
+| 8 | Results · several signs, development | On 2–8 signs, strict accuracy rises about tenfold | Folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | "Does it hold on new signers?" | 0:35 |
+| 9 | Results · several signs, unseen signers | Both held-out signers pass all three preregistered criteria | Folds 7–8 vs CIF + 11.9% line; H1–H3 | "Could Gemma recover a corrupted label?" | 0:50 |
+| 10 | Results · can the LLM repair a draft? | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | "To conclude" | 0:45 |
+| 11 | Conclusions | A small adapter can write a draft in Gemma’s own token IDs | What we showed · Limits | "So what comes next" | 0:45 |
+| 12 | Future work | Next: real signed sentences | Three directions + the goal | Return to the person in the clip | 0:35 |
+| 13 | — | Thank you · Questions? | — | — | 0:10 |
+| B | Backup | Left hand drives central subtokens (one example) | Paper Fig. 3 | only if asked | — |
 
 Visual choices:
 - **Context slides:** slides 3–5 use the same box-and-arrow language as the pipeline slide, so the new design reads as a change to one box.
 - **Colour:** purple marks our model and grey marks comparisons. Teal marks thresholds and labels.
-- **Accuracy scale:** slides 9 and 10 share the same 0–25% axis. Bars start at 0, and every bar has its value label.
+- **Accuracy scale:** slides 8 and 9 share the same 0–25% axis. Bars start at 0, and every bar has its value label.
 - **Gemma audit:** shown as two small panels (exact match, then chrF). This avoids a dual-axis chart.
 
 ## Fill in before the talk
@@ -56,19 +52,23 @@ Visual choices:
 - **Is Imitator trained from scratch? How big is it?** The encoder's ST-GCN and projection are initialised from our earlier CIF model and kept frozen; there is no external pretraining. The paper does not state parameter counts.
 - **Which Gemma, and what is the end marker?** Gemma 3n E2B, frozen. The end marker is implemented with Gemma's end-of-turn ID.
 - **What prompt did the audit use?** A fixed few-shot correction prompt in Spanish. The slides no longer quote an instruction.
+- **If Imitator already writes text, what does Gemma add? Why not classify 64 signs?** In this paper Gemma contributes its vocabulary and the separate audit; it did not repair the tested errors. Token IDs are the interface we want for sentences, where the LLM would have context. That is future work, and the 121-row output must be expanded and revalidated for it.
+- **Why are the baselines different on the development and confirmation slides?** Development compares against our initial decoder, which lacked positional encoding. Confirmation compares against CIF because the preregistration named it.
+- **Why is one sign no better than several?** Different checkpoints (replicas vs. originals), and the replicas run long on single clips: they were trained on streams of two or more signs.
+- **Development folds 1–3?** E1 development results exist for folds 4–6 only.
 - **Why did the order become correct?** Sinusoidal positional encoding. Without it, permuting segments left 86.3% of predictions unchanged. With it, shuffling drops edit similarity by 0.34–0.38.
 - If a question goes beyond this: say "we have not evaluated that".
 
 ## Animations (click order)
-Supporting elements use a 0.5 s fade-in. On slides 3, 4 and 6, a single centred title is visible at first. Click ① moves that title straight up to the header over 1 second. The first group of content begins to appear once the title arrives. Present from PowerPoint to play the motion path.
+Supporting elements use a 0.5 s fade-in. On slides 3, 4 and 5, a single centred title is visible at first. Click ① moves that title straight up to the header over 1 second, and the first group of content appears once it arrives. Present from PowerPoint to play the motion path.
 - **2 Hook:** click the clip itself to play it (it loops). Then ① "Could it understand this one?" ② the answer, "Perfume".
-- **3 Context:** ① "A signer moves" ② "The LLM writes" ③ the question "train a sign translator from scratch?" ④ arrows + "A small adapter?".
-- **4 Embeddings or token IDs:** ① the LLM's input path ② the two option boxes ③ the first Imitator and its loss.
-- **5 Turning point:** ① "This work" card.
-- **6 Pipeline:** ① the five boxes left to right ② scoring brackets ③ why we score before the LLM.
-- **7 Protocol:** ① fold strip ② the three rules.
-- **9 Development:** ① key result ② positional encoding ③ remaining sequence errors.
-- **10 Confirmation:** ① H1 ② H2 ③ H3.
-- **11 Gemma audit:** ① clean input ② tested nonzero rates ③ chrF and the schematic example.
-- **12 Conclusions:** ① "Limits → next step" card.
-- Slides 1, 8, 13 and the backup have no animations.
+- **3 Motivation:** ① "A signer moves" ② "The LLM writes" ③ "train a sign translator from scratch?" ④ arrows + "A small adapter?".
+- **4 Previous work:** ① the LLM's input path ② previous work card ③ this work card.
+- **5 Model:** ① the five boxes left to right ② scoring brackets ③ why we score before the LLM.
+- **6 Evaluation:** ① fold strip ② the three rules.
+- **8 Development:** ① key result ② positional encoding ③ remaining sequence errors.
+- **9 Confirmation:** ① H1 ② H2 ③ H3.
+- **10 Gemma audit:** ① clean input ② tested nonzero rates ③ chrF and the schematic example.
+- **11 Conclusions:** ① "Limits" card.
+- **12 Future work:** ① real sentences ② correction in context ③ richer drafts ④ the goal.
+- Slides 1, 7, 13 and the backup have no animations.

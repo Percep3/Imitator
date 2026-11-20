@@ -76,7 +76,7 @@ def make_figures():
     # Development folds 4-6 (07_results.tex, first paragraph)
     fig, ax = plt.subplots(figsize=FIGSIZE)
     bar_pair(ax, ["Signer 4", "Signer 5", "Signer 6"], [2.2, 2.3, 1.8], [18.1, 19.8, 16.9],
-             "Initial autoregressive decoder", "imitator_e1")
+             "Our initial decoder (no positional encoding)", "Imitator (this work)")
     ax.set_xlabel("Development folds (held-out test signer)")
     fig.tight_layout()
     fig.savefig(FIG / "dev_accuracy.png", dpi=220)
@@ -85,8 +85,8 @@ def make_figures():
     # Prospective confirmation folds 7-8 (results_macros.tex)
     fig, ax = plt.subplots(figsize=FIGSIZE)
     bar_pair(ax, ["Signer 7", "Signer 8"], [1.8, 2.7], [12.5, 14.1],
-             "Historical affine CIF", "imitator_e1")
-    ax.axhline(11.9, color="#" + TEAL, linestyle="--", linewidth=2, label="H2 threshold (11.9%)")
+             "Our earlier model (CIF)", "Imitator (this work)")
+    ax.axhline(11.9, color="#" + TEAL, linestyle="--", linewidth=2, label="Pass mark fixed in advance (11.9%)")
     ax.legend(frameon=False, loc="upper left")
     ax.set_xlim(-0.6, 1.6)
     ax.set_xlabel("Prospective confirmation folds (held-out test signer)")
@@ -99,15 +99,15 @@ def make_figures():
     values = [71.5625, 68.75]
     bounds = [(60.9375, 81.2578125), (58.75, 78.75)]
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    bars = ax.bar(["Fold 7", "Fold 8"], values, width=0.48, color="#" + PURPLE,
+    bars = ax.bar(["Signer 7", "Signer 8"], values, width=0.48, color="#" + PURPLE,
                   yerr=[[v - lo for v, (lo, _) in zip(values, bounds)],
                         [hi - v for v, (_, hi) in zip(values, bounds)]],
                   error_kw={"ecolor": "#" + NAVY, "capsize": 7, "elinewidth": 2, "capthick": 2})
     for bar, value in zip(bars, values):
         ax.text(bar.get_x() + bar.get_width() / 2, 45, f"{value:.1f}%", ha="center",
                 color="white", fontweight="bold", fontsize=22)
-    ax.set(ylim=(0, 100), ylabel="Correct label prefix (%)",
-           xlabel="Error bars: 95% bootstrap intervals by gloss")
+    ax.set(ylim=(0, 100), ylabel="Output starts with the right label (%)",
+           xlabel="Error bars: 95% bootstrap intervals over the 64 signs")
     ax.yaxis.grid(True, color="#E3E5E9", linewidth=0.8)
     ax.set_axisbelow(True)
     fig.tight_layout()
@@ -354,8 +354,11 @@ def build():
         prs.part.drop_rel(sid.rId)
         lst.remove(sid)
 
-    def new(layout, notes, number=True):
+    def new(layout, notes, number=True, section=None):
         s = prs.slides.add_slide(L[layout])
+        if section:  # small tag above the title: which part of the talk we are in
+            tag = s.shapes.add_textbox(Inches(0.6), Inches(0.14), Inches(6), Inches(0.32))
+            fill_text(tag, [(section.upper(), {"bold": True, "size": 13, "color": TEAL})], space_after=0)
         if number:
             s.shapes._spTree.append(copy.deepcopy(sldnum))
         s.notes_slide.notes_text_frame.text = notes
@@ -374,7 +377,7 @@ def build():
                             {"bold": True, "size": 14, "color": TEAL, "align": PP_ALIGN.RIGHT})])
 
     # 2 · Hook: a sign the audience cannot read --------------------------------
-    s = new("WAIMLAp Content", NOTES["hook"])
+    s = new("WAIMLAp Content", NOTES["hook"], section="Motivation")
     title(s, "What did this person just say?")
     drop(s, 104)
     vw, vh = Inches(6.6), Inches(6.6 * 9 / 16)
@@ -393,7 +396,7 @@ def build():
     animate(s, [([(t, 1, 1)], 0), ([(t, 2, 3)], 0)])
 
     # 3 · The LLM knows language; do we need a translator from scratch? ---------
-    s = new("WAIMLAp Content", NOTES["context"])
+    s = new("WAIMLAp Content", NOTES["context"], section="Motivation")
     title(s, "The LLM knows language. It does not know sign language.")
     drop(s, 104)
     f = flow(s, [
@@ -406,11 +409,11 @@ def build():
                    {"bold": True, "size": 24, "color": PURPLE, "align": PP_ALIGN.CENTER})])
     animate(s, [([f[0]], 0), ([f[4]], 0), ([q], 0), ([f[1], f[3], f[2]], 250)], intro=title_intro(s, prs))
 
-    # 4 · Embeddings or token IDs? ---------------------------------------------
-    s = new("WAIMLAp Content", NOTES["history"])
-    title(s, "What should the adapter output: embeddings or token IDs?")
+    # 4 · Previous work: embeddings; this work: token IDs ----------------------
+    s = new("WAIMLAp Content", NOTES["history"], section="Previous work")
+    title(s, "Before: imitate embeddings. Now: write token IDs.")
     drop(s, 104)
-    x0, gap, total, y0, h = 0.6, 0.45, 12.1, 1.75, 1.45
+    x0, gap, total, y0, h = 0.6, 0.45, 12.1, 1.7, 1.3
     f = flow(s, [
         ("Text", "“perfume”", CARD_GREY, None),
         ("Token IDs", "whole numbers,\none per word piece", CARD_GREY, None),
@@ -418,53 +421,25 @@ def build():
         ("Frozen LLM", "writes the text", CARD_GREY, None),
     ], y0=y0, h=h, x0=x0, total=total, gap=gap)
     w = (total - 3 * gap) / 4
-    opts = []
-    for col, head, sub, fill, line in (
-        (1, "Option: token IDs?", "the adapter writes\nthe exact numbers", "FFFFFF", PURPLE),
-        (2, "Option: embeddings?", "the adapter imitates\nthe vectors", "FFFFFF", PURPLE),
+    cards = []
+    for col, x, fill, line, head, head_col, lines in (
+        (2, 6.8, CARD_GREY, None, "Previous work: first Imitator (2025)", GREY,
+         ["Vectors close to a frozen LLM’s embeddings", "Loss ≈ 8×10⁻⁴ (preliminary)",
+          "Open: is a close vector the intended word? No exact check."]),
+        (1, 0.6, LT_TEAL, TEAL_LINE, "This work: write the token IDs", PURPLE,
+         ["Exact Gemma token IDs", "Each ID is right or wrong",
+          "Scored before the LLM reads anything"]),
     ):
-        x = x0 + col * (w + gap)
-        ob = box(s, x, 4.0, w, 1.25, fill, line)
-        ob.line.dash_style, ob.line.width = MSO_LINE.DASH, Pt(2.25)
-        fill_text(ob, [(head, {"bold": True, "size": 18, "color": PURPLE, "align": PP_ALIGN.CENTER,
-                               "space_after": 4}),
-                       (sub, {"size": 15, "align": PP_ALIGN.CENTER})])
-        opts += [ob, arrow(s, x + w / 2, 3.94, x + w / 2, y0 + h + 0.06, PURPLE)]
-    t = s.shapes.add_textbox(Inches(0.6), Inches(5.45), Inches(12.1), Inches(0.9))
-    fill_text(t, [
-        ("The first Imitator (published, 2025) imitated the embeddings.", {"bold": True, "color": NAVY,
-                                                                          "space_after": 2}),
-        ("Reported loss ≈ 8×10⁻⁴ (preliminary). Tiny. Did the LLM get the right words?", {}),
-    ], size=20)
-    animate(s, [(f, 200), (opts, 0), ([t], 0)], intro=title_intro(s, prs))
-
-    # 5 · What embeddings left open; the switch ---------------------------------
-    s = new("WAIMLAp Two Columns", NOTES[2])
-    title(s, "A low loss could not tell us what the LLM would read")
-    for idx, fill, line, head, head_col, lines in (
-        (104, CARD_GREY, None, "Embedding imitation left open", GREY,
-         ["A nearby vector may not be the intended token",
-          "No exact way to check what the LLM would receive",
-          "Test signers had also appeared in training"]),
-        (105, LT_TEAL, TEAL_LINE, "This work: write the token IDs", PURPLE,
-         ["Each ID is either right or wrong",
-          "A label counts only if every ID matches",
-          "Gemma 3n, our LLM, would receive ordinary text"]),
-    ):
-        p = ph(s, idx)
-        p.fill.solid()
-        p.fill.fore_color.rgb = rgb(fill)
-        if line:
-            p.line.color.rgb = rgb(line)
-            p.line.width = Pt(1.25)
-        tf = p.text_frame
-        tf.margin_left = tf.margin_right = tf.margin_top = Inches(0.3)
-        fill_text(p, [(head, {"bold": True, "size": 22, "color": head_col, "space_after": 16})]
-                  + [(t, {"bullet": True}) for t in lines], size=20, space_after=14)
-    animate(s, [([ph(s, 105)], 0)])
+        c = box(s, x, 3.75, 5.9, 2.6, fill, line)
+        c.text_frame.vertical_anchor = MSO_ANCHOR.TOP
+        fill_text(c, [(head, {"bold": True, "size": 20, "color": head_col, "space_after": 10})]
+                  + [(t, {"bullet": True}) for t in lines], size=18, space_after=8)
+        xa = x0 + col * (w + gap) + w / 2
+        cards.append([arrow(s, xa, 3.69, xa, y0 + h + 0.06, PURPLE if col == 1 else GREY), c])
+    animate(s, [(f, 200), (cards[0], 0), (cards[1], 0)], intro=title_intro(s, prs))
 
     # 6 · Pipeline ------------------------------------------------------------
-    s = new("WAIMLAp Content", NOTES[3])
+    s = new("WAIMLAp Content", NOTES[3], section="Methodology · model")
     title(s, "Imitator now writes Gemma’s own token IDs")
     drop(s, 104)
     stages = [
@@ -494,7 +469,7 @@ def build():
     animate(s, [(f, 250), (brackets, 0), ([t], 0)], intro=title_intro(s, prs))
 
     # 7 · Protocol ------------------------------------------------------------
-    s = new("WAIMLAp Two Columns", NOTES[4])
+    s = new("WAIMLAp Two Columns", NOTES[4], section="Methodology · evaluation")
     title(s, "One sign first. Then several signs in order.")
     fill_text(ph(s, 104), [
         ("Data: LSA64", {"bold": True, "size": 22, "color": PURPLE, "space_after": 12}),
@@ -515,7 +490,7 @@ def build():
         b = box(s, xr + k * (sq + gp), 2.3, sq, sq, fill, line, shape=MSO_SHAPE.RECTANGLE)
         b.text_frame.margin_left = b.text_frame.margin_right = 0
         fill_text(b, [(str(k + 1), {"bold": True, "size": 16, "color": fc, "align": PP_ALIGN.CENTER})], space_after=0)
-    for x, wdt, lab, col in ((xr, 6 * sq + 5 * gp, "development", GREY),
+    for x, wdt, lab, col in ((xr, 6 * sq + 5 * gp, "development (results: 4–6)", GREY),
                              (xr + 6 * (sq + gp), 2 * sq + gp, "confirmation", PURPLE)):
         t = s.shapes.add_textbox(Inches(x - 0.3), Inches(2.85), Inches(wdt + 0.6), Inches(0.35))
         fill_text(t, [(lab, {"size": 14, "bold": col == PURPLE, "color": col, "align": PP_ALIGN.CENTER})])
@@ -529,7 +504,7 @@ def build():
     animate(s, [(folds, 0), ([t], 0)])
 
     # Isolated signs ---------------------------------------------------------
-    s = new("WAIMLAp Content", NOTES["isolated"])
+    s = new("WAIMLAp Content", NOTES["isolated"], section="Results · one sign")
     title(s, "On one sign, does the output start with the right label?")
     drop(s, 104)
     width = Inches(8.6)
@@ -537,7 +512,7 @@ def build():
                          Inches(1.45), width=width)
 
     # 5 · Result: development -------------------------------------------------
-    s = new("WAIMLAp Figure", NOTES[5])
+    s = new("WAIMLAp Figure", NOTES[5], section="Results · several signs, development")
     title(s, "On 2–8 signs, strict accuracy rises about tenfold")
     picture_in(s, 104, FIG / "dev_accuracy.png")
     fill_text(ph(s, 105), [
@@ -552,23 +527,23 @@ def build():
     animate(s, [([(side, 0, 3)], 0), ([(side, 4, 4)], 0), ([(side, 5, 5)], 0)])
 
     # 6 · Result: confirmation ------------------------------------------------
-    s = new("WAIMLAp Figure", NOTES[6])
+    s = new("WAIMLAp Figure", NOTES[6], section="Results · several signs, unseen signers")
     title(s, "Both held-out signers pass all three preregistered criteria")
     picture_in(s, 104, FIG / "confirmation_accuracy.png")
     fill_text(ph(s, 105), [
-        ("H1 ✓  beats CIF", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
+        ("H1 ✓  beats our earlier model", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
         ("wins/losses 99/3 and 108/6", {"size": 16, "space_after": 14}),
         ("H2 ✓  ≥ 11.9%", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
         ("12.5% and 14.1% strict accuracy", {"size": 16, "space_after": 14}),
         ("H3 ✓  visually ordered", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
-        ("label order 0.98–0.99; shuffling segments drops edit similarity by 0.34–0.38",
+        ("98–99% of sign pairs in the right order; shuffling the video segments costs 34–38 points of edit similarity",
          {"size": 16}),
     ])
     side = ph(s, 105)
     animate(s, [([(side, 0, 1)], 0), ([(side, 2, 3)], 0), ([(side, 4, 5)], 0)])
 
     # 7 · Result: Gemma audit -------------------------------------------------
-    s = new("WAIMLAp Figure", NOTES[7])
+    s = new("WAIMLAp Figure", NOTES[7], section="Results · can the LLM repair a draft?")
     title(s, "Gemma recovered no exact label at tested nonzero rates")
     picture_in(s, 104, FIG / "gemma_audit.png")
     fill_text(ph(s, 105), [
@@ -576,24 +551,24 @@ def build():
         ("Clean input: 95% kept exact", {"size": 18, "space_after": 12}),
         ("Tested nonzero rates: 0% exact before and after", {"bold": True, "size": 18, "color": PURPLE,
                                                              "space_after": 12}),
-        ("chrF drops 0.8–2.1 points", {"size": 18, "space_after": 12}),
+        ("Character overlap (chrF) drops 0.8–2.1 points", {"size": 18, "space_after": 12}),
         ("Illustration: per / ma / me → perfume?", {"size": 18, "color": GREY}),
     ])
     side = ph(s, 105)
     animate(s, [([(side, 0, 1)], 0), ([(side, 2, 2)], 0), ([(side, 3, 4)], 0)])
 
-    # 8 · Conclusions ---------------------------------------------------------
-    s = new("WAIMLAp Two Columns", NOTES[8])
-    title(s, "A small adapter gives Gemma a draft. Can it make a sentence?")
+    # Conclusions -------------------------------------------------------------
+    s = new("WAIMLAp Two Columns", NOTES[8], section="Conclusions")
+    title(s, "A small adapter can write a draft in Gemma’s own token IDs")
     for idx, fill, line, head, lines in (
         (104, LT_TEAL, TEAL_LINE, "What we showed",
-         ["One sign: 10.94–13.75% strict accuracy on replicas",
-          "2–8 signs: 12.5–14.1% strict accuracy on held-out signers",
-          "Gemma: zero exact recoveries at tested nonzero rates"]),
-        (105, CARD_GREY, None, "Limits → next step",
-         ["One seed (23) and two confirmation signers",
-          "Next: natural sentences with syntax and real context",
-          "Pass top-k / posterior alternatives, still scoring the transcript"]),
+         ["One sign: right label first on 69–72% of clips; exact and stopped on 11–14%",
+          "2–8 signs: 12.5–14.1% strict accuracy on unseen signers, in visual order",
+          "Gemma: zero exact recoveries at tested nonzero error rates"]),
+        (105, CARD_GREY, None, "Limits",
+         ["One training seed (23) and two confirmation signers",
+          "Joined clips: no sentence syntax, no transitions between signs",
+          "Gemma has not yet read Imitator’s own drafts"]),
     ):
         p = ph(s, idx)
         p.fill.solid()
@@ -607,6 +582,22 @@ def build():
                   + [(t, {"bullet": True}) for t in lines], size=20, space_after=14)
     animate(s, [([ph(s, 105)], 0)])
 
+    # Future work -------------------------------------------------------------
+    s = new("WAIMLAp Content", NOTES["future"], section="Future work")
+    title(s, "Next: real signed sentences")
+    drop(s, 104)
+    f = flow(s, [
+        ("1 · Real sentences", "signed sentences with\nsyntax and context", LT_TEAL, TEAL_LINE),
+        ("2 · Correction in context", "can the LLM repair a draft\nwhen it has a sentence?", LT_TEAL, TEAL_LINE),
+        ("3 · Richer drafts", "pass top-k alternatives,\nstill scoring the transcript", LT_TEAL, TEAL_LINE),
+    ], y0=2.0, h=1.9, gap=0.9)
+    for c in (f[1], f[3]):  # three directions, not a pipeline
+        c._element.getparent().remove(c._element)
+    t = s.shapes.add_textbox(Inches(0.6), Inches(4.5), Inches(12.1), Inches(0.8))
+    fill_text(t, [("Goal: a reader receives the signer’s message.",
+                   {"bold": True, "size": 24, "color": PURPLE, "align": PP_ALIGN.CENTER})])
+    animate(s, [([f[0]], 0), ([f[2]], 0), ([f[4]], 0), ([t], 0)])
+
     # 9 · Closing -------------------------------------------------------------
     s = new("WAIMLAp Closing", NOTES[9], number=False)
     fill_text(ph(s, 105), [("Thank you · Questions?", {"bold": True, "size": 54, "color": "FFFFFF"})])
@@ -616,7 +607,7 @@ def build():
     ])
 
     # 10 · Backup -------------------------------------------------------------
-    s = new("WAIMLAp Figure", NOTES[10])
+    s = new("WAIMLAp Figure", NOTES[10], section="Backup")
     title(s, "Backup · Left hand drives the central subtokens (one example)")
     picture_in(s, 104, FIG / "keypoint_interpretability.png")
     fill_text(ph(s, 105), [
@@ -645,18 +636,15 @@ NOTES = {
        "small adapter is enough. A small visual model that learns to write in the LLM's own input format, "
        "while the LLM stays frozen. That is the idea we call Imitator. [pause] But if a small adapter "
        "talks to the LLM, what exactly should it hand over?",
-    "history": "When you type the word perfume, the LLM first turns it into token IDs, whole numbers, one per "
-       "word piece. Then each ID becomes an embedding, a vector, and the LLM works with those vectors. "
-       "[click] So the adapter has two doors: write the token IDs, or imitate the embeddings. [click] Our "
-       "first, published Imitator took the embedding door. It produced vectors meant to sit close to the "
-       "LLM's own embeddings, and the preliminary loss was very low, about 8 times 10 to the minus 4. "
-       "But a tiny loss leaves one question: would the LLM read those vectors as the intended words?",
-    2: "And the honest answer is: we could not tell. Being close in distance does not guarantee the "
-       "intended token, especially when the embedding space is anisotropic, meaning unevenly spread, as "
-       "reported for language-model representations. There was no exact way to check what the LLM would "
-       "receive, and the test signers had also appeared in training. [click] So in this work we keep the "
-       "idea of a small model that learns the LLM's input, but it writes the exact Gemma token IDs. Each "
-       "ID is right or wrong, and Gemma would receive ordinary text. [pause] Here is how.",
+    "history": "One slide of previous work. When you type the word perfume, the LLM first turns it into token "
+       "IDs, whole numbers, one per word piece. Each ID then becomes an embedding, a vector. [click] Our "
+       "first, published Imitator aimed at the embeddings: it produced vectors meant to sit close to the "
+       "LLM's own, and the preliminary loss was very low, about 8 times 10 to the minus 4. But closeness "
+       "does not guarantee the intended word, and we had no exact way to check what the LLM would read. "
+       "We are not saying it failed. We could not verify it. "
+       "[click] So in this work the adapter writes the exact Gemma token IDs. Each ID is right or wrong, "
+       "and we can score the draft before the LLM reads anything. [pause] That is the method. Here is "
+       "the model.",
     3: "From the video we take 2D keypoints, 111 per frame. An encoder reads the movement and keeps the "
        "order of what it saw. A small decoder then writes Gemma token IDs one at a time until an end "
        "marker. Those IDs are ordinary text for Gemma 3n, our frozen LLM. [click] We score Imitator on its "
@@ -669,38 +657,43 @@ NOTES = {
        "are joined clips, not real sentences: there is no sentence syntax. [click] Every fold tests on a "
        "signer the model never saw. [click] For signers 7 and 8 we wrote the pass marks down before "
        "testing. [pause] So: one sign, an unseen signer. Does Imitator write the right label?",
-    "isolated": "Same test on both replicas: does the output start with every token of the correct "
+    "isolated": "These are retrained copies of the model, which we call replicas, tested on single clips of "
+                "signers 7 and 8. Does the output start with every token of the correct "
                 "label? It does on 229 of 320 clips on fold 7 and 220 of 320 on fold 8. The whiskers "
-                "show 95 percent bootstrap intervals from resampling glosses within each signer. "
+                "show 95 percent bootstrap intervals from resampling the 64 signs within each signer. "
                 "They do not estimate variation across signers. A prefix match can still continue: "
                 "on one clip the signer signed música, and Imitator wrote música música. For a strict "
-                "match the decoder must stop after the label. That happens on 44 and 35 clips, "
-                "respectively. Now imagine a video has several signs. Can we recover them in order?",
+                "match the decoder must stop after the label. That happens on 44 and 35 clips, about 14 "
+                "and 11 percent. The model was trained on streams of two or more signs, so running "
+                "long is consistent with not having learned to stop after one. Now imagine a video has several signs. Can we recover them in order?",
     5: "On the development signers, strict accuracy, meaning the whole sequence exactly right, goes from about "
        "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
        "positional encoding moved pairwise label order from chance to about 0.99. But to be clear: most "
        "sequences still have at least one error. It is viable, not solved. [pause] Does it hold on new signers?",
-    6: "On the two signers we had never touched, imitator_e1 reaches 12.5 and 14.1 percent, above the "
-       "pre-registered 11.9 threshold, against 1.8 and 2.7 for CIF. Paired, it wins 99 times and loses 3 on "
+    6: "On the two signers we had never touched, Imitator reaches 12.5 and 14.1 percent, above the "
+       "11.9 pass mark we fixed in advance, against 1.8 and 2.7 for CIF, our earlier model and the "
+       "comparator named in the preregistration. Paired, it wins 99 times and loses 3 on "
        "signer 7, and 108 to 6 on signer 8. Edit similarity is 53 and 59 percent. And if we shuffle the "
-       "sign segments while keeping the target, edit similarity drops by about 0.35: the order really comes "
+       "sign segments while keeping the target, edit similarity drops by about 35 points: the order really comes "
        "from the video. All three criteria pass. Now back to the idea that started Imitator: could a "
        "correction prompt help Gemma recover a word when the visual draft gets some tokens wrong?",
     7: "For illustration, if per, fu, me became per, ma, me, could the surviving pieces still suggest "
        "perfume? Those pieces are schematic. In the audit, we replaced IDs at selected positions in "
        "reference labels of at least two IDs. Replacements came from real one-ID LSA64 labels. At each "
        "nominal rate, Gemma received 120 decoded inputs and an explicit correction prompt. It preserved "
-       "95 percent of clean inputs. At the tested nonzero rates, exact match stayed at zero and chrF "
-       "decreased. This measures recovery for synthetic substitutions in isolated labels.",
-    8: "We started with a signer in front of a camera and a model that already knows how to write. "
-       "The adapter gives that model a draft in its own vocabulary. On unseen "
-       "signers the original checkpoints give 12 to 14 percent fully correct, visually ordered sequences. "
-       "The replicas give about 11 to 14 percent strict accuracy on isolated signs. In the exploratory "
-       "audit, Gemma did not recover an exact "
-       "label at the tested nonzero rates. Limits: one training seed, synthetic streams and two "
-       "confirmation signers. Think back to the person in front of the camera. We want a reader to "
-       "receive that person's message. The next test is real signed sentences, where we can measure "
-       "how much of the message the adapter preserves and what the correction prompt adds.",
+       "95 percent of clean inputs. At the tested nonzero rates, exact match stayed at zero and chrF, "
+       "a character-overlap score, decreased. This measures recovery for synthetic substitutions in isolated labels.",
+    8: "To conclude. A small adapter can write a draft in Gemma's own vocabulary. On isolated signs the "
+       "replicas start with the right label on about 70 percent of clips, and are exact on 11 to 14. On streams of two to eight signs the "
+       "original checkpoints give 12 to 14 percent fully correct, visually ordered sequences on signers "
+       "never seen in training. And in the exploratory audit, Gemma recovered no exact label at the tested "
+       "nonzero error rates. [click] The limits: one training seed, two confirmation signers, joined clips "
+       "without sentence syntax, and Gemma has not yet read Imitator's own drafts.",
+    "future": "So what comes next. [click] First, real signed sentences, with syntax and context. [click] "
+       "Second, correction in context: with a whole sentence around a damaged word, can the LLM repair "
+       "it? [click] Third, richer drafts: pass the LLM top-k alternatives, while we keep scoring the "
+       "transcript on its own. [click] Think back to the person at the start. The goal is that a reader "
+       "receives that person's message.",
     9: "Thank you. I am happy to take questions.",
     10: "Backup for questions on interpretability. For one unseen-signer sequence, input-times-gradient and "
         "region ablation both point to the left hand for the central subtokens. It is a single example, so "
