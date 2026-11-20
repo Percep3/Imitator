@@ -7,8 +7,8 @@ adds the need to recognize several labels, emit them in order, and stop at the
 right point.  Its results support ordered transcription on controlled streams
 from held-out signers. In the replicas, exact accuracy differs modestly between
 the isolated and sequence tests, with opposite directions across signers.
-Training used streams of at least two signs, so an isolated clip also tests
-generalization to a shorter input regime.
+Training used streams of at least two signs. The frequent extra tokens on
+isolated clips are consistent with a failure to stop after one label.
 
 The exploratory corruption audit gives no evidence of exact recovery at the
 tested rates without sentence context.  Assessing correction for sentence

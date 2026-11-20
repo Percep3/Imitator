@@ -16,7 +16,7 @@ End with a separate exploratory audit of Gemma's ability to recover corrupted is
 | 4 | Close to the right embedding is not the right token | Limits vs this work (grey vs teal card) | Teal card | "Let me show the pipeline" | 0:50 |
 | 5 | Imitator writes exact Gemma IDs; Gemma only reads text | Pipeline diagram, scoring brackets | Purple "Exact Gemma IDs" box | "How we evaluated it" | 1:00 |
 | 6 | From one isolated sign to ordered sign sequences | LSA64, signer splits, sequence criteria | Purple folds 7–8 | "Start with one sign" | 0:50 |
-| 7 | Can Imitator recover the exact IDs of one sign? | 44/320 (13.75%) and 35/320 (10.94%) strict accuracy | Folds 7–8 | "Next, two to eight signs" | 0:30 |
+| 7 | Can Imitator recover the exact IDs of one sign? | 13.75% and 10.94% strict accuracy; 77.81% and 79.06% emit more tokens than the reference | Folds 7–8 | "Next, two to eight signs" | 0:30 |
 | 8 | On 2–8 signs, strict accuracy rises about tenfold | Bars folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | Purple bars | "Does it hold on new signers?" | 0:50 |
 | 9 | Both held-out signers pass all three criteria | Bars folds 7–8 vs CIF + 11.9% line; H1–H3 | Purple bars above dashed line | "Could Gemma recover a corrupted label?" | 1:10 |
 | 10 | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | 0% bars | "To summarise" | 1:00 |
@@ -36,6 +36,7 @@ Visual choices:
 
 ## Likely questions (answer only from the paper)
 - **How is one sign scored?** We require the complete token ID sequence for its Spanish label plus EOS. We evaluate 320 clips per held-out signer with retrained models. This is a separate exploratory evaluation from the original 2–8-sign confirmation.
+- **Why is strict accuracy low for one sign?** Outputs are longer than the reference on 249/320 clips in fold 7 and 253/320 in fold 8. E1 was trained on streams of two to eight signs.
 - **Why is 12–14% strict accuracy useful?** Strict accuracy means the whole 2–8-sign sequence is exact. Edit similarity is 53.0 / 58.7% on signers 7 / 8. The paper's claim is "viable, not solved".
 - **Why not fine-tune Gemma jointly?** We chose not to, on purpose. Scoring the transcript before the LLM keeps fluent output from hiding visual errors.
 - **Is it gloss-free?** No. The targets come from the 64 LSA64 labels. The claim is only that inference needs no 64-class gloss classifier.

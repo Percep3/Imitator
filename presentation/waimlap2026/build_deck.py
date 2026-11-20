@@ -504,14 +504,17 @@ def build():
         ("One clip → one Spanish label", {"bold": True, "size": 22, "color": PURPLE}),
         ("320 clips per held-out signer · 64 signs", {"bullet": True}),
         ("Strict match: all Gemma IDs plus EOS", {"bullet": True}),
-        ("Token edit similarity measures partial matches", {"bullet": True}),
+        ("Extra tokens: output longer than the reference label", {"bullet": True}),
+        ("Training used streams of 2–8 signs", {"bullet": True}),
     ], size=20, space_after=14)
     fill_text(ph(s, 105), [
         ("Exploratory evaluation · retrained E1", {"bold": True, "size": 21, "color": PURPLE}),
         ("Fold 7", {"bold": True, "size": 19}),
-        ("13.75% strict (44/320) · 18.28% edit similarity", {"size": 18, "space_after": 14}),
+        ("13.75% strict (44/320) · 18.28% edit similarity", {"size": 18, "space_after": 5}),
+        ("77.81% with extra tokens (249/320)", {"size": 18, "bold": True, "space_after": 14}),
         ("Fold 8", {"bold": True, "size": 19}),
         ("10.94% strict (35/320) · 14.38% edit similarity", {"size": 18}),
+        ("79.06% with extra tokens (253/320)", {"size": 18, "bold": True}),
     ], size=19)
 
     # 5 · Result: development -------------------------------------------------
@@ -643,7 +646,9 @@ NOTES = {
                 "match requires every Gemma ID and an end-of-sequence token. Edit similarity measures "
                 "partial matches. The retrained folds use the same signer splits and sequence training "
                 "protocol. The replicas correctly transcribe 44 of 320 clips on fold 7 and 35 of 320 "
-                "on fold 8. The decoder emits EOS on every clip. Next, the original sequence benchmark "
+                "on fold 8. The decoder emits EOS on every clip, but 77.81 and 79.06 percent of the "
+                "outputs are longer than the reference. E1 trained on sequences of at least two signs, "
+                "so stopping after one sign is a distinct challenge. Next, the original sequence benchmark "
                 "asks how far the approach carries over to two to eight signs.",
     5: "On the development signers, strict accuracy, meaning the whole sequence exactly right, goes from about "
        "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
