@@ -16,7 +16,7 @@ Format: 10 min talk + 5 min questions. 13 slides plus 1 backup. The word-for-wor
 | 6 | Methodology · evaluation | One sign first. Then several signs in order. | LSA64, the two tasks, folds 1–8 | "Does Imitator write the right label?" | 0:50 |
 | 7 | Results · one sign | On one sign, does the output start with the right label? | Correct prefix on 229/320 and 220/320 clips, 95% intervals | "What if the video has several signs?" | 0:45 |
 | 8 | Results · several signs, development | On 2–8 signs, strict accuracy rises about tenfold | Folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | "Does it hold on new signers?" | 0:35 |
-| 9 | Results · several signs, unseen signers | Both held-out signers pass all three preregistered criteria | Folds 7–8 vs CIF + 11.9% line; H1–H3 | "Could Gemma recover a corrupted label?" | 0:50 |
+| 9 | Results · several signs, unseen signers | On unseen signers, Imitator beats our earlier model | Folds 7–8 vs CIF; wins/losses; order | "Could Gemma recover a corrupted label?" | 0:50 |
 | 10 | Results · can the LLM repair a draft? | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | "To conclude" | 0:45 |
 | 11 | Conclusions | A small adapter can write a draft in Gemma’s own token IDs | What we showed · Limits | "So what comes next" | 0:45 |
 | 12 | Future work | Next: real signed sentences | Three directions + the goal | Return to the person in the clip | 0:35 |
@@ -53,7 +53,7 @@ Visual choices:
 - **Which Gemma, and what is the end marker?** Gemma 3n E2B, frozen. The end marker is implemented with Gemma's end-of-turn ID.
 - **What prompt did the audit use?** A fixed few-shot correction prompt in Spanish. The slides no longer quote an instruction.
 - **If Imitator already writes text, what does Gemma add? Why not classify 64 signs?** In this paper Gemma contributes its vocabulary and the separate audit; it did not repair the tested errors. Token IDs are the interface we want for sentences, where the LLM would have context. That is future work, and the 121-row output must be expanded and revalidated for it.
-- **Why are the baselines different on the development and confirmation slides?** Development compares against our initial decoder, which lacked positional encoding. Confirmation compares against CIF because the preregistration named it.
+- **Why are the baselines different on the development and confirmation slides?** Development compares against our initial decoder, which lacked positional encoding. Confirmation compares against CIF, our earlier model.
 - **Why is one sign no better than several?** Different checkpoints (replicas vs. originals), and the replicas run long on single clips: they were trained on streams of two or more signs.
 - **Development folds 1–3?** E1 development results exist for folds 4–6 only.
 - **Why did the order become correct?** Sinusoidal positional encoding. Without it, permuting segments left 86.3% of predictions unchanged. With it, shuffling drops edit similarity by 0.34–0.38.
@@ -65,9 +65,9 @@ Supporting elements use a 0.5 s fade-in. On slides 3, 4 and 5, a single centred 
 - **3 Motivation:** ① "A signer moves" ② "The LLM writes" ③ "train a sign translator from scratch?" ④ arrows + "A small adapter?".
 - **4 Previous work:** ① the LLM's input path ② previous work card ③ this work card.
 - **5 Model:** ① the five boxes left to right ② scoring brackets ③ why we score before the LLM.
-- **6 Evaluation:** ① fold strip ② the three rules.
+- **6 Evaluation:** ① fold strip ② the three rules (unseen signer, held-back signers 7–8, every ID right).
 - **8 Development:** ① key result ② positional encoding ③ remaining sequence errors.
-- **9 Confirmation:** ① H1 ② H2 ③ H3.
+- **9 Confirmation:** ① strict accuracy ② wins over the earlier model ③ order.
 - **10 Gemma audit:** ① clean input ② tested nonzero rates ③ chrF and the schematic example.
 - **11 Conclusions:** ① "Limits" card.
 - **12 Future work:** ① real sentences ② correction in context ③ richer drafts ④ the goal.

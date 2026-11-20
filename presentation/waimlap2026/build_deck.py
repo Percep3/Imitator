@@ -89,8 +89,6 @@ def make_figures():
     fig, ax = plt.subplots(figsize=FIGSIZE)
     bar_pair(ax, ["Signer 7", "Signer 8"], [1.8, 2.7], [12.5, 14.1],
              "Our earlier model (CIF)", "Imitator (this work)")
-    ax.axhline(11.9, color="#" + TEAL, linestyle="--", linewidth=2, label="Pass mark fixed in advance (11.9%)")
-    ax.legend(frameon=False, loc="upper left")
     ax.set_xlim(-0.6, 1.6)
     ax.set_xlabel("Prospective confirmation folds (held-out test signer)")
     fig.tight_layout()
@@ -504,7 +502,7 @@ def build():
     t = s.shapes.add_textbox(Inches(xr), Inches(3.45), Inches(6), Inches(2.6))
     fill_text(t, [
         ("The test signer never appears in training", {"bullet": True}),
-        ("Signers 7–8: pass marks written down before testing", {"bullet": True}),
+        ("Signers 7–8: held back until the final test", {"bullet": True}),
         ("A sequence counts only if every token ID is right", {"bullet": True}),
     ], size=18, space_after=8)
     animate(s, [(folds, 0), ([t], 0)])
@@ -534,16 +532,16 @@ def build():
 
     # 6 · Result: confirmation ------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[6], section="Results · several signs, unseen signers")
-    title(s, "Both held-out signers pass all three preregistered criteria")
+    title(s, "On unseen signers, Imitator beats our earlier model")
     picture_in(s, 104, FIG / "confirmation_accuracy.png")
     fill_text(ph(s, 105), [
-        ("H1 ✓  beats our earlier model", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
+        ("12.5% and 14.1%", {"bold": True, "size": 28, "color": PURPLE, "space_after": 2}),
+        ("strict accuracy (earlier model: 1.8% and 2.7%)", {"size": 16, "space_after": 14}),
+        ("Beats our earlier model", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
         ("wins/losses 99/3 and 108/6", {"size": 16, "space_after": 14}),
-        ("H2 ✓  ≥ 11.9%", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
-        ("12.5% and 14.1% strict accuracy", {"size": 16, "space_after": 14}),
-        ("H3 ✓  visually ordered", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
-        ("98–99% of sign pairs in the right order; shuffling the video segments costs 34–38 points of edit similarity",
-         {"size": 16}),
+        ("The order comes from the video", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
+        ("98–99% of sign pairs in the right order; shuffling the video segments costs 34–38 points "
+         "of edit similarity", {"size": 16}),
     ])
     side = ph(s, 105)
     animate(s, [([(side, 0, 1)], 0), ([(side, 2, 3)], 0), ([(side, 4, 5)], 0)])
@@ -665,8 +663,8 @@ NOTES = {
        "each sign's Spanish label. First, one clip with one sign. Then, as a step toward our original goal "
        "of sentences, we join two to eight clips in random order and ask for the labels in order. These "
        "are joined clips, not real sentences: there is no sentence syntax. [click] Every fold tests on a "
-       "signer the model never saw. [click] For signers 7 and 8 we wrote the pass marks down before "
-       "testing. [pause] So: one sign, an unseen signer. Does Imitator write the right label?",
+       "signer the model never saw. [click] Signers 7 and 8 were held back until the final "
+       "test. [pause] So: one sign, an unseen signer. Does Imitator write the right label?",
     "isolated": "These are retrained copies of the model, which we call replicas, tested on single clips of "
                 "signers 7 and 8. Does the output start with every token of the correct "
                 "label? It does on 229 of 320 clips on fold 7 and 220 of 320 on fold 8. The whiskers "
@@ -680,12 +678,11 @@ NOTES = {
        "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
        "positional encoding moved pairwise label order from chance to about 0.99. But to be clear: most "
        "sequences still have at least one error. It is viable, not solved. [pause] Does it hold on new signers?",
-    6: "On the two signers we had never touched, Imitator reaches 12.5 and 14.1 percent, above the "
-       "11.9 pass mark we fixed in advance, against 1.8 and 2.7 for CIF, our earlier model and the "
-       "comparator named in the preregistration. Paired, it wins 99 times and loses 3 on "
+    6: "On the two signers we had never touched, Imitator reaches 12.5 and 14.1 percent, "
+       "against 1.8 and 2.7 for CIF, our earlier model. Paired, it wins 99 times and loses 3 on "
        "signer 7, and 108 to 6 on signer 8. Edit similarity is 53 and 59 percent. And if we shuffle the "
        "sign segments while keeping the target, edit similarity drops by about 35 points: the order really comes "
-       "from the video. All three criteria pass. Now back to the idea that started Imitator: could a "
+       "from the video. Now back to the idea that started Imitator: could a "
        "correction prompt help Gemma recover a word when the visual draft gets some tokens wrong?",
     7: "For illustration, if per, fu, me became per, ma, me, could the surviving pieces still suggest "
        "perfume? Those pieces are schematic. In the audit, we replaced IDs at selected positions in "
