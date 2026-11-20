@@ -566,9 +566,11 @@ def build():
     title(s, "A small adapter can write a draft in Gemma’s own token IDs")
     for idx, fill, line, head, lines in (
         (104, LT_TEAL, TEAL_LINE, "What we showed",
-         ["One sign: right label first on 69–72% of clips; exact and stopped on 11–14%",
-          "2–8 signs: 12.5–14.1% strict accuracy on unseen signers, in visual order",
-          "Gemma: zero exact recoveries at tested nonzero error rates"]),
+         ["One sign: the output starts with the right label on 69–72% of clips "
+          "(exact, including the stop: 11–14%)",
+          "Several signs in one video: 12.5–14.1% of whole sequences exact on unseen signers, "
+          "up from 1.8–2.7%",
+          "The order is read from the video: 98–99% of sign pairs in the right order"]),
         (105, CARD_GREY, None, "Limits",
          ["One training seed (23) and two confirmation signers",
           "Joined clips: no sentence syntax, no transitions between signs",
@@ -690,11 +692,12 @@ NOTES = {
        "nominal rate, Gemma received 120 decoded inputs and an explicit correction prompt. It preserved "
        "95 percent of clean inputs. At the tested nonzero rates, exact match stayed at zero and chrF, "
        "a character-overlap score, decreased. This measures recovery for synthetic substitutions in isolated labels.",
-    8: "To conclude. A small adapter can write a draft in Gemma's own vocabulary. On isolated signs the "
-       "replicas start with the right label on about 70 percent of clips, and are exact on 11 to 14. On streams of two to eight signs the "
-       "original checkpoints give 12 to 14 percent fully correct, visually ordered sequences on signers "
-       "never seen in training. And in the exploratory audit, Gemma recovered no exact label at the tested "
-       "nonzero error rates. [click] The limits: one training seed, two confirmation signers, joined clips "
+    8: "To conclude. A small adapter can write a draft in Gemma's own vocabulary. On one sign, for "
+       "signers it never saw, the output starts with the right label on about 70 percent of clips, and "
+       "it is exact, including the stop, on 11 to 14 percent. With several signs in one video, 12 to 14 "
+       "percent of whole sequences are exactly right on unseen signers, up from about 2 percent with our "
+       "earlier model. And the order really comes from the video: 98 to 99 percent of sign pairs come out "
+       "in the right order. [click] The limits: one training seed, two confirmation signers, joined clips "
        "without sentence syntax, and Gemma has not yet read Imitator's own drafts.",
     "future": "So what comes next. [click] First, real signed sentences, with syntax and context. [click] "
        "Second, correction in context: with a whole sentence around a damaged word, can the LLM repair "
