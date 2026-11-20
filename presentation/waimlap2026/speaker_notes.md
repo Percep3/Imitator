@@ -15,8 +15,8 @@ Format: 10 min talk + 5 min questions. 13 slides plus 1 backup. The word-for-wor
 | 5 | Methodology · model | Imitator now writes Gemma’s own token IDs | Video → encoder → decoder → Gemma IDs → Gemma 3n; scored before the LLM | "Start with the easiest case: one sign" | 0:55 |
 | 6 | Methodology · evaluation | One sign first. Then several signs in order. | LSA64, the two tasks, folds 1–8 | "Does Imitator write the right label?" | 0:50 |
 | 7 | Results · one sign | On one sign, does the output start with the right label? | Correct prefix on 229/320 and 220/320 clips, 95% intervals | "What if the video has several signs?" | 0:45 |
-| 8 | Results · several signs, development | On 2–8 signs, strict accuracy rises about tenfold | Folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | "Does it hold on new signers?" | 0:35 |
-| 9 | Results · several signs, unseen signers | On unseen signers, Imitator beats our earlier model | Folds 7–8 vs CIF; wins/losses; order | "Could Gemma recover a corrupted label?" | 0:50 |
+| 8 | Results · several signs, development | On 2–8 signs, fully exact videos rise about tenfold | Folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | "Does it hold on new signers?" | 0:35 |
+| 9 | Results · several signs, unseen signers | On unseen signers, Imitator recovers over half of the signs | Signs written correctly 54–59%; fully exact videos by number of signs; order | "Could Gemma recover a corrupted label?" | 0:50 |
 | 10 | Results · can the LLM repair a draft? | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | "To conclude" | 0:45 |
 | 11 | Conclusions | A small adapter can write a draft in Gemma’s own token IDs | What we showed · Limits | "So what comes next" | 0:45 |
 | 12 | Future work | Next: real signed sentences | Three directions + the goal | Return to the person in the clip | 0:35 |
@@ -26,7 +26,7 @@ Format: 10 min talk + 5 min questions. 13 slides plus 1 backup. The word-for-wor
 Visual choices:
 - **Context slides:** slides 3–5 use the same box-and-arrow language as the pipeline slide, so the new design reads as a change to one box.
 - **Colour:** purple marks our model and grey marks comparisons. Teal marks thresholds and labels.
-- **Accuracy scale:** slides 8 and 9 share the same 0–25% axis. Bars start at 0, and every bar has its value label.
+- **Accuracy charts:** bars start at 0 and every bar has its value label. Slide 9 shows fully exact videos by number of signs, signer 7 in purple and signer 8 in light purple.
 - **Gemma audit:** shown as two small panels (exact match, then chrF). This avoids a dual-axis chart.
 
 ## Fill in before the talk
@@ -37,6 +37,8 @@ Visual choices:
 - **How is one sign scored?** We require the complete token ID sequence for its Spanish label plus EOS. We evaluate 320 clips per held-out signer with retrained models. This is a separate exploratory evaluation from the original 2–8-sign confirmation.
 - **What do the bars and whiskers measure?** A correct prefix matches every reference ID at the start of the output. The rates are 71.56% (95% interval 60.94–81.26%) on fold 7 and 68.75% (58.75–78.75%) on fold 8. Percentile intervals use 10,000 bootstrap resamples of the 64 glosses within each signer, keeping each gloss's five clips together (seed 23). They do not estimate variability across signers or training runs.
 - **Why is strict accuracy low for one sign?** Outputs are longer than the reference on 249/320 clips in fold 7 and 253/320 in fold 8. E1 was trained on streams of two to eight signs.
+- **Does 12–14% mean one sign in eight?** No. It is the share of videos in which every sign is exact. Per sign, 53.7% (signer 7) and 58.6% (signer 8) of the signs in the videos appear in the output (precision 62.5% and 66.4%). Fully exact videos by number of signs, signer 7 / 8: 2 signs 39.8 / 51.7%, 3 signs 20.1 / 20.1%, 4 signs 11.0 / 17.5%, 5 signs 10.8 / 4.7%, 6 signs 2.8 / 0.9%, 7 signs 0.8 / 1.7%, 8 signs 0 / 0%. These per-sign and per-length numbers are not in the paper; they come from the same frozen evaluation files (`outputs/video_token_decoder/fold{7,8}_seed23/e1_pe_vocab121/outer_test_robustness.json`, `gloss_diagnostics` and `stratified.by_sign_count`). The per-sign figure counts signs regardless of position; order is measured separately.
+- **Wins and losses against CIF?** 99/3 on signer 7 and 108/6 on signer 8 (paired, same videos).
 - **Why is 12–14% strict accuracy useful?** Strict accuracy means the whole 2–8-sign sequence is exact. Edit similarity is 53.0 / 58.7% on signers 7 / 8. The paper's claim is "viable, not solved".
 - **Why not fine-tune Gemma jointly?** We chose not to, on purpose. Scoring the transcript before the LLM keeps fluent output from hiding visual errors.
 - **Is it gloss-free?** No. The targets come from the 64 LSA64 labels. The claim is only that inference needs no 64-class gloss classifier.
@@ -67,7 +69,7 @@ Supporting elements use a 0.5 s fade-in. On slides 3, 4 and 5, a single centred 
 - **5 Model:** ① the five boxes left to right ② scoring brackets ③ why we score before the LLM.
 - **6 Evaluation:** ① fold strip ② the three rules (unseen signer, held-back signers 7–8, every ID right).
 - **8 Development:** ① key result ② positional encoding ③ remaining sequence errors.
-- **9 Confirmation:** ① strict accuracy ② wins over the earlier model ③ order.
+- **9 Confirmation:** ① signs written correctly ② fully exact videos ③ order.
 - **10 Gemma audit:** ① clean input ② tested nonzero rates ③ chrF and the schematic example.
 - **11 Conclusions:** ① "Limits" card.
 - **12 Future work:** ① real sentences ② correction in context ③ richer drafts ④ the goal.

@@ -85,14 +85,28 @@ def make_figures():
     fig.savefig(FIG / "dev_accuracy.png", dpi=220)
     plt.close(fig)
 
-    # Prospective confirmation folds 7-8 (results_macros.tex)
+    # Confirmation folds 7-8: whole-video (strict) accuracy by number of signs in the video.
+    # Source: conditions.clean.stratified.by_sign_count in
+    # outputs/video_token_decoder/fold{7,8}_seed23/e1_pe_vocab121/outer_test_robustness.json
+    # (same frozen evaluation as the paper's 12.5% / 14.1%; this breakdown is not in the paper).
+    n_signs = list(range(2, 9))
+    by_len = {"Signer 7": [39.8, 20.1, 11.0, 10.8, 2.8, 0.8, 0.0],
+              "Signer 8": [51.7, 20.1, 17.5, 4.7, 0.9, 1.7, 0.0]}
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    bar_pair(ax, ["Signer 7", "Signer 8"], [1.8, 2.7], [12.5, 14.1],
-             "Our earlier model (CIF)", "Imitator (this work)")
-    ax.set_xlim(-0.6, 1.6)
-    ax.set_xlabel("Prospective confirmation folds (held-out test signer)")
+    w = 0.38
+    for k, ((name, vals), col) in enumerate(zip(by_len.items(), ("#" + PURPLE, "#A98BD0"))):
+        bars = ax.bar([x + (k - 0.5) * w for x in n_signs], vals, w, color=col, label=name)
+        for b_ in bars:
+            ax.annotate(f"{b_.get_height():.0f}", (b_.get_x() + b_.get_width() / 2, b_.get_height()),
+                        xytext=(0, 3), textcoords="offset points", ha="center", fontsize=12,
+                        color="#" + TEXT)
+    ax.set(ylim=(0, 60), xticks=n_signs, xlabel="Number of signs in the video",
+           ylabel="Videos with every sign exact (%)")
+    ax.yaxis.grid(True, color="#E3E5E9", linewidth=0.8)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="upper right")
     fig.tight_layout()
-    fig.savefig(FIG / "confirmation_accuracy.png", dpi=220)
+    fig.savefig(FIG / "strict_by_signs.png", dpi=220)
     plt.close(fig)
 
     # Same diagnostic on both replicas: the complete reference is an output prefix.
@@ -503,7 +517,7 @@ def build():
     fill_text(t, [
         ("The test signer never appears in training", {"bullet": True}),
         ("Signers 7–8: held back until the final test", {"bullet": True}),
-        ("A sequence counts only if every token ID is right", {"bullet": True}),
+        ("Strict accuracy: a video counts only if every sign in it is exact", {"bullet": True}),
     ], size=18, space_after=8)
     animate(s, [(folds, 0), ([t], 0)])
 
@@ -517,12 +531,12 @@ def build():
 
     # 5 · Result: development -------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[5], section="Results · several signs, development")
-    title(s, "On 2–8 signs, strict accuracy rises about tenfold")
+    title(s, "On 2–8 signs, fully exact videos rise about tenfold")
     picture_in(s, 104, FIG / "dev_accuracy.png")
     fill_text(ph(s, 105), [
         ("Key result", {"bold": True, "size": 20, "color": TEAL}),
         ("16.9–19.8%", {"bold": True, "size": 32, "color": PURPLE, "space_after": 2}),
-        ("strict accuracy", {"size": 18, "space_after": 2}),
+        ("of videos with every sign exact", {"size": 18, "space_after": 2}),
         ("(initial decoder: 1.8–2.3%)", {"size": 18, "space_after": 18}),
         ("Positional encoding: label order goes from chance to ≈ 0.99", {"size": 18, "space_after": 18}),
         ("Viable, not solved: most sequences still contain ≥ 1 error", {"size": 18, "color": GREY}),
@@ -532,16 +546,16 @@ def build():
 
     # 6 · Result: confirmation ------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[6], section="Results · several signs, unseen signers")
-    title(s, "On unseen signers, Imitator beats our earlier model")
-    picture_in(s, 104, FIG / "confirmation_accuracy.png")
+    title(s, "On unseen signers, Imitator recovers over half of the signs")
+    picture_in(s, 104, FIG / "strict_by_signs.png")
     fill_text(ph(s, 105), [
-        ("12.5% and 14.1%", {"bold": True, "size": 28, "color": PURPLE, "space_after": 2}),
-        ("strict accuracy (earlier model: 1.8% and 2.7%)", {"size": 16, "space_after": 14}),
-        ("Beats our earlier model", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
-        ("wins/losses 99/3 and 108/6", {"size": 16, "space_after": 14}),
-        ("The order comes from the video", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
-        ("98–99% of sign pairs in the right order; shuffling the video segments costs 34–38 points "
-         "of edit similarity", {"size": 16}),
+        ("54–59%", {"bold": True, "size": 32, "color": PURPLE, "space_after": 2}),
+        ("of the signs in the videos are written correctly", {"size": 16, "space_after": 14}),
+        ("12.5% and 14.1%", {"bold": True, "size": 22, "color": PURPLE, "space_after": 2}),
+        ("of videos have every sign exact. One slip fails the whole video, so longer videos are "
+         "harder. Earlier model: 1.8% and 2.7%", {"size": 16, "space_after": 14}),
+        ("Order comes from the video", {"bold": True, "size": 20, "color": PURPLE, "space_after": 2}),
+        ("98–99% of sign pairs in the right order", {"size": 16}),
     ])
     side = ph(s, 105)
     animate(s, [([(side, 0, 1)], 0), ([(side, 2, 3)], 0), ([(side, 4, 5)], 0)])
@@ -568,8 +582,8 @@ def build():
         (104, LT_TEAL, TEAL_LINE, "What we showed",
          ["One sign: the output starts with the right label on 69–72% of clips "
           "(exact, including the stop: 11–14%)",
-          "Several signs in one video: 12.5–14.1% of whole sequences exact on unseen signers, "
-          "up from 1.8–2.7%",
+          "Several signs in one video: 54–59% of the signs written correctly on unseen signers; "
+          "every sign exact in 12.5–14.1% of videos, up from 1.8–2.7%",
           "The order is read from the video: 98–99% of sign pairs in the right order"]),
         (105, CARD_GREY, None, "Limits",
          ["One training seed (23) and two confirmation signers",
@@ -676,16 +690,22 @@ NOTES = {
                 "match the decoder must stop after the label. That happens on 44 and 35 clips, about 14 "
                 "and 11 percent. The model was trained on streams of two or more signs, so running "
                 "long is consistent with not having learned to stop after one. Now imagine a video has several signs. Can we recover them in order?",
-    5: "On the development signers, strict accuracy, meaning the whole sequence exactly right, goes from about "
-       "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
-       "positional encoding moved pairwise label order from chance to about 0.99. But to be clear: most "
-       "sequences still have at least one error. It is viable, not solved. [pause] Does it hold on new signers?",
-    6: "On the two signers we had never touched, Imitator reaches 12.5 and 14.1 percent, "
-       "against 1.8 and 2.7 for CIF, our earlier model. Paired, it wins 99 times and loses 3 on "
-       "signer 7, and 108 to 6 on signer 8. Edit similarity is 53 and 59 percent. And if we shuffle the "
-       "sign segments while keeping the target, edit similarity drops by about 35 points: the order really comes "
-       "from the video. Now back to the idea that started Imitator: could a "
-       "correction prompt help Gemma recover a word when the visual draft gets some tokens wrong?",
+    5: "Now videos with two to eight signs. A word on the metric, because it is strict: a video counts "
+       "only if every sign in it is exactly right, every token, and the model stops at the right place. "
+       "One slip and the whole video counts as wrong. On the development signers, fully exact videos go "
+       "from about 2 percent with our initial decoder to 17 to 20 percent. Roughly ten times. Adding "
+       "positional encoding moved the order of the signs from chance to about 99 percent of pairs. "
+       "[pause] Does it hold on new signers?",
+    6: "On the two signers we had never touched, look first at the signs one by one: Imitator writes 54 "
+       "and 59 percent of the signs in the videos correctly. More than half. [click] The strict number is "
+       "lower, 12.5 and 14.1 percent, and it does not mean one sign out of eight. It is the share of "
+       "videos where every single sign is exact. The chart shows why: with two signs, 40 and 52 percent "
+       "of videos are fully exact. With eight signs, none are, because one slip anywhere fails the video. "
+       "Our earlier model, CIF, had 1.8 and 2.7 percent on the same videos. [click] And the order is "
+       "read from the video: 98 to 99 percent of sign pairs come out in the right order, and if we "
+       "shuffle the video segments, edit similarity drops by about 35 points. Now back to the idea that "
+       "started Imitator: could a correction prompt help Gemma recover a word when the draft gets some "
+       "tokens wrong?",
     7: "For illustration, if per, fu, me became per, ma, me, could the surviving pieces still suggest "
        "perfume? Those pieces are schematic. In the audit, we replaced IDs at selected positions in "
        "reference labels of at least two IDs. Replacements came from real one-ID LSA64 labels. At each "
@@ -694,9 +714,9 @@ NOTES = {
        "a character-overlap score, decreased. This measures recovery for synthetic substitutions in isolated labels.",
     8: "To conclude. A small adapter can write a draft in Gemma's own vocabulary. On one sign, for "
        "signers it never saw, the output starts with the right label on about 70 percent of clips, and "
-       "it is exact, including the stop, on 11 to 14 percent. With several signs in one video, 12 to 14 "
-       "percent of whole sequences are exactly right on unseen signers, up from about 2 percent with our "
-       "earlier model. And the order really comes from the video: 98 to 99 percent of sign pairs come out "
+       "it is exact, including the stop, on 11 to 14 percent. With several signs in one video, it writes "
+       "more than half of the signs correctly on unseen signers, and 12 to 14 percent of videos have "
+       "every sign exact, up from about 2 percent with our earlier model. And the order really comes from the video: 98 to 99 percent of sign pairs come out "
        "in the right order. [click] The limits: one training seed, two confirmation signers, joined clips "
        "without sentence syntax, and Gemma has not yet read Imitator's own drafts.",
     "future": "So what comes next. [click] First, real signed sentences, with syntax and context. [click] "
