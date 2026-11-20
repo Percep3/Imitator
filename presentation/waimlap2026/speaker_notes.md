@@ -2,7 +2,7 @@
 
 Deck: `imitator_waimlap2026.pptx` (rebuild: `~/miniconda3/envs/deck-tools/bin/python build_deck.py`).
 Source: the draft in `paper/content/full/`. Isolated-sign metrics come from the retrained folds 7–8.
-Format: 10 min talk + 5 min questions. 13 slides plus 1 backup. The word-for-word script is in each slide's PowerPoint notes.
+Format: 10 min talk + 5 min questions. 12 slides plus 1 backup. The word-for-word script is in each slide's PowerPoint notes.
 
 **Story:** open with a short sign clip the audience cannot read. The LLM knows language but not sign language, so do we need a translator from scratch, or just a small adapter? One slide of previous work (embeddings), then the talk is ours: methodology, results, conclusions, future work. A small tag above each title names the section.
 
@@ -15,23 +15,22 @@ Format: 10 min talk + 5 min questions. 13 slides plus 1 backup. The word-for-wor
 | 5 | Methodology · model | Imitator now writes Gemma’s own token IDs | Video → encoder → decoder → Gemma IDs → Gemma 3n; scored before the LLM | "Start with the easiest case: one sign" | 0:55 |
 | 6 | Methodology · evaluation | One sign first. Then several signs in order. | LSA64, the two tasks, folds 1–8 | "Does Imitator write the right label?" | 0:50 |
 | 7 | Results · one sign | On one sign, does the output start with the right label? | Correct prefix on 229/320 and 220/320 clips, 95% intervals | "What if the video has several signs?" | 0:45 |
-| 8 | Results · several signs, development | On 2–8 signs, fully exact videos rise about tenfold | Folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | "Does it hold on new signers?" | 0:35 |
-| 9 | Results · several signs, unseen signers | On unseen signers: over half of the signs, in the right order | Signs written correctly 54–59%; recognised pairs in order 98–99% | "Could Gemma recover a corrupted label?" | 0:50 |
-| 10 | Results · can the LLM repair a draft? | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | "To conclude" | 0:45 |
-| 11 | Conclusions | A small adapter can write a draft in Gemma’s own token IDs | What we showed · Limits | "So what comes next" | 0:45 |
-| 12 | Future work | Next: real signed sentences | Three directions + the goal | Return to the person in the clip | 0:35 |
-| 13 | — | Thank you · Questions? | — | — | 0:10 |
+| 8 | Results · several signs | On unseen signers: over half of the signs, in the right order | Signs written correctly 54–59% (chart); recognised pairs in order 98–99% | "Could Gemma recover a corrupted label?" | 0:55 |
+| 9 | Results · can the LLM repair a draft? | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | "To conclude" | 0:45 |
+| 10 | Conclusions | A small adapter can write a draft in Gemma’s own token IDs | What we showed · Limits | "So what comes next" | 0:45 |
+| 11 | Future work | Next: real signed sentences | Three directions + the goal | Return to the person in the clip | 0:35 |
+| 12 | — | Thank you · Questions? | QR to LinkedIn | — | 0:10 |
 | B | Backup | Left hand drives central subtokens (one example) | Paper Fig. 3 | only if asked | — |
 
 Visual choices:
 - **Context slides:** slides 3–5 use the same box-and-arrow language as the pipeline slide, so the new design reads as a change to one box.
 - **Colour:** purple marks our model and grey marks comparisons. Teal marks thresholds and labels.
-- **Accuracy charts:** bars start at 0 and every bar has its value label. Slide 9 shows signs written correctly and pairs in the right order, signer 7 in purple and signer 8 in light purple.
+- **Accuracy charts:** bars start at 0 and every bar has its value label. Slide 8 charts only the signs written correctly; the order figure stays as a side number because the two are not comparable.
 - **Gemma audit:** shown as two small panels (exact match, then chrF). This avoids a dual-axis chart.
 
 ## Fill in before the talk
 - Session and Paper ID are filled in: Oral Session 10 · Paper ID 58.
-- Slide 13 shows a QR code to the presenter's LinkedIn profile. Scan it once from the projected slide before the talk.
+- Slide 12 shows a QR code to the presenter's LinkedIn profile. Scan it once from the projected slide before the talk.
 
 ## Likely questions (answer only from the paper)
 - **How is one sign scored?** We require the complete token ID sequence for its Spanish label plus EOS. We evaluate 320 clips per held-out signer with retrained models. This is a separate exploratory evaluation from the original 2–8-sign confirmation.
@@ -56,7 +55,7 @@ Visual choices:
 - **Which Gemma, and what is the end marker?** Gemma 3n E2B, frozen. The end marker is implemented with Gemma's end-of-turn ID.
 - **What prompt did the audit use?** A fixed few-shot correction prompt in Spanish. The slides no longer quote an instruction.
 - **If Imitator already writes text, what does Gemma add? Why not classify 64 signs?** In this paper Gemma contributes its vocabulary and the separate audit; it did not repair the tested errors. Token IDs are the interface we want for sentences, where the LLM would have context. That is future work, and the 121-row output must be expanded and revalidated for it.
-- **Why are the baselines different on the development and confirmation slides?** Development compares against our initial decoder, which lacked positional encoding. Confirmation compares against CIF, our earlier model.
+- **What about the development signers?** Not on the slides. On folds 4–6, fully exact videos went from 2.2 / 2.3 / 1.8% with our initial decoder (no positional encoding) to 18.1 / 19.8 / 16.9%.
 - **Why is one sign no better than several?** Different checkpoints (replicas vs. originals), and the replicas run long on single clips: they were trained on streams of two or more signs.
 - **Development folds 1–3?** E1 development results exist for folds 4–6 only.
 - **Why did the order become correct?** Sinusoidal positional encoding. Without it, permuting segments left 86.3% of predictions unchanged. With it, shuffling drops edit similarity by 0.34–0.38.
@@ -69,9 +68,8 @@ Supporting elements use a 0.5 s fade-in. On slides 3, 4 and 5, a single centred 
 - **4 Previous work:** ① the LLM's input path ② previous work card ③ this work card.
 - **5 Model:** ① the five boxes left to right ② scoring brackets ③ why we score before the LLM.
 - **6 Evaluation:** ① fold strip ② the three rules (unseen signer, held-back signers 7–8, every ID right).
-- **8 Development:** ① key result ② positional encoding ③ remaining sequence errors.
-- **9 Confirmation:** ① signs written correctly ② order ③ fully exact videos (small).
-- **10 Gemma audit:** ① clean input ② tested nonzero rates ③ chrF and the schematic example.
-- **11 Conclusions:** ① "Limits" card.
-- **12 Future work:** ① real sentences ② correction in context ③ richer drafts ④ the goal.
-- Slides 1, 7, 13 and the backup have no animations.
+- **8 Several signs:** ① signs written correctly ② order ③ fully exact videos (small).
+- **9 Gemma audit:** ① clean input ② tested nonzero rates ③ chrF and the schematic example.
+- **10 Conclusions:** ① "Limits" card.
+- **11 Future work:** ① real sentences ② correction in context ③ richer drafts ④ the goal.
+- Slides 1, 7, 12 and the backup have no animations.

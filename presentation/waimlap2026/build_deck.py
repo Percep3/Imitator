@@ -55,57 +55,25 @@ plt.rcParams.update({
 FIGSIZE = (8.6, 5.0)  # matches the template figure box aspect (7863840 x 4572000 EMU)
 
 
-def bar_pair(ax, labels, base, ours, base_name, ours_name):
-    x = range(len(labels))
-    w = 0.36
-    b1 = ax.bar([i - w / 2 for i in x], base, w, color="#" + CONTEXT, label=base_name)
-    b2 = ax.bar([i + w / 2 for i in x], ours, w, color="#" + PURPLE, label=ours_name)
-    for bars, col in ((b1, GREY), (b2, PURPLE)):
-        for b in bars:
-            ax.annotate(f"{b.get_height():.1f}", (b.get_x() + b.get_width() / 2, b.get_height()),
-                        xytext=(0, 4), textcoords="offset points", ha="center",
-                        color="#" + col, fontweight="bold")
-    ax.set_xticks(list(x), labels)
-    ax.set_ylim(0, 25)  # same 0-25 % scale on both accuracy slides; bars start at 0
-    ax.set_ylabel("Strict sequence accuracy (%)")
-    ax.yaxis.grid(True, color="#E3E5E9", linewidth=0.8)
-    ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="upper left")
-
-
 def make_figures():
     FIG.mkdir(exist_ok=True)
 
-    # Development folds 4-6 (07_results.tex, first paragraph)
-    fig, ax = plt.subplots(figsize=FIGSIZE)
-    bar_pair(ax, ["Signer 4", "Signer 5", "Signer 6"], [2.2, 2.3, 1.8], [18.1, 19.8, 16.9],
-             "Our initial decoder (no positional encoding)", "Imitator (this work)")
-    ax.set_xlabel("Development folds (held-out test signer)")
-    fig.tight_layout()
-    fig.savefig(FIG / "dev_accuracy.png", dpi=220)
-    plt.close(fig)
-
     # Confirmation folds 7-8, all 896 videos of 2-8 signs per signer pooled.
-    # Source: conditions.clean.gloss_diagnostics (gloss_recall, pairwise_order_accuracy) in
+    # Source: conditions.clean.gloss_diagnostics (gloss_recall) in
     # outputs/video_token_decoder/fold{7,8}_seed23/e1_pe_vocab121/outer_test_robustness.json
     # (same frozen evaluation as the paper; the per-sign figure is not in the paper).
-    groups = ["Signs written\ncorrectly", "Recognised sign pairs\nin the right order"]
+    values = [53.7, 58.6]
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    w = 0.36
-    for k, (name, vals, col) in enumerate((("Signer 7", [53.7, 98.2], "#" + PURPLE),
-                                           ("Signer 8", [58.6, 98.9], "#A98BD0"))):
-        bars = ax.bar([x + (k - 0.5) * w for x in range(2)], vals, w, color=col, label=name)
-        for b_ in bars:
-            ax.annotate(f"{b_.get_height():.0f}%", (b_.get_x() + b_.get_width() / 2, b_.get_height()),
-                        xytext=(0, 4), textcoords="offset points", ha="center",
-                        color="#" + PURPLE, fontweight="bold")
-    ax.set(ylim=(0, 110), xticks=range(2), xticklabels=groups, yticks=range(0, 101, 20),
-           ylabel="% (videos of 2–8 signs)")
+    bars = ax.bar(["Signer 7", "Signer 8"], values, width=0.48, color="#" + PURPLE)
+    for bar, value in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width() / 2, value / 2, f"{value:.0f}%", ha="center",
+                color="white", fontweight="bold", fontsize=22)
+    ax.set(ylim=(0, 100), ylabel="Signs written correctly (%)",
+           xlabel="All videos of 2–8 signs, unseen signers")
     ax.yaxis.grid(True, color="#E3E5E9", linewidth=0.8)
     ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="upper left")
     fig.tight_layout()
-    fig.savefig(FIG / "signs_and_order.png", dpi=220)
+    fig.savefig(FIG / "signs_correct.png", dpi=220)
     plt.close(fig)
 
     # Same diagnostic on both replicas: the complete reference is an output prefix.
@@ -507,7 +475,7 @@ def build():
         b = box(s, xr + k * (sq + gp), 2.3, sq, sq, fill, line, shape=MSO_SHAPE.RECTANGLE)
         b.text_frame.margin_left = b.text_frame.margin_right = 0
         fill_text(b, [(str(k + 1), {"bold": True, "size": 16, "color": fc, "align": PP_ALIGN.CENTER})], space_after=0)
-    for x, wdt, lab, col in ((xr, 6 * sq + 5 * gp, "development (results: 4–6)", GREY),
+    for x, wdt, lab, col in ((xr, 6 * sq + 5 * gp, "development", GREY),
                              (xr + 6 * (sq + gp), 2 * sq + gp, "confirmation", PURPLE)):
         t = s.shapes.add_textbox(Inches(x - 0.3), Inches(2.85), Inches(wdt + 0.6), Inches(0.35))
         fill_text(t, [(lab, {"size": 14, "bold": col == PURPLE, "color": col, "align": PP_ALIGN.CENTER})])
@@ -528,25 +496,10 @@ def build():
     s.shapes.add_picture(str(FIG / "isolated_prefix.png"), (prs.slide_width - width) // 2,
                          Inches(1.45), width=width)
 
-    # 5 · Result: development -------------------------------------------------
-    s = new("WAIMLAp Figure", NOTES[5], section="Results · several signs, development")
-    title(s, "On 2–8 signs, fully exact videos rise about tenfold")
-    picture_in(s, 104, FIG / "dev_accuracy.png")
-    fill_text(ph(s, 105), [
-        ("Key result", {"bold": True, "size": 20, "color": TEAL}),
-        ("16.9–19.8%", {"bold": True, "size": 32, "color": PURPLE, "space_after": 2}),
-        ("of videos with every sign exact", {"size": 18, "space_after": 2}),
-        ("(initial decoder: 1.8–2.3%)", {"size": 18, "space_after": 18}),
-        ("Positional encoding: label order goes from chance to ≈ 0.99", {"size": 18, "space_after": 18}),
-        ("Viable, not solved: most sequences still contain ≥ 1 error", {"size": 18, "color": GREY}),
-    ])
-    side = ph(s, 105)
-    animate(s, [([(side, 0, 3)], 0), ([(side, 4, 4)], 0), ([(side, 5, 5)], 0)])
-
     # 6 · Result: confirmation ------------------------------------------------
-    s = new("WAIMLAp Figure", NOTES[6], section="Results · several signs, unseen signers")
+    s = new("WAIMLAp Figure", NOTES[6], section="Results · several signs")
     title(s, "On unseen signers: over half of the signs, in the right order")
-    picture_in(s, 104, FIG / "signs_and_order.png")
+    picture_in(s, 104, FIG / "signs_correct.png")
     fill_text(ph(s, 105), [
         ("54–59%", {"bold": True, "size": 32, "color": PURPLE, "space_after": 2}),
         ("of the signs are written correctly, across all videos of 2–8 signs", {"size": 16, "space_after": 16}),
@@ -688,12 +641,6 @@ NOTES = {
                 "match the decoder must stop after the label. That happens on 44 and 35 clips, about 14 "
                 "and 11 percent. The model was trained on streams of two or more signs, so running "
                 "long is consistent with not having learned to stop after one. Now imagine a video has several signs. Can we recover them in order?",
-    5: "Now videos with two to eight signs. A word on the metric, because it is strict: a video counts "
-       "only if every sign in it is exactly right, every token, and the model stops at the right place. "
-       "One slip and the whole video counts as wrong. On the development signers, fully exact videos go "
-       "from about 2 percent with our initial decoder to 17 to 20 percent. Roughly ten times. Adding "
-       "positional encoding moved the order of the signs from chance to about 99 percent of pairs. "
-       "[pause] Does it hold on new signers?",
     6: "On the two signers we had never touched, taking all the videos together, from two to eight "
        "signs, Imitator writes 54 and 59 percent of the signs correctly. More than half. [click] And "
        "the order: when it recognises two signs of a video, they come out in the right order 98 to 99 "
