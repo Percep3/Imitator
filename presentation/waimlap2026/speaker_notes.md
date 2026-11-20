@@ -18,7 +18,7 @@ streams of 2–8 signs. End by asking how much a correction prompt can recover f
 | 4 | This time, Imitator learns to emit Gemma’s token IDs | Limits of embeddings and exact Gemma IDs | Teal card | "Let me show the pipeline" | 0:50 |
 | 5 | Imitator drafts from signs. Gemma gets a correction prompt. | Keypoints → token IDs → decoded draft with an illustrative correction instruction | Gemma box | "Can we give Gemma one correct label?" | 1:00 |
 | 6 | One sign first. Then several signs in order. | LSA64, signer splits, sequence criteria | Purple folds 7–8 | "Start with one sign" | 0:50 |
-| 7 | Can Imitator recover the exact IDs of one sign? | “música música”; 13.75% and 10.94% strict accuracy; 77.81% and 79.06% with extra tokens | One clip example | "What happens when the video has several signs?" | 0:30 |
+| 7 | On one sign, does the output start with the right label? | Correct prefix on 229/320 and 220/320 clips, with 95% intervals | Comparison of folds 7 and 8 | "What happens when the video has several signs?" | 0:30 |
 | 8 | On 2–8 signs, strict accuracy rises about tenfold | Bars folds 4–6: 2.2/2.3/1.8 → 18.1/19.8/16.9 | Purple bars | "Does it hold on new signers?" | 0:50 |
 | 9 | Both held-out signers pass all three criteria | Bars folds 7–8 vs CIF + 11.9% line; H1–H3 | Purple bars above dashed line | "Could Gemma recover a corrupted label?" | 1:10 |
 | 10 | Gemma recovered no exact label at tested nonzero rates | Synthetic token substitutions; exact match and chrF | 0% bars | "To summarise" | 1:00 |
@@ -38,6 +38,7 @@ Visual choices:
 
 ## Likely questions (answer only from the paper)
 - **How is one sign scored?** We require the complete token ID sequence for its Spanish label plus EOS. We evaluate 320 clips per held-out signer with retrained models. This is a separate exploratory evaluation from the original 2–8-sign confirmation.
+- **What do the bars and whiskers measure?** A correct prefix matches every reference ID at the start of the output. The rates are 71.56% (95% interval 60.94–81.26%) on fold 7 and 68.75% (58.75–78.75%) on fold 8. Percentile intervals use 10,000 bootstrap resamples of the 64 glosses within each signer, keeping each gloss's five clips together (seed 23). They do not estimate variability across signers or training runs.
 - **Why is strict accuracy low for one sign?** Outputs are longer than the reference on 249/320 clips in fold 7 and 253/320 in fold 8. E1 was trained on streams of two to eight signs.
 - **Why is 12–14% strict accuracy useful?** Strict accuracy means the whole 2–8-sign sequence is exact. Edit similarity is 53.0 / 58.7% on signers 7 / 8. The paper's claim is "viable, not solved".
 - **Why not fine-tune Gemma jointly?** We chose not to, on purpose. Scoring the transcript before the LLM keeps fluent output from hiding visual errors.
@@ -51,8 +52,7 @@ Visual choices:
 - If a question goes beyond this: say "we have not evaluated that".
 
 ## Animations (click order)
-Everything uses a 0.5 s fade-in. Titles and charts are visible from the start; only the supporting elements appear on click.
-On slides 2, 3 and 5 the slide opens with the title centred; click ① glides it up to its normal place (1 s, ease in/out) where it stays, then the first content appears. The glide plays in PowerPoint, Keynote and LibreOffice. Google Slides has no motion effect, so there the title snaps to its place on that click (no overlap, no exit). Present from PowerPoint to get the movement.
+Supporting elements use a 0.5 s fade-in. On slides 2, 3 and 5, a single centred title is visible at first. Click ① moves that title straight up to the header over 1 second. The first group of content begins to appear once the title arrives. Present from PowerPoint to play the motion path.
 - **2 Context:** ① "A signer moves" ② arrow + "Imitator" ③ arrow + "The LLM writes" ④ the research question.
 - **3 History:** ① keypoints → visual model ② vectors ≈ embeddings ③ frozen LLM ④ premise + loss ⑤ open question.
 - **4 Turning point:** ① "This work" card.

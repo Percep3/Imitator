@@ -20,7 +20,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_LINE
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
-from pptx.util import Emu, Inches, Pt
+from pptx.util import Inches, Pt
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
@@ -92,6 +92,26 @@ def make_figures():
     ax.set_xlabel("Prospective confirmation folds (held-out test signer)")
     fig.tight_layout()
     fig.savefig(FIG / "confirmation_accuracy.png", dpi=220)
+    plt.close(fig)
+
+    # Same diagnostic on both replicas: the complete reference is an output prefix.
+    # Percentile intervals: 10,000 bootstrap resamples of 64 glosses, seed 23.
+    values = [71.5625, 68.75]
+    bounds = [(60.9375, 81.2578125), (58.75, 78.75)]
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    bars = ax.bar(["Fold 7", "Fold 8"], values, width=0.48, color="#" + PURPLE,
+                  yerr=[[v - lo for v, (lo, _) in zip(values, bounds)],
+                        [hi - v for v, (_, hi) in zip(values, bounds)]],
+                  error_kw={"ecolor": "#" + NAVY, "capsize": 7, "elinewidth": 2, "capthick": 2})
+    for bar, value in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width() / 2, 45, f"{value:.1f}%", ha="center",
+                color="white", fontweight="bold", fontsize=22)
+    ax.set(ylim=(0, 100), ylabel="Correct label prefix (%)",
+           xlabel="Error bars: 95% bootstrap intervals by gloss")
+    ax.yaxis.grid(True, color="#E3E5E9", linewidth=0.8)
+    ax.set_axisbelow(True)
+    fig.tight_layout()
+    fig.savefig(FIG / "isolated_prefix.png", dpi=220)
     plt.close(fig)
 
     # Gemma 3n correction audit (07_results.tex, Table gemma-tolerance)
@@ -239,55 +259,31 @@ P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 
 
 def title_intro(slide, prs, idx=103):
-    """Opening of a slide that starts empty: the title shows in the middle, then glides to the top.
-    Returns (copy, title, dx, dy) for animate(intro=...): `copy` is an identical, left-aligned text box
-    parked exactly where the title appears when centred; (dx, dy) is that offset as a fraction of
-    the slide. The real title keeps its layout position, so the final state matches every other slide."""
-    from PIL import ImageFont
-
+    """Place the sole title in the centre and record how far it must move up."""
     t = ph(slide, idx)
-    run = t.text_frame.paragraphs[0].runs[0]
-    font = ImageFont.truetype("/usr/share/fonts/truetype/lato/Lato-Bold.ttf", int(run.font.size.pt * 10))
-    text_w = int(font.getlength(run.text) / 10 * 12700)  # measured at 10x for precision, pt -> EMU
-    W, H = prs.slide_width, prs.slide_height
-    x, y = (W - text_w) // 2, (H - t.height) // 2
-    c = slide.shapes.add_textbox(x, y, t.width, t.height)
-    c.name = "Title intro (animation)"
-    tf = c.text_frame
-    tf.word_wrap = False
-    tf.vertical_anchor = MSO_ANCHOR.MIDDLE  # same as the title placeholder
-    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
-    fill_text(c, [(run.text, {"bold": True, "size": run.font.size.pt, "color": PURPLE})], space_after=0)
-    return c, t, (x - t.left) / W, (y - t.top) / H
+    top = t.top
+    t.left = (prs.slide_width - t.width) // 2
+    t.top = (prs.slide_height - t.height) // 2
+    t.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+    return t, (top - t.top) / prs.slide_height
 
 
 def animate(slide, clicks, intro=None):
     """Fade-in entrance animations. clicks: list of (targets, stagger_ms), one entry per click.
     A target is a shape, or (shape, first_par, last_par) to reveal only those paragraphs.
     Within a click, targets fade in one after another, `stagger_ms` apart.
-    intro=(copy, title, dx, dy) from title_intro(): on the first click the centred copy is swapped
-    for the real title at the same spot, which glides up to its place and stays; then the first
-    click's targets fade in. PowerPoint/Keynote/LibreOffice play the glide; Google Slides has no
-    motion effect, so there the title just snaps to its place on that click."""
+    intro=(title, dy) moves the single title vertically on the first click.
+    The first content reveal starts after the title reaches the header."""
     ids = iter(range(3, 100000))
     build = {}
     MOVE_MS = 1000
 
-    def visibility(spid, cls, val, node):  # PowerPoint "Appear" / "Disappear"
-        tgt = f'<p:spTgt spid="{spid}"/>'
-        return (f'<p:par><p:cTn id="{next(ids)}" presetID="1" presetClass="{cls}" presetSubtype="0" '
-                f'fill="hold" grpId="0" nodeType="{node}"><p:stCondLst><p:cond delay="0"/></p:stCondLst>'
-                f'<p:childTnLst><p:set><p:cBhvr><p:cTn id="{next(ids)}" dur="1" fill="hold"><p:stCondLst>'
-                f'<p:cond delay="0"/></p:stCondLst></p:cTn><p:tgtEl>{tgt}</p:tgtEl><p:attrNameLst>'
-                f'<p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to>'
-                f'<p:strVal val="{val}"/></p:to></p:set></p:childTnLst></p:cTn></p:par>')
-
-    def glide(spid, dx, dy):  # custom motion path from the centred spot back to the layout position
+    def glide(spid, dy):
         tgt = f'<p:spTgt spid="{spid}"/>'
         return (f'<p:par><p:cTn id="{next(ids)}" presetID="0" presetClass="path" presetSubtype="0" '
-                f'accel="50000" decel="50000" fill="hold" grpId="1" nodeType="withEffect"><p:stCondLst>'
+                f'accel="50000" decel="50000" fill="hold" grpId="0" nodeType="clickEffect"><p:stCondLst>'
                 f'<p:cond delay="0"/></p:stCondLst><p:childTnLst><p:animMotion origin="layout" '
-                f'path="M {dx:.5f} {dy:.5f} L 0 0 E" pathEditMode="relative" ptsTypes="AA"><p:cBhvr>'
+                f'path="M 0 0 L 0 {dy:.5f} E" pathEditMode="relative" ptsTypes="AA"><p:cBhvr>'
                 f'<p:cTn id="{next(ids)}" dur="{MOVE_MS}" fill="hold"/><p:tgtEl>{tgt}</p:tgtEl>'
                 f'<p:attrNameLst><p:attrName>ppt_x</p:attrName><p:attrName>ppt_y</p:attrName>'
                 f'</p:attrNameLst></p:cBhvr><p:rCtr x="0" y="0"/></p:animMotion></p:childTnLst>'
@@ -310,12 +306,9 @@ def animate(slide, clicks, intro=None):
     for c, (targets, stagger) in enumerate(clicks):
         effs, base = [], 0
         if intro and c == 0:
-            copy_, title_, dx, dy = intro
-            effs.append(visibility(copy_.shape_id, "exit", "hidden", "clickEffect"))
-            effs.append(visibility(title_.shape_id, "entr", "visible", "withEffect"))
-            effs.append(glide(title_.shape_id, dx, dy))
-            build[copy_.shape_id] = build[title_.shape_id] = 'animBg="1"'
-            base = MOVE_MS - 100
+            title_, dy = intro
+            effs.append(glide(title_.shape_id, dy))
+            base = MOVE_MS
         for k, t in enumerate(targets):
             shp, pars = (t[0], t[1:]) if isinstance(t, tuple) else (t, None)
             node = "clickEffect" if k == 0 and not effs else "withEffect"
@@ -498,25 +491,12 @@ def build():
     animate(s, [(folds, 0), ([t], 0)])
 
     # Isolated signs ---------------------------------------------------------
-    s = new("WAIMLAp Two Columns", NOTES["isolated"])
-    title(s, "Can Imitator recover the exact IDs of one sign?")
-    fill_text(ph(s, 104), [
-        ("One clip → one Spanish label", {"bold": True, "size": 22, "color": PURPLE}),
-        ("320 clips per held-out signer · 64 signs", {"bullet": True}),
-        ("Strict match: all Gemma IDs plus EOS", {"bullet": True}),
-        ("Extra tokens: output longer than the reference label", {"bullet": True}),
-        ("Training used streams of 2–8 signs", {"bullet": True}),
-        ("One clip: “música” → “música música”", {"size": 19, "bold": True, "color": PURPLE}),
-    ], size=20, space_after=14)
-    fill_text(ph(s, 105), [
-        ("Exploratory evaluation · retrained E1", {"bold": True, "size": 21, "color": PURPLE}),
-        ("Fold 7", {"bold": True, "size": 19}),
-        ("13.75% strict (44/320) · 18.28% edit similarity", {"size": 18, "space_after": 5}),
-        ("77.81% with extra tokens (249/320)", {"size": 18, "bold": True, "space_after": 14}),
-        ("Fold 8", {"bold": True, "size": 19}),
-        ("10.94% strict (35/320) · 14.38% edit similarity", {"size": 18}),
-        ("79.06% with extra tokens (253/320)", {"size": 18, "bold": True}),
-    ], size=19)
+    s = new("WAIMLAp Content", NOTES["isolated"])
+    title(s, "On one sign, does the output start with the right label?")
+    drop(s, 104)
+    width = Inches(8.6)
+    s.shapes.add_picture(str(FIG / "isolated_prefix.png"), (prs.slide_width - width) // 2,
+                         Inches(1.45), width=width)
 
     # 5 · Result: development -------------------------------------------------
     s = new("WAIMLAp Figure", NOTES[5])
@@ -645,15 +625,13 @@ NOTES = {
        "random order by joining videos that each contain one sign. It is a controlled step toward "
        "video with several signs. The clips have no natural sentence syntax. For that sequence "
        "benchmark, folds 7 and 8 were held back for preregistered confirmation.",
-    "isolated": "For the isolated test, we evaluate all 320 clips of each held-out signer. A strict "
-                "match requires every Gemma ID and an end-of-sequence token. Edit similarity measures "
-                "partial matches. The retrained folds use the same signer splits and sequence training "
-                "protocol. The replicas correctly transcribe 44 of 320 clips on fold 7 and 35 of 320 "
-                "on fold 8. In one clip, the signer signed música, and Imitator wrote música música. "
-                "It got the word, then said it again. The decoder emits EOS on every clip, but 77.81 and 79.06 percent of the "
-                "outputs are longer than the reference. E1 trained on sequences of at least two signs, "
-                "so stopping after one sign is a distinct challenge. Now imagine a video has several "
-                "signs. Can we recover their labels in the order they were signed?",
+    "isolated": "Same test on both replicas: does the output start with every token of the correct "
+                "label? It does on 229 of 320 clips on fold 7 and 220 of 320 on fold 8. The whiskers "
+                "show 95 percent bootstrap intervals from resampling glosses within each signer. "
+                "They do not estimate variation across signers. A prefix match can still continue: "
+                "on one clip the signer signed música, and Imitator wrote música música. For a strict "
+                "match the decoder must stop after the label. That happens on 44 and 35 clips, "
+                "respectively. Now imagine a video has several signs. Can we recover them in order?",
     5: "On the development signers, strict accuracy, meaning the whole sequence exactly right, goes from about "
        "2 percent with our initial autoregressive decoder to 17 to 20 percent. Roughly ten times. Adding "
        "positional encoding moved pairwise label order from chance to about 0.99. But to be clear: most "
